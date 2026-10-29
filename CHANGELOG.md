@@ -7,6 +7,8 @@ without a major bump.
 
 ## [Unreleased]
 
+## [0.23.0] – 2026-10-29
+
 ### Added
 
 - **Types defined by the document's own `@proto` are resolved**.
