@@ -12,7 +12,8 @@ jobs:
   ci:
     # Stock Go on a GitHub-hosted runner with no private-module access:
     # the untagged build every contributor gets, so it is safe to run for
-    # fork PRs.
+    # fork PRs. The -tags protocheck build links the private govm and
+    # protocheck-govm modules, so CI does not run it.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -31,31 +32,3 @@ jobs:
       - run: go vet ./...
       - run: go build ./...
       - run: go test -race ./...
-
-  protocheck:
-    # The -tags protocheck build, which links the private govm and
-    # protocheck-govm modules. Fork PRs get no secrets, so it runs for
-    # branches of this repository only.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    env:
-      # Only the private modules bypass the proxy and checksum database.
-      GOPRIVATE: github.com/trendvidia/govm,github.com/trendvidia/protocheck-govm
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-      - name: Private-module access
-        env:
-          TOKEN: ${{ secrets.TRENDVIDIA_DEPS_TOKEN }}
-        run: |
-          if [ -z "$TOKEN" ]; then
-            echo "::error::secret TRENDVIDIA_DEPS_TOKEN is not set; it needs read access to trendvidia/govm and trendvidia/protocheck-govm"
-            exit 1
-          fi
-          for repo in govm protocheck-govm; do
-            git config --global url."https://x-access-token:${TOKEN}@github.com/trendvidia/${repo}".insteadOf "https://github.com/trendvidia/${repo}"
-          done
-      - run: go vet -tags protocheck ./...
-      - run: go test -race -tags protocheck ./...
