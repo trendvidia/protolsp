@@ -61,7 +61,7 @@ func (s *Workspace) protoHoverFor(docURI protocol.DocumentURI, pos protocol.Posi
 	// the twin in protoDefinitionFor.
 	wsDir := doc.WorkspaceDir()
 
-	// RFC-001 positions (#218 Phase B, #219 Phase C): annotation use
+	// RFC-001 positions: annotation use
 	// sites, type/function/annotation declaration names, RFC-001 type
 	// slots, and function references. Checked first because the
 	// classification below only understands DeclDef ancestry and
@@ -300,7 +300,7 @@ func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, works
 		return renderProtoTypeLookupHover(result)
 	}
 
-	// Remote fallback (#219 Phase C): the name may be a
+	// Remote fallback: the name may be a
 	// message, enum, or RFC-001 `type` alias declared in an import
 	// the index doesn't hold — resolvable through the schema lookup
 	// as served source or from the compiled descriptor.

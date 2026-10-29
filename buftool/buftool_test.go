@@ -312,7 +312,7 @@ func writeRecordingBuf(t *testing.T, recordFile string) string {
 	return path
 }
 
-// #195: the buffer stages under its include-path-relative location so
+// The buffer stages under its include-path-relative location so
 // directory- and filename-based lint rules (PACKAGE_DIRECTORY_MATCH,
 // FILE_LOWER_SNAKE_CASE) judge the file where it actually lives.
 func TestLint_StagesUnderRelPath(t *testing.T) {

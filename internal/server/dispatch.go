@@ -398,7 +398,7 @@ func (s *Server) dispatchSecretRanges(ctx context.Context, reply jsonrpc2.Replie
 // essentially a UI hint.
 func (s *Server) dispatchDatasetRegions(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy dataset-regions client so the
-	// matching *Changed notifications keep firing. See #113.
+	// matching *Changed notifications keep firing.
 	s.legacyLspClients.datasetRegions.Store(true)
 	var params DatasetRegionsParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {
@@ -483,7 +483,7 @@ func (s *Server) dispatchLayerInfo(ctx context.Context, reply jsonrpc2.Replier, 
 // UI hint request.
 func (s *Server) dispatchGetEffectiveConfig(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy effective-config client so
-	// the matching *Changed notifications keep firing. See #113.
+	// the matching *Changed notifications keep firing.
 	s.legacyLspClients.effectiveConfig.Store(true)
 	var params GetEffectiveConfigParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {
@@ -531,7 +531,7 @@ func (s *Server) dispatchGetEffectiveConfig(ctx context.Context, reply jsonrpc2.
 func (s *Server) dispatchSetOverrides(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy effective-config client —
 	// setOverrides and getEffectiveConfig share the matching
-	// LSP notification surface. See #113.
+	// LSP notification surface.
 	s.legacyLspClients.effectiveConfig.Store(true)
 	var params SetOverridesParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {

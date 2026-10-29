@@ -171,7 +171,7 @@ addition to real registry namespace IDs:
 Both reserved names use leading/trailing underscores so they're
 distinguishable from real reverse-DNS namespace IDs while staying
 URI-safe per RFC 3986 (parentheses in the original `(proto_files)`
-were rejected by Monaco's URI parser — see PR #104).
+were rejected by Monaco's URI parser).
 
 ## Transports
 

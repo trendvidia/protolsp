@@ -73,7 +73,7 @@ function is_email(s: string);
 }
 
 // Pins the diagnostics the compile pipeline (queries.IR) emits today
-// for malformed RFC-001 constructs (#218 Phase A): each case asserts
+// for malformed RFC-001 constructs: each case asserts
 // the message wording and — because the report-native pipeline
 // carries full start..end spans — that the squiggle covers exactly
 // the offending token. If a protocompile bump rewords or repositions

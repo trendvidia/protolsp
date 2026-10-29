@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// protolsp/engineConfig (#260 §3): the workspace's effective RFC-001
+// protolsp/engineConfig: the workspace's effective RFC-001
 // §9.4 engine configuration, resolved through protocompile's shared
 // engineconfig loader — the same discovery/precedence `pxf build`
 // uses, so the LSP and the build tool always agree.

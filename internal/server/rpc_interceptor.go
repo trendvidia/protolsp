@@ -11,7 +11,7 @@
 // only saw unary calls. Subscribe streams (Secrets, Datasets,
 // EffectiveConfig) bypassed it entirely, so ~⅓ of the wire
 // traffic — the most diagnostically useful third — was missing
-// from the trace panel. See issue #108. This implementation
+// from the trace panel. This implementation
 // covers all three RPC categories by satisfying the full
 // connect.Interceptor interface.
 

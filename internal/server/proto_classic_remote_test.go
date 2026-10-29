@@ -333,7 +333,7 @@ func TestProtoNavigation_NestedServedSourceFallback(t *testing.T) {
 }
 
 // A nested path whose leaf neither layer holds keeps the graceful
-// nil (#237 acceptance).
+// nil.
 func TestProtoNavigation_NestedRemoteFallback_MissDegrades(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	lookup := newFakeLookup()

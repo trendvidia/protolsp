@@ -263,7 +263,7 @@ func mustRead(t *testing.T, path string) string {
 	return string(data)
 }
 
-// #193: a workspace-local import the proto index resolves must not
+// A workspace-local import the proto index resolves must not
 // surface as a compile error — the same buf.yaml-driven include paths
 // that back hover / definition / completion also back the compile
 // pass. Before the fix every cross-file import squiggled with
@@ -278,7 +278,7 @@ func TestDidOpen_WorkspaceImportCompilesCleanViaIndex(t *testing.T) {
 		"an import the index resolves must not produce diagnostics")
 }
 
-// #193 negative: with the index built, an import the index CANNOT
+// Negative: with the index built, an import the index CANNOT
 // supply still errors — resolution through the include paths must not
 // swallow genuinely broken imports.
 func TestDidOpen_MissingImportStillErrorsWithIndexBuilt(t *testing.T) {

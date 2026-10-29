@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// @sensitive(class) support (#260 §2, protowire#163): workspace-
+// @sensitive(class) support (protowire#163): workspace-
 // harvested class-name completion inside the class argument, and the
 // reserved `protowire.` prefix rejection surfacing through the
 // compile pass (enforced compiler-side since protocompile v0.21.0 —

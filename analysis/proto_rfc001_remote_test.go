@@ -16,7 +16,7 @@ import (
 )
 
 // The carrier extractor must surface every RFC-001 FileOptions
-// extension — including the use-site SourceMap (#219 criterion 1),
+// extension — including the use-site SourceMap,
 // which navigation doesn't consume yet but #220's runtime-error
 // mapping will.
 func TestRFC001CarrierFromDescriptor(t *testing.T) {

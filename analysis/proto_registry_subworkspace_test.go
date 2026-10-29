@@ -17,7 +17,7 @@ import (
 	"github.com/trendvidia/protolsp/schema"
 )
 
-// #215: a registry:// preview opened from a SUB-workspace must resolve
+// A registry:// preview opened from a SUB-workspace must resolve
 // its content and cross-file imports against THAT sub-workspace's
 // registry, not the root's. Before the fix, LookupForNamespace always
 // used the root lookup, so a sub-workspace-only type silently failed to

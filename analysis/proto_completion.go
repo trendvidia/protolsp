@@ -44,7 +44,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 		return nil
 	}
 
-	// Annotation-use completion (#218 Phase B) runs first: a cursor
+	// Annotation-use completion runs first: a cursor
 	// after `@` (possibly mid-name, possibly package-qualified) is
 	// unambiguously an RFC-001 annotation use, so declared annotation
 	// names are the only sensible candidates — and the check must

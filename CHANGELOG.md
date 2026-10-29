@@ -328,7 +328,7 @@ without a major bump.
   protocheckpb `check` rules carry no source map and render without
   a link, unchanged.
 
-- **`protolsp/engineConfig`** (#260 §3). New custom request returning
+- **`protolsp/engineConfig`**. New custom request returning
   the workspace's effective RFC-001 §9.4 engine configuration —
   engine, function/catalog libraries, default execution mode,
   recursion depth, strict validation — plus which precedence tier
@@ -342,7 +342,7 @@ without a major bump.
   in the response's `error` field per §9.4's no-silent-fallback rule,
   never a request failure.
 
-- **`@sensitive(class)` support** (#260 §2, protowire#163). Two
+- **`@sensitive(class)` support** (protowire#163). Two
   halves:
   - **Class-name completion.** RFC-001 §6.7 pins the sensitivity
     taxonomy as *open and org-defined* — no fixed enum — so the only
@@ -395,7 +395,7 @@ without a major bump.
     is evaluate-only and the checker needs `CompileError` offsets —
     but its binding rules are pinned to the runtime engine's.
 
-- **Function hover docs from `FunctionDecl.options`** (#260 §2).
+- **Function hover docs from `FunctionDecl.options`**.
   Hovering a function resolved through a compiled carrier (registry /
   descriptor-only imports, including calls inside opaque engine
   expressions) now renders the documentation-bearing bracket options
@@ -405,8 +405,8 @@ without a major bump.
   (`openapi_map` and friends) stay out of the card; pre-v0.20.0
   carriers render unchanged.
 
-- **Runtime-violation overlay: `sourceRef` join + `forKey` rendering**
-  (#260 §2). `protolsp/setRuntimeViolations` violations now carry the
+- **Runtime-violation overlay: `sourceRef` join + `forKey` rendering**.
+  `protolsp/setRuntimeViolations` violations now carry the
   two fields protowire's `EnrichedViolation` gained for exactly this
   join (protowire#161/#125), so producers forward Report violations
   without re-keying:
@@ -599,7 +599,7 @@ without a major bump.
   and reappear when it resolves again — the store only changes on
   the next notification.
 
-- **RFC-001 completion + navigation** (#218 Phase B). File-scope
+- **RFC-001 completion + navigation**. File-scope
   completion now offers the `type` / `function` / `annotation`
   declaration keywords; a cursor after `@` (registered as a
   completion trigger character) completes the annotation names
@@ -716,7 +716,7 @@ without a major bump.
   were always emitted in UTF-16 code units; under a client-negotiated
   `utf-8` encoding, columns after any non-ASCII character landed off
   by the UTF-8/UTF-16 width difference. Span conversion now counts
-  columns in the negotiated unit (#219 criterion 4).
+  columns in the negotiated unit.
 
 - **Request positions honor the negotiated position encoding**
   (the input-side twin of the range fix above). Incoming
@@ -755,7 +755,7 @@ without a major bump.
 
 ### Added
 
-- **Semantic tokens for `.proto` documents** (#218 Phase A). The
+- **Semantic tokens for `.proto` documents**. The
   semantic-token layer now covers the RFC-001 schema-extension
   constructs stock editor grammars don't know: `type` / `function` /
   `annotation` declaration keywords highlight as `keyword`, and

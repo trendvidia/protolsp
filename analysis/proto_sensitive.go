@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// @sensitive(class) support (#260 §2). protowire#163 resolved the
+// @sensitive(class) support. protowire#163 resolved the
 // §6.7 classification parameter as `annotation sensitive(class:
 // string = "")` with an *open, org-defined* class vocabulary — no
 // fixed enum, no spec registry — and the `protowire.` prefix

@@ -186,7 +186,7 @@ message Solo {
 }
 
 func TestProtoPackageContinuation(t *testing.T) {
-	// #247: the next package segment toward targetPkg, when some
+	// The next package segment toward targetPkg, when some
 	// enclosing-scope interpretation of the qualifier is a strict
 	// segment-aligned prefix of it.
 	cases := []struct {
@@ -214,7 +214,7 @@ func TestProtoPackageContinuation(t *testing.T) {
 }
 
 func TestProtoMinimalScopedLabel(t *testing.T) {
-	// #247: the shortest suffix that binds exactly the labeled
+	// The shortest suffix that binds exactly the labeled
 	// declaration from the cursor's enclosing-message chain — with
 	// shadowed suffixes skipped.
 	f := parseProtoSilently("minimal.proto", []byte(`syntax = "proto3";

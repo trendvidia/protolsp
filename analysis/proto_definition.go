@@ -75,7 +75,7 @@ func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol
 		return s.resolveProtoImport(imp)
 	}
 
-	// RFC-001 positions (#218 Phase B, #219 Phase C): annotation use
+	// RFC-001 positions: annotation use
 	// sites and function references jump to their declarations
 	// (in-file or in an imported file); type slots resolve like field
 	// types; declaration names jump to themselves. Checked before the
@@ -199,7 +199,7 @@ func (s *Workspace) resolveProtoTypeDefinition(docURI protocol.DocumentURI, work
 		return protoLocation(result.File, result.Node(), s.positionEncoding)
 	}
 
-	// Remote fallback (#219 Phase C): a message, enum, or
+	// Remote fallback: a message, enum, or
 	// RFC-001 `type` alias in an import the index doesn't hold —
 	// served source or the compiled descriptor via the schema lookup.
 	return s.rfc001RemoteLocation(workspaceDir, currentFile, rfc001KindType, name, refScope)

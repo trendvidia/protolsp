@@ -17,7 +17,7 @@ import (
 )
 
 // cellCheckSchema has a field of every kind whose accepted literals
-// #290 measured against protowire's `pxf validate`.
+// Measured against protowire's `pxf validate`.
 const cellCheckSchema = `
 syntax = "proto3";
 package c.v1;

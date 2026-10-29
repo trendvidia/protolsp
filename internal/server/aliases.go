@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Aliases into the public analysis package (#172 rung 3). The engine
+// Aliases into the public analysis package. The engine
 // half of this package graduated to
 // github.com/trendvidia/protolsp/analysis; these aliases keep the
 // LSP/RPC shell and the (large) in-package test suite compiling

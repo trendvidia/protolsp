@@ -165,7 +165,7 @@ message Account {
 }
 
 func TestAnalyzeProtovalidateExpressions_NonASCIIPrefix_EncodingAware(t *testing.T) {
-	// #227: a block-comment emoji BEFORE the expression on the same
+	// A block-comment emoji BEFORE the expression on the same
 	// line makes the literal's byte column and UTF-16 column differ
 	// (emoji = 4 bytes, 2 code units). The concatenated literal
 	// forces the whole-token fallback, whose start is exactly the
@@ -200,7 +200,7 @@ message Account {
 }
 
 func TestAnalyzeProtovalidateExpressions_PerColumn_NonASCIIPrefix(t *testing.T) {
-	// #227, precise-range path: the narrowed per-column range (past
+	// Precise-range path: the narrowed per-column range (past
 	// the opening quote, at the failing selector) must also convert
 	// through the negotiated encoding. The two encodings' start
 	// columns differ by exactly the emoji's width difference.
@@ -234,7 +234,7 @@ message Account {
 		"the encodings differ by exactly the emoji's width difference")
 }
 
-// #279: rules compile against protovalidate's own library, so what
+// Rules compile against protovalidate's own library, so what
 // the runtime accepts is silent here and what it rejects is
 // reported — pinned in both directions. Expressions are wrapped in
 // single-quoted proto literals so CEL's double quotes need no

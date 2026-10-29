@@ -86,7 +86,7 @@ type Server struct {
 	// legacy request dispatcher and stays true until Server is
 	// torn down. serverPublisher reads the bool before
 	// s.conn.Notify; the RPC publish path is always fired
-	// regardless. See #113 for the deprecation horizon.
+	// regardless.
 	legacyLspClients struct {
 		secretRanges    atomic.Bool
 		datasetRegions  atomic.Bool

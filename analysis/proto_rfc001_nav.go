@@ -364,7 +364,7 @@ func protoAnnotationSignature(decl ast.DeclAnnotation) string {
 	return name
 }
 
-// ─── `type` aliases + `function` declarations (#219 Phase C) ─────
+// ─── `type` aliases + `function` declarations ─────
 
 // findTypeAliasByName returns the top-level `type` declaration named
 // `name`, or the zero DeclType. Top-level only, like annotations.

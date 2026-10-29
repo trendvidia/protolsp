@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 completion + navigation (#218 Phase B): the `type` /
+// RFC-001 completion + navigation: the `type` /
 // `function` / `annotation` keywords in file-scope completion,
 // declared annotation names after `@`, and hover / go-to-definition
 // wiring from `@name` use sites to their `annotation` declarations.

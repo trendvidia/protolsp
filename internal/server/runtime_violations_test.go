@@ -259,8 +259,8 @@ func TestSetRuntimeViolations_AliasChainAndMapAliasKeys(t *testing.T) {
 	}
 }
 
-// The EnrichedViolation pass-through fields (protowire#161/#125, via
-// #260 §2): a violation carrying sourceRef joins by its §8.3.1 rule
+// The EnrichedViolation pass-through fields (protowire#161/#125):
+// a violation carrying sourceRef joins by its §8.3.1 rule
 // identity — the positional descriptorPath is ignored — with the file
 // half suffix-matched against the document's source map (producers
 // carry module-relative paths, protolsp compiles under absolute

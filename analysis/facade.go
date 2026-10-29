@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Workspace construction + the exported facade knobs (#172 rung 3).
+// Workspace construction + the exported facade knobs.
 //
 // The Workspace type itself (the former internal/server engine) is
 // declared in engine.go; this file owns everything an embedder or

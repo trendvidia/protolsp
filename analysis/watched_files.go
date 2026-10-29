@@ -210,7 +210,7 @@ func (s *Workspace) classifyWatchedEvents(events []*protocol.FileEvent) watchedF
 	// dirs, or the naive-fallback workspace root). Resolved once
 	// per batch.
 	protoIndexRoots := s.absoluteProtoIndexPaths()
-	// #208: chain LAYER files. One matcher per loaded chain (root +
+	// Chain LAYER files. One matcher per loaded chain (root +
 	// sub-workspaces), each anchored at the workspace dir its
 	// relative layer paths resolve against. nil when no chain is
 	// loaded anywhere, so non-chameleon workspaces pay nothing.

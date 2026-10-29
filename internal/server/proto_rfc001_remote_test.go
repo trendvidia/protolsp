@@ -209,8 +209,8 @@ func TestProtoNavigation_RFC001RemoteFallback_PreV12Degrades(t *testing.T) {
 		"no carrier + no source → no definition")
 }
 
-// Navigation ranges must count columns in the negotiated encoding
-// (#219 criterion 4). The declaration line carries a non-ASCII
+// Navigation ranges must count columns in the negotiated encoding.
+// The declaration line carries a non-ASCII
 // comment before the name, so UTF-8 (byte) and UTF-16 (code unit)
 // columns genuinely diverge: é is 2 bytes / 1 code unit.
 func TestProtoDefinition_RFC001_PositionEncodingRoundTrip(t *testing.T) {

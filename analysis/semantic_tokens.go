@@ -93,8 +93,8 @@ func (s *Workspace) SemanticTokensFor(docURI protocol.DocumentURI) *protocol.Sem
 	}
 	doc.mu.RLock()
 	defer doc.mu.RUnlock()
-	// .proto documents highlight from the retained protocompile AST
-	// (#218 Phase A) — RFC-001 keywords + annotation-use sites only;
+	// .proto documents highlight from the retained protocompile AST:
+	// RFC-001 keywords + annotation-use sites only;
 	// stock proto syntax stays with the editor's grammar layer. The
 	// pxf walk below never applies to them (Parsed is always nil for
 	// .proto docs).

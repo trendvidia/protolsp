@@ -65,7 +65,7 @@ func (p serverPublisher) SecretRangesChanged(ctx context.Context, docURI uri.URI
 	// Skip the legacy LSP notification when no client this
 	// session has called the matching legacy request method.
 	// RPC-only clients (pxfed post-#34, etc.) would otherwise
-	// pay doubled wire traffic on every analyze pass. See #113.
+	// pay doubled wire traffic on every analyze pass.
 	if !p.s.legacyLspClients.secretRanges.Load() {
 		return
 	}
@@ -90,7 +90,6 @@ func (p serverPublisher) DatasetRegionsChanged(ctx context.Context, docURI uri.U
 	}
 	// Skip the legacy LSP notification when no client this
 	// session has called the matching legacy request method.
-	// See #113.
 	if !p.s.legacyLspClients.datasetRegions.Load() {
 		return
 	}
@@ -119,7 +118,7 @@ func (p serverPublisher) EffectiveConfigChanged(ctx context.Context, workspaceDi
 	}
 	// Skip the legacy LSP notification when no client this
 	// session has touched the matching legacy request methods
-	// (getEffectiveConfig / setOverrides). See #113.
+	// (getEffectiveConfig / setOverrides).
 	if !p.s.legacyLspClients.effectiveConfig.Load() {
 		return
 	}
