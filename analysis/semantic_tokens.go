@@ -47,7 +47,7 @@ var (
 		protocol.SemanticTokenNumber,     // 5  - IntVal, FloatVal, DurationVal, TimestampVal
 		protocol.SemanticTokenKeyword,    // 6  - true / false / null
 		protocol.SemanticTokenEnumMember, // 7  - IdentVal that resolves to an enum value
-		// .proto RFC-001 constructs (#218). `decorator` is the LSP
+		// .proto RFC-001 constructs. `decorator` is the LSP
 		// 3.17 standard type for @-annotations; go.lsp.dev/protocol
 		// (3.16 vintage) has no constant for it, hence the literal.
 		protocol.SemanticTokenTypes("decorator"), // 8  - @name annotation-use sites in .proto

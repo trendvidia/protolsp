@@ -14,7 +14,7 @@ import (
 // serverPublisher is the transport-side Publisher: it owns every
 // jsonrpc2 conn.Notify the engine used to make inline, plus the
 // Connect-RPC Subscribe fan-outs, plus the legacy-LSP-client gating
-// (#113) that keeps RPC-only clients from paying doubled wire
+// that keeps RPC-only clients from paying doubled wire
 // traffic. Engine code calls s.Publisher().X and stays transport-free.
 //
 // nil-conn tolerance: tests (and the window between New and
@@ -136,6 +136,6 @@ func (p serverPublisher) EffectiveConfigChanged(ctx context.Context, workspaceDi
 // the RPC sidecar poll protolsp/registryStatus (once per client
 // boot — protolsp never reconnects mid-session in that topology),
 // and no protolsp/* notification method exists for lookup
-// transitions. The seam exists for in-process embedders (#204),
+// transitions. The seam exists for in-process embedders,
 // which live across rebuilds and would otherwise poll.
 func (p serverPublisher) LookupChanged(context.Context, string) {}

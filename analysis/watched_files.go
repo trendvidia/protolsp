@@ -16,7 +16,7 @@
 //      - chain LAYER files (exact ResolvedPath match or containment
 //        under a declared fs source root) — no reload needed, but
 //        open leaves must re-analyze because their chain-aware
-//        diagnostics read sibling/ancestor layers from disk (#208)
+//        diagnostics read sibling/ancestor layers from disk
 //   3. For matching events: reload the corresponding state
 //      (fileConfig, chain) and re-analyze every open document so
 //      diagnostics + LayerInfo reflect the new world.
@@ -175,7 +175,7 @@ type watchedFilesClassification struct {
 	// required-field diagnostics from the union of fields set
 	// across their resolve-order siblings/ancestors READ FROM DISK,
 	// so an on-disk edit to any layer can flip a leaf's diagnostics
-	// without the leaf itself changing (#208). Nothing needs
+	// without the leaf itself changing. Nothing needs
 	// reloading — layer contents are read fresh at analyze time —
 	// only the reanalyze fan-out was missing.
 	reanalyzeChainDocs bool
@@ -293,7 +293,7 @@ func (s *Workspace) classifyWatchedEvents(events []*protocol.FileEvent) watchedF
 			cls.subWorkspaceDirs[dir] = struct{}{}
 			continue
 		}
-		// Chain LAYER file (#208): an on-disk edit to any layer can
+		// Chain LAYER file: an on-disk edit to any layer can
 		// flip the chain-aware required-field diagnostics of open
 		// LEAVES that never changed (they're computed from the union
 		// of fields set across the resolve order, read from disk).

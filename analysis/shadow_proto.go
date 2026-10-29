@@ -65,7 +65,7 @@ func IsRegistryProtoURI(u uri.URI) bool {
 // This opens the preview against the ROOT lookup's scope. Multi-root
 // embedders use OpenShadowProtoForWorkspace to bind the preview to the
 // sub-workspace it was opened from, so its cross-file navigation
-// resolves against that sub-workspace's registry (#215).
+// resolves against that sub-workspace's registry.
 func (s *Workspace) OpenShadowProto(docURI uri.URI, source string) {
 	s.OpenShadowProtoForWorkspace(docURI, source, "")
 }
@@ -75,7 +75,7 @@ func (s *Workspace) OpenShadowProto(docURI uri.URI, source string) {
 // sub-workspace the preview was opened from. It records that on the
 // shadow Document (SetWorkspaceDir) so hover + go-to-definition route
 // the preview's cross-file registry resolution to the sub-workspace's
-// own registry rather than the root's (#215). An empty workspaceDir
+// own registry rather than the root's. An empty workspaceDir
 // leaves the doc root-scoped — the OpenShadowProto behavior.
 func (s *Workspace) OpenShadowProtoForWorkspace(docURI uri.URI, source, workspaceDir string) {
 	if !IsRegistryProtoURI(docURI) {

@@ -22,7 +22,7 @@
 //     line ("unknown type X — row validation disabled").
 //
 // Per-cell validation checks the cell's literal kind against the
-// field its column names, as the decoder does (#290): a dotted column
+// field its column names, as the decoder does: a dotted column
 // names the leaf field of its path; a message type takes the literal
 // it is written as (a wrapper its inner type's, pxf.Secret a string,
 // the big-number types a number, Timestamp and Duration their own)
@@ -35,7 +35,7 @@
 // whose cells all pass is then bound by the decoder (pxf.BindRow), for
 // what it decides from the value rather than its kind: an int out of
 // range, a name the enum lacks, a map key its key type cannot parse,
-// and what a message block holds (#293). Its error lands on the cell
+// and what a message block holds. Its error lands on the cell
 // it names.
 
 package analysis
@@ -88,7 +88,7 @@ func (s *Workspace) validateDatasetRegions(doc *Document) []protocol.Diagnostic 
 		// configured (above: the document's own types do not make
 		// a type it does not define a misconfiguration), and not
 		// for a typeless @dataset, whose failed binding protolsp/proto
-		// reports (#287).
+		// reports.
 		if !region.Resolvable {
 			if s.hasUserLookup() && (parsed == nil || parsed.Type != "") {
 				out = append(out, datasetUnresolvableDiagnostic(region))

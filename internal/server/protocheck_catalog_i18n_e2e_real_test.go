@@ -1,6 +1,6 @@
 //go:build protocheck
 
-// End-to-end coverage for §7 catalog i18n (#267): a
+// End-to-end coverage for §7 catalog i18n: a
 // protowire.config.textproto naming catalog_libraries makes
 // protocheck violation messages render through the locale catalog
 // matching the client's InitializeParams.locale, falling back to

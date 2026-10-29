@@ -78,7 +78,7 @@ type WorkspaceManager struct {
 	// covers nested workspaces. Keyed by the absolute path of
 	// the directory containing `.protolsp.pxf`. Guarded by
 	// workspacesMu; external readers go through
-	// Workspace.SubWorkspaceByDir / SubWorkspaceCount (#179).
+	// Workspace.SubWorkspaceByDir / SubWorkspaceCount.
 	subWorkspaces map[string]*WorkspaceState
 	workspacesMu  sync.Mutex
 }

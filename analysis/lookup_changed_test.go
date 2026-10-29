@@ -97,7 +97,7 @@ func TestLookupChanged_FiresOnFailedRebuildDial(t *testing.T) {
 	// validation before any network I/O — a deterministic stand-in
 	// for an unreachable registry. The previous (nil) state is
 	// kept, but the transition must still fire so a status surface
-	// waiting on the rebuild knows the attempt resolved (#204).
+	// waiting on the rebuild knows the attempt resolved.
 	w := New(nil)
 	rec := &lookupChangedRecorder{}
 	w.SetPublisher(rec)
@@ -108,7 +108,7 @@ func TestLookupChanged_FiresOnFailedRebuildDial(t *testing.T) {
 }
 
 func TestLookupChanged_SubWorkspaceSwapCarriesDir(t *testing.T) {
-	// Sub-workspace slots don't route through LookupManager (#209);
+	// Sub-workspace slots don't route through LookupManager;
 	// the swap helpers fire with the workspace dir so per-workspace
 	// status surfaces can refresh selectively.
 	w := New(nil)

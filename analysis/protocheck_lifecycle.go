@@ -1,6 +1,6 @@
 // Lifecycle plumbing for the protocheck data validator. The
 // validator used to be built exactly once at New; wiring the §9.4
-// engine config's function_libraries into construction (#260) made
+// engine config's function_libraries into construction made
 // it rebuildable — the effective config isn't known until the
 // workspace root lands, and both the config and the schema lookup
 // serving its library import paths can change over the session.

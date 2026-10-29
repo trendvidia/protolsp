@@ -82,11 +82,11 @@ func New(log *slog.Logger) *Workspace {
 	// a validator built against the resolved engine config.
 	w.protocheckBaseline = "\x00unbuilt"
 	// The manager fires the Publisher's LookupChanged seam whenever
-	// an install/teardown lands (#204). The closure reads w.pub at
+	// an install/teardown lands. The closure reads w.pub at
 	// fire time so a SetPublisher installed after construction is
 	// honored. The manager owns the ROOT workspace's lookups, hence
 	// workspaceDir "" — sub-workspace slots fire with their dir via
-	// notifyLookupChanged (#209).
+	// notifyLookupChanged.
 	w.lookupMgr = newLookupManager(func() {
 		// A lookup swap can change what an import path resolves to, so
 		// drop the cross-file registry AST cache (goed#119) before

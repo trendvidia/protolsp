@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Remote resolution for RFC-001 declarations (#219 Phase C, second
-// half) and for classic message/enum type references (#229). The
+// half) and for classic message/enum type references. The
 // AST-first resolvers (proto_rfc001_nav.go, proto_cross_file.go)
 // cover files protolsp can parse: the current buffer, on-disk
 // imports via the protoindex, and registry files whose source is
@@ -18,7 +18,7 @@
 //     ranges, columns in the negotiated encoding.
 //  2. The descriptor itself: descriptor-only files (registry serves
 //     the descriptor but not the source — ad-hoc parents, pre-cached
-//     deps). Classic messages and enums are real descriptors (#229):
+//     deps). Classic messages and enums are real descriptors:
 //     fd.Messages()/fd.Enums() find the declaration and
 //     SourceLocations().ByDescriptor recovers the declaration site
 //     when the descriptor kept its SourceCodeInfo. RFC-001
@@ -60,7 +60,7 @@ import (
 // rfc001KindType is the type-slot namespace — a field type (or an
 // RFC-001 type slot, which resolves identically) can name a classic
 // message, a classic enum, or an RFC-001 `type` alias, and the
-// remote resolve searches all three (#229).
+// remote resolve searches all three.
 type rfc001DeclKind int
 
 const (
@@ -70,7 +70,7 @@ const (
 )
 
 // resolveRFC001RemoteDecl resolves a declaration reference — an
-// RFC-001 annotation/function, or (kind rfc001KindType, #229) a
+// RFC-001 annotation/function, or (kind rfc001KindType) a
 // classic message/enum/type-alias — through the workspace's schema
 // lookup, for imports the AST-first resolvers couldn't source.
 // Returns the hover markdown, a Location when one is buildable (a
@@ -107,9 +107,9 @@ func (s *Workspace) resolveRFC001RemoteDecl(ctx context.Context, wsDir string, c
 		}
 		// Candidate interpretations of the name inside this file's
 		// package: type references may carry enclosing-message
-		// segments (#237); annotations and functions are top-level
+		// segments; annotations and functions are top-level
 		// only, so just the undotted package interpretations apply
-		// (#245) — a bare name doesn't leak across packages.
+		// — a bare name doesn't leak across packages.
 		var scoped []string
 		if kind == rfc001KindType {
 			scoped = protoScopedCandidates(name, refScope, string(fd.Package()))
@@ -141,7 +141,7 @@ func (s *Workspace) resolveRFC001RemoteDecl(ctx context.Context, wsDir string, c
 			}
 		}
 		// Layer 2 — the descriptor. Classic messages/enums are real
-		// descriptors (#229) and are tried first, mirroring layer 1's
+		// descriptors and are tried first, mirroring layer 1's
 		// (and resolveProtoTypeRef's) message → enum → alias priority;
 		// RFC-001 declarations live in the carrier options. Carrier
 		// declarations are top-level only, so for type references only
@@ -209,7 +209,7 @@ func (s *Workspace) rfc001RemoteLocation(wsDir string, currentFile *protoast.Fil
 // kind and returns the rendered hover card plus the name node (the
 // go-to-definition target). Annotations and functions only — the
 // type-slot kind resolves through findTypeByScopedCandidates instead
-// (#237), whose lookup renders via renderProtoTypeLookupHover.
+// , whose lookup renders via renderProtoTypeLookupHover.
 func rfc001DeclCard(f *protoast.File, kind rfc001DeclKind, leaf string) (string, source.Spanner, bool) {
 	switch kind {
 	case rfc001KindAnnotation:
@@ -396,7 +396,7 @@ func carrierFunctionSignature(d *schemav1.FunctionDecl) string {
 }
 
 // classicDescriptorDecl finds the first scoped candidate among fd's
-// message and enum descriptors (#229) and renders a hover card +
+// message and enum descriptors and renders a hover card +
 // declaration-site range. Every candidate descends the enclosing-
 // message chain from the file's top level (#241 — the descriptor
 // twin of findTypeByScopedCandidates' rooted matching). The card has
@@ -421,7 +421,7 @@ func classicDescriptorDecl(fd protoreflect.FileDescriptor, candidates []string, 
 // descriptorByScopedPath descends fd's message descriptors along a
 // dotted scope path rooted at the file's top level: every segment
 // but the last names an enclosing message, the last names a message
-// or enum nested directly inside it (#237). The descriptor twin of
+// or enum nested directly inside it. The descriptor twin of
 // findDeclByScopedPath. Returns (nil, "") when any segment misses.
 func descriptorByScopedPath(fd protoreflect.FileDescriptor, scoped string) (protoreflect.Descriptor, string) {
 	segs := strings.Split(scoped, ".")

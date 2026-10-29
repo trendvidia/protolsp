@@ -571,7 +571,7 @@ func Expand(spec *Spec) (map[string]EnvironmentInfo, []LayerInstance, []Diagnost
 // "default" fs source + layer entries that omit `source =`).
 // Without the mapping, Expand left those ResolvedPaths bare and
 // every chain-aware feature silently degraded to the permissive
-// fs-root fallback (#207). No declared "default" keeps "" so the
+// fs-root fallback. No declared "default" keeps "" so the
 // bare-path behavior survives for spec-less / sourceless chains.
 func effectiveSourceName(sources map[string]SourceRef, declared string) string {
 	if declared != "" {

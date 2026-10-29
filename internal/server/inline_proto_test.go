@@ -19,7 +19,7 @@ import (
 )
 
 // openInline opens src with no workspace registry: a document that
-// carries its own @proto needs none (#287). It returns the document and
+// carries its own @proto needs none. It returns the document and
 // the diagnostics last published for it.
 func openInline(t *testing.T, src string) (*Document, []protocol.Diagnostic) {
 	t.Helper()
@@ -123,7 +123,7 @@ func TestInlineProto_AnonymousNameNotShown(t *testing.T) {
 	// Nor in a column path into a type nested in it.
 	_, diags = openInline(t, "@proto { message In { string x = 1; } In in = 1; }\n@dataset (in.nope)\n(\"x\")\n")
 	assert.Equal(t, []string{`column "in.nope": In has no field "nope"`}, messages(diags, "protolsp/dataset"))
-	// Nor in the decoder's verdict on what a block holds (#293).
+	// Nor in the decoder's verdict on what a block holds.
 	_, diags = openInline(t, "@proto { message In { string x = 1; } In in = 1; }\n@dataset (in)\n({ nope = 1 })\n")
 	assert.Equal(t, []string{`column "in": unknown field "nope" in In`}, messages(diags, "protolsp/dataset"))
 }

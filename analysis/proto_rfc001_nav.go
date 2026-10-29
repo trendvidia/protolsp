@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Completion + navigation for RFC-001 declarations. Phase A (#218)
+// Completion + navigation for RFC-001 declarations. Phase A
 // gave the schema-extension constructs semantic tokens; Phase B
 // wired the annotation surfaces:
 //
@@ -11,7 +11,7 @@
 //     own name) renders the declaration card, and
 //   - go-to-definition on a use site jumps to the declaration.
 //
-// Phase C (#219) extends hover + definition to the remaining RFC-001
+// Phase C extends hover + definition to the remaining RFC-001
 // constructs: `type` aliases (as field types, alias values, and
 // parameter types) and `function` declarations (referenced from
 // parsed annotation arguments), plus self-navigation on both
@@ -56,7 +56,7 @@ func (r protoAnnotationLookup) IsZero() bool {
 // resolveProtoAnnotationRef finds the `annotation` declaration for
 // `name` (the canonicalized path of a use site, possibly dotted)
 // reachable from currentFile. Same priority + scoping rules as
-// resolveProtoTypeRef (#245): the name is interpreted against the
+// resolveProtoTypeRef: the name is interpreted against the
 // enclosing scopes of the referencing file's package, so a bare name
 // binds in-file and in same-package (or enclosing-package) imports —
 // never across unrelated packages — and a dotted name works under
@@ -409,7 +409,7 @@ func (r protoFunctionLookup) IsZero() bool {
 
 // resolveProtoFunctionRef finds the `function` declaration for
 // `name` reachable from currentFile. Same priority + scoping rules
-// as resolveProtoAnnotationRef (#245).
+// as resolveProtoAnnotationRef.
 func (s *Workspace) resolveProtoFunctionRef(currentFile *protoast.File, name string) protoFunctionLookup {
 	if currentFile == nil || name == "" {
 		return protoFunctionLookup{}
@@ -563,7 +563,7 @@ func protoAnnotationUsePrefix(src []byte, pos protocol.Position, enc positions.E
 //     protoImportedTypeItems: cross-package uses need the qualifier,
 //     suggesting a bare name would suggest something invalid).
 //   - qualifier "acme.demo.v1" (or any enclosing-scope interpretation
-//     naming a package — `demo.v1` written in acme.demo.v1, #245) →
+//     naming a package — `demo.v1` written in acme.demo.v1) →
 //     bare names from files whose package it names (the qualifier is
 //     already typed), plus in-file declarations when it names the
 //     current package.
@@ -622,7 +622,7 @@ func (s *Workspace) protoAnnotationCompletionItems(currentFile *protoast.File, q
 // protoFunctionCompletionItems emits a CompletionItem for every
 // `function` declaration reachable from the current file — the
 // candidate set for a cursor inside an annotation use's argument
-// parens (#228).
+// parens.
 func (s *Workspace) protoFunctionCompletionItems(currentFile *protoast.File, qualifier string) []protocol.CompletionItem {
 	return s.protoRFC001CompletionItems(currentFile, qualifier, "function", protocol.CompletionItemKindFunction, protoFunctionNames)
 }

@@ -71,7 +71,7 @@ func Parse(path string, data []byte) *File {
 // OffsetIn converts a 0-indexed LSP position into a byte offset in
 // f.Src, interpreting the column in the negotiated position
 // encoding (UTF-16 code units by default, bytes when the client
-// negotiated UTF-8) — the input-side twin of RangeIn (#232). A
+// negotiated UTF-8) — the input-side twin of RangeIn. A
 // column past the end of its line clamps to the line end (per
 // spec — editors send such positions for cursors on indented blank
 // lines). Returns -1 when the line lies outside the file.

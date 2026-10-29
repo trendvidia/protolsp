@@ -118,7 +118,7 @@ const (
 // this package still exercise engine surface directly (dataset
 // detection, diagnostic-data decoding, config defaults); these keep
 // them compiling. The pure-helper unit tests moved into the
-// analysis package itself (#179), which let their helpers drop to
+// analysis package itself, which let their helpers drop to
 // unexported names.
 
 type (

@@ -52,7 +52,7 @@ type protocheckFinding struct {
 	Pos    pxf.Position
 	// Rule points at the schema declaration that produced the
 	// violation — the v2 EnrichedViolation Source/SourceRef
-	// enrichment (#268), resolved to an editor location at finding
+	// enrichment, resolved to an editor location at finding
 	// time (runProtocheck holds the workspace context; this
 	// renderer doesn't). Nil when the engine carried no source
 	// info for the rule (protocheckpb Check rules today — only

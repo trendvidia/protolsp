@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Package analysis is protolsp's transport-free analysis engine
-// (#172): the document store, schema lookup, workspace/chain/config
+// : the document store, schema lookup, workspace/chain/config
 // state, and every analysis pass (parse + schema diagnostics, hover,
 // completion, definition, code actions, secret ranges, dataset
 // regions, effective config) — importable without jsonrpc2 or
@@ -16,7 +16,7 @@
 // runs — same debounce, same workspace discovery, same secret
 // handling.
 //
-// # API tiers (#179)
+// # API tiers
 //
 // The exported surface has two tiers. The EMBEDDER core is what an
 // in-process consumer needs and is what we try hardest to keep
@@ -87,7 +87,7 @@ import (
 //
 // The LSP Server (internal/server) embeds *Workspace, so dispatch
 // and RPC handlers reach engine state through method promotion;
-// in-process embedders (goed, #172) construct one via New and drive
+// in-process embedders (goed) construct one via New and drive
 // it directly.
 type Workspace struct {
 	docs *Documents
@@ -279,7 +279,7 @@ type Workspace struct {
 	activeEnv   string
 
 	// runtimeViolations is the per-document runtime-violation
-	// overlay pushed in via protolsp/setRuntimeViolations (#231):
+	// overlay pushed in via protolsp/setRuntimeViolations:
 	// RFC-001 (file, descriptor_path)-keyed violations a protowire
 	// runtime reported, rendered as Information diagnostics with
 	// source "protolsp/runtime" wherever the key still resolves

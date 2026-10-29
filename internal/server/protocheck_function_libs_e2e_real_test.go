@@ -1,7 +1,7 @@
 //go:build protocheck
 
 // End-to-end coverage for the §9.4 function_libraries wiring
-// (#260): a protowire.config.textproto naming a function library
+// : a protowire.config.textproto naming a function library
 // makes the protocheck/v2 validator register the library's declared
 // functions (lenient §9.2 verification), so data hitting a rule
 // that calls a declared-but-unimplemented function surfaces a

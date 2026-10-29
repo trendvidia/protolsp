@@ -124,7 +124,7 @@ func TestRegistryCrossFile_EnumRefResolves(t *testing.T) {
 func TestRegistryCrossFile_OuterQualifiedNestedTypeResolves(t *testing.T) {
 	w := newProtoImportWorkspace(t)
 	// A preview in a DIFFERENT package references the nested type by
-	// its outer-qualified name (#237): package + enclosing message +
+	// its outer-qualified name: package + enclosing message +
 	// leaf. The old qualifier-equals-package check filtered this out.
 	const src = `syntax = "proto3";
 package other.ns;

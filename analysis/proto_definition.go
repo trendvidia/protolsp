@@ -54,7 +54,7 @@ func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol
 	}
 
 	// A registry:// preview resolves its cross-file targets against
-	// the sub-workspace it was opened from (#215); wsDir carries that
+	// the sub-workspace it was opened from; wsDir carries that
 	// scope from the shadow Document (OpenShadowProtoForWorkspace) to
 	// the registry resolvers. "" for the root workspace (and every
 	// on-disk file, which doesn't reach the registry paths anyway).
@@ -86,7 +86,7 @@ func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol
 		return loc
 	}
 
-	// Function calls inside opaque engine-expression fragments (#220):
+	// Function calls inside opaque engine-expression fragments:
 	// the capture has no AST value nodes for the path walk above to
 	// classify, but the compile pass resolved every call site — hit-
 	// test the cursor against those instead.
@@ -157,7 +157,7 @@ func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol
 // on-disk URI).
 //
 // workspaceDir scopes the registry:// cross-file resolution to the
-// preview's sub-workspace registry (#215); it is unused on the
+// preview's sub-workspace registry; it is unused on the
 // on-disk path.
 //
 // refScope is the reference site's lexical scope (protoRefScopeAt,
@@ -199,7 +199,7 @@ func (s *Workspace) resolveProtoTypeDefinition(docURI protocol.DocumentURI, work
 		return protoLocation(result.File, result.Node(), s.positionEncoding)
 	}
 
-	// Remote fallback (#219 Phase C, #229): a message, enum, or
+	// Remote fallback (#219 Phase C): a message, enum, or
 	// RFC-001 `type` alias in an import the index doesn't hold —
 	// served source or the compiled descriptor via the schema lookup.
 	return s.rfc001RemoteLocation(workspaceDir, currentFile, rfc001KindType, name, refScope)

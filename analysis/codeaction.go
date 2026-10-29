@@ -37,7 +37,7 @@ func (s *Workspace) CodeActionsFor(doc *Document, diags []protocol.Diagnostic) [
 }
 
 // DecodeUnresolvedNameData turns a Diagnostic.Data round-tripped
-// through the LSP client into the typed UnresolvedNameData (#275).
+// through the LSP client into the typed UnresolvedNameData.
 // Returns nil when the payload isn't ours.
 func DecodeUnresolvedNameData(v interface{}) *UnresolvedNameData {
 	switch d := v.(type) {

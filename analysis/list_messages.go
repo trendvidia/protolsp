@@ -62,7 +62,7 @@ type ListMessagesResult struct {
 // list, not an error — schema-aware browsing simply isn't
 // available. The composed recipe behind [MethodListMessages] and
 // the RPC sidecar's ListMessages; exported so in-process embedders
-// share it (#203).
+// share it.
 //
 // Long namespace chains can hold tens of thousands of types, so the
 // walk respects ctx: on cancellation the partial result is dropped

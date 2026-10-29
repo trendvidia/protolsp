@@ -75,7 +75,7 @@ func (s *Workspace) runProtocheck(doc *Document, msg proto.Message) []protocheck
 // resolveRuleLocation maps a violation's schema-side enrichment —
 // SourceRef (the §8.3.1 rule identity) and Source (the declaration
 // site) — to an editor location for "go to rule" related
-// information (#268). Only RFC-001 carrier rules carry these today;
+// information. Only RFC-001 carrier rules carry these today;
 // protocheckpb Check rules yield nil and the finding renders
 // without a link.
 //

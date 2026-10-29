@@ -24,7 +24,7 @@ extend google.protobuf.FieldOptions {
   // The value is a PXF literal string, e.g. "42", "true", "\"hello\"".
   string default = 1315;
 
-  // Key field of a keyed repeated field (issue #116). Valid only on
+  // Key field of a keyed repeated field. Valid only on
   // repeated message-typed fields; the value names a singular string
   // field of the element message. In PXF text the field may then be
   // written as a block of named blocks — entry name = key value,

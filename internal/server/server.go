@@ -510,7 +510,7 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 				// + breadcrumbs and replaces vendored tokenizer-based
 				// outline implementations.
 				DocumentSymbolProvider: true,
-				// General block folding (#256): standard pull-based
+				// General block folding: standard pull-based
 				// textDocument/foldingRange over all block structure in
 				// both .pxf documents (nodes / children / state /
 				// lifecycle blocks + directives) and .proto schemas

@@ -132,7 +132,7 @@ type LintFinding struct {
 // under a temp module root and the root is linted, so directory- and
 // filename-based rules (PACKAGE_DIRECTORY_MATCH, FILE_LOWER_SNAKE_CASE)
 // judge the file where it actually lives instead of flagging every
-// packaged file staged as a bare input.proto (#195). An empty or
+// packaged file staged as a bare input.proto. An empty or
 // non-local relPath falls back to that bare staging.
 //
 // Exit-code semantics for buf lint:

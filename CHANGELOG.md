@@ -9,7 +9,7 @@ without a major bump.
 
 ### Added
 
-- **Types defined by the document's own `@proto` are resolved** (#287).
+- **Types defined by the document's own `@proto` are resolved**.
   The draft makes an embedded schema authoritative, but protolsp read
   `@proto` only for symbols and highlighting, so a self-describing
   document got no validation and no Secret masking. Now a document's
@@ -22,7 +22,7 @@ without a major bump.
     next typeless `@dataset`, in document order), and descriptor (a
     FileDescriptorSet).
   - Imports resolve only from the draft's list, never from disk or a
-    registry (#301): the other `@proto` directives, five canonical
+    registry: the other `@proto` directives, five canonical
     schemas (`pxf/annotations.proto`, `pxf/bignum.proto`,
     `pxf/secret.proto`, `sbe/annotations.proto`,
     `envelope/v1/envelope.proto`, decided on protowire#369) and eleven
@@ -50,7 +50,7 @@ without a major bump.
 
 ### Fixed
 
-- **The `@dataset` cell check agrees with the decoder** (#290). It looked a
+- **The `@dataset` cell check agrees with the decoder**. It looked a
   column up as one field name and matched a cell's literal against the
   field's protobuf kind alone, so it disagreed with the decoder both ways.
   Measured against protowire's `pxf validate`:
@@ -73,9 +73,9 @@ without a major bump.
   at the directive, worded as the binder words it. A mismatch says what
   the field takes (`expects a list`, `expects string or a block`), and one
   inside a list or map is reported at the element or entry. A message
-  block's contents are still left to the decoder (#293).
+  block's contents are still left to the decoder.
 
-- **A `@dataset` row the decoder rejects gets a diagnostic** (#293). The
+- **A `@dataset` row the decoder rejects gets a diagnostic**. The
   cell check decides from a cell's literal kind, so it never looked inside
   a message block, and it left value checks to the decoder. A row whose
   cells all pass that check is now bound with protowire-go's
@@ -89,7 +89,7 @@ without a major bump.
   validation takes about 3.3 ms, up from 0.08 ms; parsing that document
   takes 0.95 ms.
 
-- **`pxf.Secret` values in `@dataset` rows are masked** (#286). The secret
+- **`pxf.Secret` values in `@dataset` rows are masked**. The secret
   walk ran only over a document's body, and only after its `@type` check,
   so a dataset document (which has no `@type`) recorded no secret at all:
   editors showed every cell in plain text, and no diagnostic or hover was
@@ -107,7 +107,7 @@ without a major bump.
   A cell's path is `row<N>.<field path>`, counting rows from 1
   (`row2.db.pw`), so the literal-secret quick fix gives each row its own
   env-var name (`ROW2_DB_PW`). A dataset bound to an in-document `@proto`
-  is walked too (#287, above).
+  is walked too (above).
 - **The body walk takes every value form a Secret can appear in.** It
   recorded only `pw = "x"` and `pw { ... }`. Now it also records
   `pw = { value = "x" }`, a message written as `db = { pw = "x" }`, list
@@ -116,7 +116,7 @@ without a major bump.
 
 ### Changed
 
-- **protowire-go v1.10.0 → v1.12.0** (#303). What an editor now sees
+- **protowire-go v1.10.0 → v1.12.0**. What an editor now sees
   from the decoder:
   - `null` on an `optional` scalar is accepted and clears it
     (protowire-go#182), where protolsp reported an error. The `@dataset`
@@ -150,11 +150,11 @@ without a major bump.
   apply inside list elements, map values and `Any` bodies (protowire#352);
   and an `Any` block may open with `@type = "..."` (protowire#354).
 - **protolsp depends on protowire v1.12.0** for `protowire.BundledProto`,
-  the canonical schemas an `@proto` may import (#287). It also raises
+  the canonical schemas an `@proto` may import. It also raises
   grpc to v1.83.2 and golang.org/x/net to v0.58.0, through protowire's
   requirements.
 - **`DatasetRegion.resolvable` is specified for a typeless `@dataset`**
-  (#292). A region bound to an anonymous `@proto` is sent with an empty
+ . A region bound to an anonymous `@proto` is sent with an empty
   `type_fqn` and `resolvable` true: its row type is known, but the name
   protolsp gives it is internal. The field comments in
   `protolsp/v1/rpc/datasets.proto` and on `analysis.DatasetRegion` now
@@ -182,7 +182,7 @@ without a major bump.
 ### Added
 
 - **`@validate` rules are checked at edit time against RFC-001 §5.4,
-  with a quick-fix for a misspelled function** (#276). protocompile
+  with a quick-fix for a misspelled function**. protocompile
   now parses every expression argument against the normative
   expression language (protocompile#211): a syntax error, a call that
   is neither a visible `function` declaration nor a §5.4 builtin, and
@@ -215,7 +215,7 @@ without a major bump.
 ### Fixed
 
 - **`buf/validate/cel` diagnostics compile against protovalidate's own
-  library** (#279). The schema-side analyzer built a bare cel-go
+  library**. The schema-side analyzer built a bare cel-go
   environment with only `this` declared, so every rule using a
   protovalidate function — `this.isEmail()`, `this.isHostname()`,
   `this.lowerAscii()`, `this < now` — was reported as an undeclared
@@ -231,9 +231,9 @@ without a major bump.
 
 ### Added
 
-- **`this` is typed in PSE engine-expression checks** (#276, advances
+- **`this` is typed in PSE engine-expression checks** (advances
   the issue; its syntax-error and measured-inventory items stay
-  open). The `protowire/cel` pass (#275) now binds `this` to the
+  open). The `protowire/cel` pass now binds `this` to the
   annotated declaration's type wherever RFC-001 §6.2 and §6.4 define
   it unambiguously — predeclared scalars to their CEL scalar,
   wrappers unwrapped, `Timestamp`/`Duration` native, `repeated` and
@@ -247,7 +247,7 @@ without a major bump.
   using it (§6.4 validates per element). Parse errors remain silent.
 
 - **Unresolvable names in PSE engine expressions are diagnosed**
-  (#275). A `@validate` rule — any argument bound to an
+ . A `@validate` rule — any argument bound to an
   `expression`-typed annotation parameter — naming a function that
   is neither a declared `function` nor a builtin of the configured
   engine now gets an error on the name (`unresolved function
@@ -272,7 +272,7 @@ without a major bump.
 
 ### Added
 
-- **Workspace declared-name export** (#272). New
+- **Workspace declared-name export**. New
   `analysis.Workspace.DeclaredNames()` accessor returns the
   workspace's declared RFC-001 name sets — annotation, type
   (aliases plus top-level messages/enums), and function names, each
@@ -299,7 +299,7 @@ without a major bump.
 
 ### Added
 
-- **§7 catalog i18n for protocheck data diagnostics** (#267,
+- **§7 catalog i18n for protocheck data diagnostics** (
   unblocked by protowire#194 / protowire v1.7.0). The engine
   config's `catalog_libraries` are loaded through protocompile
   v0.23.0's shared `catalogs` reference loader (text-format
@@ -317,7 +317,7 @@ without a major bump.
   an LSP restart. Load failures degrade to fallback messages with a
   warning — never disable validation.
 
-- **"Go to rule" links on protocheck data diagnostics** (#268).
+- **"Go to rule" links on protocheck data diagnostics**.
   Findings produced by RFC-001 carrier rules carry the v2
   `SourceRef`/`Source` enrichment; protolsp now resolves it through
   the same URI precedence go-to-definition uses (proto_files local
@@ -423,9 +423,9 @@ without a major bump.
 
   Both fields are optional; existing producers are unaffected.
 
-- **protocompile bumped v0.17.0 → v0.20.0** (#260). Three releases in
+- **protocompile bumped v0.17.0 → v0.20.0**. Three releases in
   one hop; two of them re-key the descriptor paths the runtime-violation
-  overlay (`protolsp/setRuntimeViolations`, #231) joins on:
+  overlay (`protolsp/setRuntimeViolations`) joins on:
   - **v0.18.0**: alias-expanded `AnnotationList` entries emit in RFC-001
     §6.4 evaluation order (base→derived), so `elementPath[fqn#ordinal]`
     ordinals for multi-link alias chains re-key — ordinal 0 is now the
@@ -496,7 +496,7 @@ without a major bump.
 
 ### Added
 
-- **General block folding** (#256). A standard pull-based
+- **General block folding**. A standard pull-based
   `textDocument/foldingRange` provider now covers block structure in
   every file protolsp handles, so editors can collapse to read
   high-level structure:
@@ -519,7 +519,7 @@ without a major bump.
 ### Fixed
 
 - **Bundled `proto/pxf/annotations.proto` refreshed with `(pxf.key)`**
-  (#254). The bundled annotations file (and its generated
+ . The bundled annotations file (and its generated
   `annotations.pb.go`) defined only `(pxf.required) = 50000` and
   `(pxf.default) = 50001`; it was missing `(pxf.key) = 50002`, the
   extension protowire#116 added for keyed repeated fields. Runtime keyed
@@ -532,7 +532,7 @@ without a major bump.
 ### Tests
 
 - **Keyed outline/diagnostics verified against AppViewer's published
-  document schema** (appviewer#331, #251). A hermetic regression test
+  document schema** (appviewer#331). A hermetic regression test
   compiles AppViewer's structural `document.proto` from disk through the
   real `schema.OpenProtoFiles` (protocompile) path — resolving its
   `import "pxf/annotations.proto"` against protolsp's own bundled
@@ -547,7 +547,7 @@ without a major bump.
 
 ### Added
 
-- **Keyed repeated fields** (#251, protowire#116). A `repeated <Message>`
+- **Keyed repeated fields** (protowire#116). A `repeated <Message>`
   field carrying the `(pxf.key)` schema option now gets first-class
   editor semantics across every surface, driven purely from the resolved
   schema — no per-app configuration:
@@ -583,14 +583,14 @@ without a major bump.
 
 ### Added
 
-- **Runtime-violation overlay** (#231). The new
+- **Runtime-violation overlay**. The new
   `protolsp/setRuntimeViolations` custom notification feeds RFC-001
   `(file, descriptor_path)`-keyed runtime violations into the
   diagnostics publish path. Params:
   `{ textDocument: { uri }, violations: [{ descriptorPath, message }] }`
   — full replace per document (an empty list clears). Each publish
   re-resolves the stored keys through the document's canonical
-  `protowire.schema.v1` source map (#230) and renders hits as
+  `protowire.schema.v1` source map and renders hits as
   `Information` diagnostics with source `protolsp/runtime`, so
   editors can color / filter the overlay independently of
   `protolsp/proto` and `buf/lint`. Violations survive re-analysis
@@ -630,7 +630,7 @@ without a major bump.
   descriptors carry no extensions and degrade to the AST-only
   behavior.
 
-- **Remote fallback for classic message/enum references** (#229).
+- **Remote fallback for classic message/enum references**.
   A field type naming a message or enum in an import the workspace
   index doesn't hold (uncached BSR deps, registry-only files) now
   hovers and jumps through the same two-layer schema-lookup fallback
@@ -644,7 +644,7 @@ without a major bump.
   "no hover / no definition".
 
 - **RFC-001 annotation-aware diagnostics + opaque-fragment
-  navigation** (#220). The annotation-validation diagnostics the
+  navigation**. The annotation-validation diagnostics the
   compile pass emits — unknown annotation, wrong argument type,
   missing required argument (bare, empty-parens, and partial-list
   forms), and arg-count mismatches with both counts — are pinned
@@ -661,7 +661,7 @@ without a major bump.
   the anchor token's editor range — the integration point for a
   future runtime-violation overlay (transport deferred).
 
-- **Outer-qualified nested type references** (#237). Field types
+- **Outer-qualified nested type references**. Field types
   naming a nested message or enum through its enclosing message —
   `pkg.Outer.Inner`, in-package `Outer.Inner`, and fully-qualified
   `.pkg.Outer.Inner` — now hover and jump across all three
@@ -671,7 +671,7 @@ without a major bump.
   qualifier had to equal a file's package exactly, so these forms
   resolved to nothing.
 
-- **Reference-site scope resolution** (#239, #245). Names are
+- **Reference-site scope resolution**. Names are
   interpreted against the cursor's enclosing scopes — package plus
   enclosing messages, innermost first — reproducing protoc's
   resolution order. `Middle.Inner` written inside `Outer` (where
@@ -683,7 +683,7 @@ without a major bump.
   references follow the same rules, for navigation and `@`
   completion alike.
 
-- **Completion parity for nested types** (#240, #247). Type
+- **Completion parity for nested types**. Type
   completion emits exactly the reference shapes the resolver binds,
   through the resolver's own machinery: nested types complete under
   the shortest name valid at the cursor (`Inner` inside its
@@ -697,7 +697,7 @@ without a major bump.
 
 ### Changed
 
-- **Name matching follows protoc scoping strictly** (#241, #245).
+- **Name matching follows protoc scoping strictly**.
   Two long-standing leniencies are gone: bare names (types,
   annotations, functions) no longer resolve against imports in
   unrelated packages, and candidates no longer match declarations at
@@ -707,7 +707,7 @@ without a major bump.
   declaration. proto2 groups participate as scopes — a group
   declares a message named after it — including groups declared
   inside extend blocks, whose bodies are transparent to scope walks
-  (#246).
+ .
 
 ### Fixed
 
@@ -719,7 +719,7 @@ without a major bump.
   columns in the negotiated unit (#219 criterion 4).
 
 - **Request positions honor the negotiated position encoding**
-  (#232, the input-side twin of the range fix above). Incoming
+  (the input-side twin of the range fix above). Incoming
   `.proto` positions — hover, definition, completion scope, and
   opaque-fragment call-site lookups — were always interpreted as
   UTF-16 code units; under a client-negotiated `utf-8` encoding, a
@@ -730,7 +730,7 @@ without a major bump.
   through.
 
 - **Expression-diagnostic ranges honor the negotiated position
-  encoding** (#227, closing out the #219-criterion-4 sweep). The
+  encoding** (closing out the #219-criterion-4 sweep). The
   protocheck and protovalidate schema analyzers and the shared
   `nodeRange` helper still emitted fixed UTF-16 columns; under a
   client-negotiated `utf-8` encoding, a diagnostic on a line with a
@@ -802,7 +802,7 @@ without a major bump.
 ### Fixed
 
 - **registry:// resolution now honors per-sub-workspace registries
-  (#215).** In a multi-root workspace, a `registry://` preview opened
+ .** In a multi-root workspace, a `registry://` preview opened
   from a sub-workspace resolved its content and cross-file jumps against
   the ROOT lookup — `LookupForNamespace` never consulted the
   sub-workspace's own registry (the W4 machinery). A sub-workspace whose
@@ -881,7 +881,7 @@ without a major bump.
 ### Fixed
 
 - **Layers that omit `source =` now bind to the declared `default`
-  source during expansion (#207).** The runtime implicitly resolves
+  source during expansion.** The runtime implicitly resolves
   sourceless layer entries against a source named `default` when one
   is declared — pxfed's chameleon template ships exactly that shape —
   but `Expand`/`ResolveOrder` left their `ResolvedPath` without the
@@ -895,7 +895,7 @@ without a major bump.
   affordances for sourceless layers. Chains with no declared
   `default` source keep the bare-path behavior.
 - **Watched-files events for chain layer files now re-analyze open
-  documents (#208).** `classifyWatchedEvents` dropped anything
+  documents.** `classifyWatchedEvents` dropped anything
   outside the config + chain-spec + .proto + buf paths, so an
   on-disk edit to a layer file (`layers/base.pxf`, external editor,
   git checkout, generator) never re-ran the analyze pipeline — but
@@ -914,7 +914,7 @@ without a major bump.
 ### Changed
 
 - **`Publisher.LookupChanged` now carries `workspaceDir` and fires
-  for sub-workspace lookups (#209).** The 0.8.0 hook covered only
+  for sub-workspace lookups.** The 0.8.0 hook covered only
   the root `LookupManager`; sub-workspace lookups install through
   `WorkspaceState` and fired nothing, so per-workspace status
   surfaces were back to polling for exactly the transitions #204
@@ -932,7 +932,7 @@ without a major bump.
 ### Added
 
 - **Schema-browsing recipes exported as `analysis.Workspace` methods
-  (#203)**: `RegistryStatus()`, `ListMessages(ctx, prefix)`, and
+ **: `RegistryStatus()`, `ListMessages(ctx, prefix)`, and
   `SourceContent(ctx, uri)` — the composed operations behind
   `protolsp/registryStatus`, `protolsp/listMessages`, and
   `protolsp/sourceContent` (dedupe + prefix filter + origin
@@ -944,7 +944,7 @@ without a major bump.
   `ErrNoSchemaLookup`) so callers can map error classes without
   string matching.
 
-- **`Publisher.LookupChanged(ctx)` — lookup-transition hook (#204)**
+- **`Publisher.LookupChanged(ctx)` — lookup-transition hook**
   so embedders can stop polling registry status. Fires after a
   schema-lookup install or teardown completes (async rebuild
   install, proto_files rebuild, config-cleared teardown, shutdown
@@ -961,13 +961,13 @@ without a major bump.
 ### Changed
 
 - **`analysis.DefaultFor` and `analysis.WalkMessages` unexported**
-  (#191), finishing the #179 curation. Both were kept exported only
+ , finishing the #179 curation. Both were kept exported only
   because server-scaffolded tests still referenced them; those tests
   now assert through the effective-config RPC surface / a local AST
   walk. Neither symbol was part of the documented embedder core.
 
 - **`analysis.DiagnosticsFor` now takes the document read lock
-  internally (#199)**, matching the package doc's promise that
+  internally**, matching the package doc's promise that
   feature queries lock internally. It previously read `doc.mu`-
   guarded state bare, silently requiring the caller to hold
   `doc.RLock`. Embedders that call it inside their own
@@ -981,7 +981,7 @@ without a major bump.
 ### Fixed
 
 - **buf lint no longer flags every packaged file with
-  `PACKAGE_DIRECTORY_MATCH` (#195).** `buftool.Lint` staged the buffer
+  `PACKAGE_DIRECTORY_MATCH`.** `buftool.Lint` staged the buffer
   as a bare `input.proto`, so directory- and filename-based rules
   judged a synthetic layout: any file with a package declaration got a
   false warning the moment buf was installed. The buffer now stages at
@@ -989,7 +989,7 @@ without a major bump.
   from the proto index) and the root is linted. `buftool.Lint` gained a
   `relPath` parameter; empty or non-local values keep the old staging.
 
-- **Workspace imports no longer squiggle as compile errors (#193).**
+- **Workspace imports no longer squiggle as compile errors.**
   `analyzeProto`'s protocompile resolver only knew the document
   itself plus the standard `google/protobuf/*` well-knowns, so every
   workspace-local `import "x/y.proto"` — and every type it supplied —
@@ -1002,7 +1002,7 @@ without a major bump.
 
 ## [0.6.0] – 2026-07-03
 
-### `analysis` API curation (#179)
+### `analysis` API curation
 
 Breaking pre-1.0 cleanup of the surface the #177 export campaign
 created. Embedders (goed) are unaffected — the embedder core
@@ -1044,13 +1044,13 @@ documented in the package comment is unchanged.
 
 ## [0.5.0] – 2026-07-03
 
-First tagged release of the public `analysis` package (#181):
+First tagged release of the public `analysis` package:
 embedders can pin `github.com/trendvidia/protolsp@v0.5.0` instead
 of tracking a pseudo-version off main. The facade was shaken out
 against goed's in-process embedding (trendvidia/goed#8), which
 surfaced the two data races and the definition-URI fix below.
 
-### Public analysis package (#172, rung 3)
+### Public analysis package (rung 3)
 
 - **`analysis` package** — the engine graduated out of
   `internal/server` into the importable
@@ -1077,12 +1077,12 @@ surfaced the two data races and the definition-URI fix below.
 - `internal/server` keeps the LSP dispatch, configuration pull, and
   RPC sidecar as a thin shell over the embedded `*analysis.Workspace`;
   existing LSP + Connect-RPC clients see no behavior change.
-- **Exported manager types** (#178): `Lookups()`, `Config()`, and
+- **Exported manager types**: `Lookups()`, `Config()`, and
   `Workspaces()` now return the exported `*LookupManager`,
   `*ConfigState`, and `*WorkspaceManager` (and sub-workspace state is
   `WorkspaceState`), so embedders can store them in fields and pass
   them around, not just chain method calls.
-- **Per-workspace env resolution** (#180): `analysis.New` no longer
+- **Per-workspace env resolution**: `analysis.New` no longer
   installs the Workspace's `${env.X}` resolver into the process-global
   `workspaceconfig.SetEnvLookup` — the resolver now rides along each
   parse via the new `workspaceconfig.ParseWithEnv(content, getenv)`,
@@ -1093,19 +1093,19 @@ surfaced the two data races and the definition-URI fix below.
 ### Embedder shakeout fixes (goed#8)
 
 - **Data race: config/chain classification vs watched-files
-  reanalyze** (#184). `RunAnalyzeAndMaybeLiveReload`'s tail read
+  reanalyze**. `RunAnalyzeAndMaybeLiveReload`'s tail read
   `doc.Parsed` with no doc lock while the watched-files debounce
   goroutine reset it under `doc.mu`. `IsWorkspaceConfigDoc` /
   `IsChainSpecDoc` now snapshot `Parsed` under RLock, covering
   every caller — LSP shell and embedders alike.
-- **Data race: workspace-dir discovery** (#187). `doc.WorkspaceDir`
+- **Data race: workspace-dir discovery**. `doc.WorkspaceDir`
   was written by lazy workspace discovery on the reanalyze path
   while read unlocked across the engine. The field is now
   self-synchronized (atomic). **Breaking:** the exported
   `Document.WorkspaceDir` field became `WorkspaceDir()` /
   `SetWorkspaceDir()` accessors.
 - **Go-to-definition lands on the local working copy for
-  proto_files-backed schemas** (#185). Descriptors compiled from a
+  proto_files-backed schemas**. Descriptors compiled from a
   local `proto_files` source resolved to read-only
   `registry://_proto_files_/...` previews because descriptor paths
   are search-path-relative and the workspace-root probe missed.
@@ -1129,59 +1129,59 @@ EffectiveConfig / Config also lands, with workspace-config flatten
 
 ### `.proto` authoring (phases 3–5)
 
-- **Workspace `.proto` file index** (#135). `internal/protoindex`
+- **Workspace `.proto` file index**. `internal/protoindex`
   walks workspace `.proto` files and exposes them via a
   package-aware index for cross-file resolution. Backs every
   feature below.
-- **Cross-file resolver + import jump** (#136). `go-to-definition`
+- **Cross-file resolver + import jump**. `go-to-definition`
   walks `import "foo/bar.proto"` references to the imported file
   and lands on the named declaration.
-- **Package-qualified resolution** (#137). Names like
+- **Package-qualified resolution**. Names like
   `acme.demo.v1.Trade` resolve to the right `.proto` even when the
   cursor file doesn't import it directly; BSR descriptor cache
   test pinned alongside.
-- **Live invalidation on disk changes** (#138). Watched-file
+- **Live invalidation on disk changes**. Watched-file
   notifications invalidate the protoindex + downstream resolvers
   so hover / definition stay correct after `git pull` rewrites
   the workspace.
-- **textDocument/completion for .proto** (phase 4a, #139, #141).
+- **textDocument/completion for .proto** (phase 4a).
   Field names, message names, and dot-completions for qualified
   references inside `.proto` files.
-- **Format-on-request via buf** (#143). `textDocument/formatting`
+- **Format-on-request via buf**. `textDocument/formatting`
   shells out to `buf format` and returns the diff. Falls through
   cleanly when `buf` isn't installed.
-- **buf lint diagnostics** (#144). `analyzeProto` appends
+- **buf lint diagnostics**. `analyzeProto` appends
   `buf lint` findings as `Warning`-severity diagnostics with
   source `buf/lint`. Gated on `bufLintEnabled`; tests run with it
   off.
 
 ### protocheck integration
 
-- **Phase 0 — schema-side expression validation** (#159). Walks
+- **Phase 0 — schema-side expression validation**. Walks
   the .proto AST for `(protocheck.field|message)` aggregate
   options carrying `check: [{ expression: "…" }]` and type-checks
   each expression. Diagnostics surface as
   `protocheck/expression`.
-- **Phase 0.5 — nested-message field access** (#162). Message-
+- **Phase 0.5 — nested-message field access**. Message-
   level expressions now resolve dotted access into message-typed
   fields (`origin.city != destination.city`). Per-call-path cycle
   detection + 4-hop depth cap; no semantic linker required.
-- **Phase 1 — runtime .pxf data validation** (#160). After
+- **Phase 1 — runtime .pxf data validation**. After
   `pxf.UnmarshalDescriptor`, the per-Server `*protocheck.Validator`
   runs against the message and each violation's `FieldPath` maps
   to a `pxf.Position` via the parsed AST.
   `protocheckDataDiagnostics` renders the findings under source
   `protocheck`. Handles dotted descent (`address.zip_code`) and
   list-indexed (`items[3].sku`).
-- **Phase 1.5 — end-to-end fixture harness** (#161). Compiles a
+- **Phase 1.5 — end-to-end fixture harness**. Compiles a
   fixture `.proto` carrying protocheck annotations through the
   full lookup → unmarshal → Validate pipeline.
-- **protocheck v1.1.0 bump** (#163). Picks up upstream
+- **protocheck v1.1.0 bump**. Picks up upstream
   dynamicpb-interop fix in protocheck and the
   `*eval.CompileError` position API in its expression engine. Drops the
   `defer recover()` bandaid + the e2e harness's FDP
   marshal/unmarshal workaround that v1.0.x needed.
-- **Per-column diagnostic ranges** (#164). Phase 0 diagnostics
+- **Per-column diagnostic ranges**. Phase 0 diagnostics
   anchor to the offending token inside the literal via
   `*eval.CompileError.Offset` + `Length`. Whole-literal fallback
   for the three cases that don't map cleanly (no usable position
@@ -1189,14 +1189,14 @@ EffectiveConfig / Config also lands, with workspace-config flatten
 
 ### Chameleon — per-env recipient editing
 
-- **`Environment.key_name` exposed through chain status** (#157).
+- **`Environment.key_name` exposed through chain status**.
   Chain panel can render which age recipient encrypts each env.
-- **`SetEnvironmentKeyName` RPC** (#158). Persistent on-disk edit
+- **`SetEnvironmentKeyName` RPC**. Persistent on-disk edit
   of `chain.pxf` to set / clear an environment's `key_name` field.
-- **`SetActiveEnv` RPC + `active_environment` field** (#142).
+- **`SetActiveEnv` RPC + `active_environment` field**.
   Session-scoped active environment for hover / effective-config
   flows; resets to `default_environment` on empty input.
-- **chameleon v0.22.1 sync** (#156). Adds the `key_name` field to
+- **chameleon v0.22.1 sync**. Adds the `key_name` field to
   the chain spec schema; enables the above.
 
 ### Connect-RPC custom-method sidecar
@@ -1226,23 +1226,23 @@ mid-session deps add, alternative-path follow-ups.
 
 ### Fixes
 
-- **Hover: resolve fields inside array-literal elements** (#145).
+- **Hover: resolve fields inside array-literal elements**.
   Hover on a field inside `items: [{...}]` now resolves
   correctly.
-- **`buftool` kill-grace window** (#151). Subprocess teardown no
+- **`buftool` kill-grace window**. Subprocess teardown no
   longer hangs past the context deadline under `-race`.
-- **`Close` vs pending analyze timer** (#147). `Server.Close`
+- **`Close` vs pending analyze timer**. `Server.Close`
   now iterates open documents and cancels per-doc
   `analyzeTimer`s; was a real bug caught by new test coverage.
 - **`initialized` reader-deadlock fix**. `dispatchInitialized`
   follow-up runs on a goroutine so nested `conn.Call`s aren't
   blocked by the reader.
-- **`reloadSubWorkspace` chain-hover redact** (#155). Use
+- **`reloadSubWorkspace` chain-hover redact**. Use
   `redact.Placeholder` constant.
 
 ### Documentation
 
-- **Package + type doc surface refresh** (#146). Closes #112;
+- **Package + type doc surface refresh**. Closes #112;
   every exported package and significant type carries a
   doc-comment with usage shape.
 
@@ -1264,7 +1264,7 @@ stale relative to the code).
 
 ### Schema sources
 
-- **`proto_files` schema source** (W2, #95). Workspaces can now
+- **`proto_files` schema source** (W2). Workspaces can now
   declare `schema_sources { proto_files { paths = [...] } }` in
   `.protolsp.pxf` and get schema-aware editing without standing
   up a protoregistry. New `internal/schema/protofiles.go` walks
@@ -1276,7 +1276,7 @@ stale relative to the code).
   `Error`-severity diagnostics on `.protolsp.pxf` anchored at
   the `proto_files` block so the user lands close to the source
   declaration when jumping to the diagnostic.
-- **Multi-source composition** (W3, #95). `schema.Open` now
+- **Multi-source composition** (W3). `schema.Open` now
   takes variadic `OpenOption`; the new `schema.WithFallback`
   threads through to `protoregistry/client.WithFallback` at
   dial time. Both root and sub-workspace dial paths plumb the
@@ -1290,7 +1290,7 @@ stale relative to the code).
 ### Fixes (in passing)
 
 - **`reloadSubWorkspace` no longer leaks the prior sub-workspace
-  registry conn** (#95). The old `workspaceState` was discarded
+  registry conn**. The old `workspaceState` was discarded
   without closing its `LookupCloser`; a `.protolsp.pxf` edit
   that rewired the address leaked a gRPC connection each time.
   Tear-down now precedes the swap-in. Same change closes the
@@ -1361,14 +1361,14 @@ registry dial.
   with a "rewrite as `${env.X}`" quick-fix. S4 enforces a
   configurable `security.inline_secrets` policy
   (`allow` / `warn` / `refuse`).
-- **Outline + breadcrumbs** (#88). `textDocument/documentSymbol`
+- **Outline + breadcrumbs**. `textDocument/documentSymbol`
   returns a hierarchical `DocumentSymbol` tree built from the
   cached parse: `@type` directive, free-form `@<name>` directives,
   `@dataset` blocks (with columns as children), `@proto`, and the
   typed body's `Assignment` / `Block` / `MapEntry` entries. Each
   symbol carries the protobuf kind in `Detail` when the descriptor
   resolves.
-- **Schema-driven semantic highlighting** (#89).
+- **Schema-driven semantic highlighting**.
   `textDocument/semanticTokens/full` layers tokens on top of the
   editor's syntactic tokenizer: directive heads (macro), dotted
   type URLs (namespace), field names with `deprecated` +
@@ -1376,14 +1376,14 @@ registry dial.
   number / bool / null / enum values. Stable 8-type + 2-modifier
   legend; indices are wire-stable across releases (appending is
   safe, reordering would break clients).
-- **Canonical formatting** (#90). `textDocument/formatting`
+- **Canonical formatting**. `textDocument/formatting`
   delegates layout to `pxf.FormatDocument` so LSP and CLI produce
   identical output. Empty edit slice when the buffer is already
   canonical (so format-on-save doesn't dirty unchanged files); nil
   when the doc hasn't parsed (don't clobber mid-edit state). Client
   `FormattingOptions` are advisory only — PXF formatting is
   gofmt-style, one canonical layout.
-- **References + rename** (#91). Workspace-scoped via
+- **References + rename**. Workspace-scoped via
   `Document.WorkspaceDir` — clicking on a field in one chameleon
   layer surfaces every layer that touches the same dotted path
   (e.g. `db.host`). Rename validates the new identifier and emits
@@ -1451,7 +1451,7 @@ Seven new methods + three notifications since 0.1.0:
   background `schema.Open` dial; the running goroutine is
   cancelled if a fresher change arrives. Dial errors keep the
   prior lookup in place. 30s default timeout (R3).
-- **TLS for the registry dial** (#92). `schema.Config` gains a
+- **TLS for the registry dial**. `schema.Config` gains a
   `TLS *TLSConfig` field (`ServerName`, `CACertPath`,
   `InsecureSkipVerify`). Nil keeps the historical insecure
   transport (fine for loopback / docker-compose); non-nil enables
@@ -1523,7 +1523,7 @@ Seven new methods + three notifications since 0.1.0:
 
 ### Changed
 
-- **Bump `github.com/trendvidia/protoregistry` to v0.72.0** (#92,
+- **Bump `github.com/trendvidia/protoregistry` to v0.72.0** (
   #93). v0.71.0 (namespace hierarchy, `WithServerChain`,
   `RangeMessages`, `Find*WithOrigin`, `GetSource`, `WithDiskCache`)
   promoted from a pseudo-version pin, then v0.72.0 picked up the

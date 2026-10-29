@@ -63,7 +63,7 @@ var (
 	//
 	// optional string default = 1315;
 	E_Default = &file_pxf_annotations_proto_extTypes[1]
-	// Key field of a keyed repeated field (issue #116). Valid only on
+	// Key field of a keyed repeated field. Valid only on
 	// repeated message-typed fields; the value names a singular string
 	// field of the element message. In PXF text the field may then be
 	// written as a block of named blocks — entry name = key value,

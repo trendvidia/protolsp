@@ -556,7 +556,7 @@ CP5 is the rollout.
 | 2026-05-16 | `initializationOptions` continues as a Tier 3 seed; deprecated over two minor releases            | Backward compatible; deprecation timeline visible to integrators.                            |
 | 2026-05-16 | `registryStatus` becomes a convenience view; kept for backward compat                             | Existing extension callers don't break; `getEffectiveConfig` is the canonical path going forward. |
 | 2026-05-16 | Secret-typed values redacted by default in responses; explicit `revealSecrets: true` opts in      | Defense-in-depth alongside the secret-redaction work; wire / log exposure stays closed.      |
-| 2026-05-18 | Keep `params.RootURI` accepted as a single-root fallback; drop in the same release that removes the `initializationOptions` seed path | LSP spec asks servers to keep accepting `RootURI` from pre-3.6 clients. Both paths target the same "old client" cohort, so removing them together avoids two breaking changes for the same audience. Static-check warnings on the field are silenced with a documented `//nolint:staticcheck` at the call site (#58). |
+| 2026-05-18 | Keep `params.RootURI` accepted as a single-root fallback; drop in the same release that removes the `initializationOptions` seed path | LSP spec asks servers to keep accepting `RootURI` from pre-3.6 clients. Both paths target the same "old client" cohort, so removing them together avoids two breaking changes for the same audience. Static-check warnings on the field are silenced with a documented `//nolint:staticcheck` at the call site. |
 
 ## Notes for future readers
 

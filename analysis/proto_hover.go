@@ -57,7 +57,7 @@ func (s *Workspace) protoHoverFor(docURI protocol.DocumentURI, pos protocol.Posi
 	}
 
 	// Sub-workspace scope for a registry:// preview's cross-file
-	// resolution (#215); "" for the root and every on-disk file. See
+	// resolution; "" for the root and every on-disk file. See
 	// the twin in protoDefinitionFor.
 	wsDir := doc.WorkspaceDir()
 
@@ -70,7 +70,7 @@ func (s *Workspace) protoHoverFor(docURI protocol.DocumentURI, pos protocol.Posi
 		return hv
 	}
 
-	// Function calls inside opaque engine-expression fragments (#220):
+	// Function calls inside opaque engine-expression fragments:
 	// no AST value nodes exist for the walk above, but the compile
 	// pass resolved every call site — hit-test the cursor against
 	// those and render the function's declaration card.
@@ -254,7 +254,7 @@ func renderProtoEnumValueHover(f *protoast.File, v ast.DefEnumValue) *protocol.H
 // causes; protocompile's diagnostics surface those separately.
 //
 // workspaceDir scopes the registry:// cross-file resolution to the
-// preview's sub-workspace registry (#215), matching the definition
+// preview's sub-workspace registry, matching the definition
 // path; it is unused on the on-disk path.
 //
 // refScope is the reference site's lexical scope (protoRefScopeAt,
@@ -300,7 +300,7 @@ func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, works
 		return renderProtoTypeLookupHover(result)
 	}
 
-	// Remote fallback (#219 Phase C, #229): the name may be a
+	// Remote fallback (#219 Phase C): the name may be a
 	// message, enum, or RFC-001 `type` alias declared in an import
 	// the index doesn't hold — resolvable through the schema lookup
 	// as served source or from the compiled descriptor.

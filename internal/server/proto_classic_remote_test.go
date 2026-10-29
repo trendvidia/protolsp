@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Remote fallback for classic message/enum references (#229): a
+// Remote fallback for classic message/enum references: a
 // field type naming a message or enum in an import the protoindex
 // doesn't hold resolves through the schema lookup — as served source
 // when GetSource works, else straight off the compiled descriptor
@@ -178,7 +178,7 @@ func TestProtoNavigation_ClassicServedSourceFallback(t *testing.T) {
 	assert.Equal(t, rng(10, 5, 10, 10), locs[0].Range)
 }
 
-// ─── Outer-qualified nested references (#237) ────────────────────
+// ─── Outer-qualified nested references ────────────────────
 
 // remoteNestedDoc references a nested message and a nested enum by
 // their outer-qualified names — package + enclosing message + leaf.
@@ -275,7 +275,7 @@ func openRemoteNestedDoc(t *testing.T, withSource bool) (*Server, string) {
 }
 
 // Descriptor-only (layer 2): outer-qualified nested references walk
-// the descriptor's enclosing-message chain (#237).
+// the descriptor's enclosing-message chain.
 func TestProtoNavigation_NestedDescriptorOnlyFallback(t *testing.T) {
 	srv, u := openRemoteNestedDoc(t, false)
 
@@ -305,7 +305,7 @@ func TestProtoNavigation_NestedDescriptorOnlyFallback(t *testing.T) {
 
 // Served source (layer 1): the parsed remote file resolves the
 // outer-qualified nested path with doc comments and exact name-token
-// spans (#237).
+// spans.
 func TestProtoNavigation_NestedServedSourceFallback(t *testing.T) {
 	srv, u := openRemoteNestedDoc(t, true)
 

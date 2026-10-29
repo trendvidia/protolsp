@@ -189,7 +189,7 @@ func (idx *Index) ImportPaths() []string {
 // LocalImportPaths returns the sorted import paths whose backing
 // file lives under the workspace root — the workspace's own .proto
 // files, excluding BSR cache deps. Callers that fold in "every name
-// the workspace declares" (the declared-name export, #272) walk
+// the workspace declares" (the declared-name export) walk
 // these and Lookup each one; walking ImportPaths instead would
 // lazily parse the entire BSR cache — potentially thousands of
 // files — for declarations the workspace never references.

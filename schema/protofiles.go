@@ -319,7 +319,7 @@ func ProtoFilesParents(l Lookup) (*protoregistry.NamespacedFiles, *protoregistry
 // this map is the only place the original disk location survives,
 // which is what lets go-to-definition hand back a file:// URI to
 // the user's working copy instead of a read-only registry://
-// preview (#185). The map is populated once at OpenProtoFiles time
+// preview. The map is populated once at OpenProtoFiles time
 // and never mutated, so concurrent reads are safe.
 func ProtoFilesLocalPath(l Lookup, protoPath string) (string, bool) {
 	pf, ok := l.(*protoFilesLookup)

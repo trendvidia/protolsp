@@ -89,7 +89,7 @@ func (r protoTypeLookup) Node() source.Spanner {
 //     index resolves each import path to a parsed file; the resolver
 //     then walks that file for the reference's scoped candidates.
 //
-// Qualifier handling (#237, #239): a name is matched per file by
+// Qualifier handling: a name is matched per file by
 // interpreting it against the reference site's enclosing scopes
 // (refScope — package plus enclosing messages, innermost first),
 // peeling the target file's package prefix, and resolving the
@@ -139,8 +139,8 @@ func (s *Workspace) resolveProtoTypeRef(currentFile *protoast.File, name, refSco
 // scoped candidates carry the qualifier discipline: `pkg.Foo` doesn't
 // resolve against an unrelated file that happens to declare `Foo`,
 // while `pkg.Outer.Inner` peels the enclosing-message segments after
-// the package prefix (#237) and a bare name prefers the declaration
-// nearest the reference's enclosing scope (#239).
+// the package prefix and a bare name prefers the declaration
+// nearest the reference's enclosing scope.
 func resolveProtoTypeInFile(f *protoast.File, name, refScope string) protoTypeLookup {
 	return findTypeByScopedCandidates(f, protoScopedCandidates(name, refScope, filePackage(f)))
 }
@@ -170,12 +170,12 @@ func findTypeByScopedCandidates(f *protoast.File, candidates []string) protoType
 // protoScopedCandidates returns the scope paths — dot-separated,
 // relative to a target file's top level — under which `name`, written
 // at a reference site whose lexical scope is refScope, could denote a
-// declaration in a file whose package is targetPkg (#237). Empty when
+// declaration in a file whose package is targetPkg. Empty when
 // the reference can't land in targetPkg at all.
 //
 // refScope is the full dotted scope at the reference site: the
 // referencing file's package followed by the enclosing message names
-// (#239, protoScopeAt) — or just the package when the caller has no
+// (protoScopeAt) — or just the package when the caller has no
 // cursor context.
 //
 // Candidates follow protobuf's C++-style scope peeling: the reference
@@ -185,7 +185,7 @@ func findTypeByScopedCandidates(f *protoast.File, candidates []string) protoType
 // with the package prefix peeled — so "pkg.Outer.Inner" against
 // package "pkg" yields "Outer.Inner", and a bare "Inner" written
 // inside pkg.Outer.Middle yields "Outer.Middle.Inner", "Outer.Inner",
-// "Inner", in that order. That chain is exhaustive (#241): a
+// "Inner", in that order. That chain is exhaustive: a
 // reference protoc can't resolve produces no candidates, so a bare
 // name no longer leaks across packages the way the pre-#241 lenient
 // fallback allowed.
@@ -229,8 +229,8 @@ func protoScopedCandidates(name, refScope, targetPkg string) []string {
 
 // protoRefScopeAt returns the reference site's full lexical scope —
 // the file's package followed by the names of the message (or proto2
-// group, whose body is the declared message's scope, #241)
-// declarations enclosing the cursor, outermost first (#239). With no
+// group, whose body is the declared message's scope)
+// declarations enclosing the cursor, outermost first. With no
 // enclosing messages this is just the package, so pre-#239 call
 // shapes are the degenerate case. (Not to be confused with
 // protoScopeAt, completion's block-kind classifier.)
@@ -260,7 +260,7 @@ func protoRefScopeAt(f *protoast.File, path *protoPath) string {
 // protoTopLevelNameCandidates returns the names under which `name`,
 // referenced from a site whose lexical scope is refScope, could
 // denote a TOP-LEVEL declaration in a file whose package is
-// targetPkg (#245). It is the scoped-candidate chain filtered to
+// targetPkg. It is the scoped-candidate chain filtered to
 // undotted entries: annotations, functions, and type aliases can't
 // nest, so only interpretations landing directly in the package
 // participate — a bare name binds only in files whose package is an
@@ -279,7 +279,7 @@ func protoTopLevelNameCandidates(name, refScope, targetPkg string) []string {
 // findDeclByScopedPath resolves a dotted scope path rooted at the
 // file's top level: every segment but the last names an enclosing
 // message (or proto2 group — a group declares a message named after
-// it, #241), the last names a message, group, or enum nested
+// it), the last names a message, group, or enum nested
 // directly inside it. Returns the zero DeclDef when any segment
 // fails to match — including an intermediate segment that names a
 // non-message.
@@ -314,7 +314,7 @@ func findDeclByScopedPath(f *protoast.File, scoped string) ast.DeclDef {
 // declarations — one level of scope, no recursion into nested
 // scopes. Fields, oneofs, and other def kinds don't participate:
 // they can't be referenced as types. Extend blocks are NOT scopes
-// (#246): a proto2 group declared inside one defines a message in
+// : a proto2 group declared inside one defines a message in
 // the enclosing scope, so extend bodies are scanned transparently.
 func protoImmediateTypeDef(decls seq.Inserter[ast.DeclAny], name string) ast.DeclDef {
 	for decl := range seq.Values(decls) {

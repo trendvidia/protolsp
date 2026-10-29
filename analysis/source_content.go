@@ -38,7 +38,7 @@ const registryURIScheme = "registry://"
 type SourceContentParams struct {
 	URI uri.URI `json:"uri"`
 	// WorkspaceDir optionally scopes the fetch to a sub-workspace's
-	// registry (#215): the absolute directory of the sub-workspace
+	// registry: the absolute directory of the sub-workspace
 	// the preview was opened from. Empty selects the root lookup —
 	// the pre-#215 behavior — so callers with no multi-root context
 	// can omit it.
@@ -93,7 +93,7 @@ func ParseRegistryURI(u uri.URI) (namespace, filePath string, ok bool) {
 // This is the workspaceDir=="" case of
 // [Workspace.lookupForNamespaceInWorkspace]; registry:// resolution
 // originating from a sub-workspace goes through that doc/dir-scoped
-// variant so a preview resolves against its own registry (#215).
+// variant so a preview resolves against its own registry.
 func (s *Workspace) LookupForNamespace(namespace string) schema.Lookup {
 	return s.lookupForNamespaceInWorkspace(namespace, "")
 }
@@ -102,7 +102,7 @@ func (s *Workspace) LookupForNamespace(namespace string) schema.Lookup {
 // registry:// request originating from workspaceDir. It mirrors
 // [Workspace.LookupForDoc]'s routing so a preview opened from a
 // sub-workspace resolves its content and cross-file imports against
-// THAT sub-workspace's registry, not the root's (#215):
+// THAT sub-workspace's registry, not the root's:
 //
 //   - `_internal_` → the compiled-in internalLookup.
 //   - a sub-workspace that declares its own schema source → that
@@ -145,9 +145,9 @@ var (
 // lookup (compiled-in internal vs root user-bound, per
 // [Workspace.LookupForNamespace]), and GetSource the file. The
 // composed recipe behind [MethodSourceContent] and the RPC sidecar's
-// GetSourceContent; exported so in-process embedders share it (#203).
+// GetSourceContent; exported so in-process embedders share it.
 // Multi-root callers use [Workspace.SourceContentForWorkspace] to
-// resolve against a sub-workspace's own registry (#215).
+// resolve against a sub-workspace's own registry.
 //
 // Errors wrap [ErrNotRegistryURI] (malformed URI — caller mistake),
 // [ErrNoSchemaLookup] (nothing configured), or the underlying
@@ -160,7 +160,7 @@ func (s *Workspace) SourceContent(ctx context.Context, u uri.URI) (SourceContent
 // sub-workspace: workspaceDir is the absolute directory of the
 // sub-workspace the preview was opened from, so a registry:// source
 // fetched from a sub-workspace's own registry resolves against THAT
-// registry rather than the root's (#215). An empty workspaceDir
+// registry rather than the root's. An empty workspaceDir
 // selects the root lookup, making SourceContent the back-compatible
 // root-scoped entry point.
 func (s *Workspace) SourceContentForWorkspace(ctx context.Context, u uri.URI, workspaceDir string) (SourceContentResult, error) {

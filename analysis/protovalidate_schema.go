@@ -27,7 +27,7 @@
 //     *common.Error.Location, mirroring the per-column work in
 //     #164. Backslash-escape fallback is the same as Phase 0
 //     for protocheck.
-//   - The environment is protovalidate's own (#279): every rule
+//   - The environment is protovalidate's own: every rule
 //     compiles against `pvcel.NewLibrary()` — the strings
 //     extension, the `now` variable, `isEmail` / `isHostname` /
 //     `isIp` / `isUri` / `unique` / … and the bytes overloads —
@@ -56,7 +56,7 @@ import (
 
 // analyzeProtovalidateExpressions returns diagnostics for any
 // broken CEL expressions in `(buf.validate.*).cel` annotations,
-// with ranges in the negotiated position encoding (#227).
+// with ranges in the negotiated position encoding.
 // Nil-safe on the input — caller (analyzeProto) passes the
 // parsed file which may be nil if the parser bailed completely.
 func analyzeProtovalidateExpressions(file *protoast.File, enc positions.Encoding) []protocol.Diagnostic {

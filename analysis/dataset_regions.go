@@ -53,7 +53,7 @@ const (
 // / -1 until the AST pass fills them in. Resolvable is true when the
 // row type is known, so a region bound to an anonymous @proto has an
 // empty TypeFQN and is Resolvable: that type's name is protolsp's
-// own, and it is not sent (#292).
+// own, and it is not sent.
 type DatasetRegion struct {
 	Range      protocol.Range `json:"range"`
 	TypeFQN    string         `json:"typeFQN"`

@@ -59,7 +59,7 @@ func expressionStringFromValue(v ast.ExprAny) (string, token.Token, bool) {
 
 // nodeRange converts an AST node's source span into an
 // LSP-shaped (0-based line/col) range, columns counted in the
-// negotiated position encoding (#227). Falls back to a synthetic
+// negotiated position encoding. Falls back to a synthetic
 // 1:1 position if the span is zero (shouldn't happen for nodes
 // we got from a successful parse, but defensive against
 // zero-value nodes).

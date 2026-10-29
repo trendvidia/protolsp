@@ -261,7 +261,7 @@ func TestIndex_BSRCacheLookup(t *testing.T) {
 }
 
 // LocalImportPaths lists only files under the workspace root — BSR
-// cache dep files stay out, so the declared-name export (#272) never
+// cache dep files stay out, so the declared-name export never
 // force-parses the module cache.
 func TestIndex_LocalImportPaths(t *testing.T) {
 	root := t.TempDir()

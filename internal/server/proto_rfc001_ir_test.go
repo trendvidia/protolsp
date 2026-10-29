@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 IR-artifact features (#220): function-call navigation
+// RFC-001 IR-artifact features: function-call navigation
 // inside opaque engine-expression fragments, the descriptor_path →
 // source-range mapping primitive, and annotation-validation
 // diagnostics resolving through imports.
@@ -174,7 +174,7 @@ func TestRFC001SourceRange_DescriptorPathKeys(t *testing.T) {
 }
 
 // rfc001AliasMapProto exercises the descriptor-path shapes that
-// changed across protocompile v0.18.0/v0.19.0 (#260): a two-link
+// changed across protocompile v0.18.0/v0.19.0: a two-link
 // type-alias chain feeding a plain field, a map whose value type is
 // the alias, and a map whose key type is the alias.
 const rfc001AliasMapProto = `syntax = "proto3";
@@ -194,7 +194,7 @@ message M {
 `
 
 // Alias-chain ordinals follow RFC-001 §6.4 evaluation order
-// (protocompile v0.18.0, #102): the base-most link's rule is ordinal
+// (protocompile v0.18.0): the base-most link's rule is ordinal
 // 0, derived links follow, field-site uses come last. Each ordinal
 // must anchor at the rule's own @-token — base ordinals point into
 // the alias declarations, not the field.
@@ -230,7 +230,7 @@ func TestRFC001SourceRange_AliasChainOrdinalsBaseFirst(t *testing.T) {
 	assert.Equal(t, rng(10, 2, 10, 3), r)
 }
 
-// Map alias rules key per protocompile v0.19.0 (#112): value-type
+// Map alias rules key per protocompile v0.19.0: value-type
 // alias rules live on the map field's own path — the pre-v0.19
 // synthetic `…Entry.value[…]` paths no longer exist — while key-type
 // alias rules stay on the synthetic entry's key field.
@@ -313,7 +313,7 @@ annotation description(text: string);
 	return "file://" + filepath.ToSlash(filepath.Join(root, "proto", "acme")), srv, fc
 }
 
-// Annotation validation resolves through imports (#220): a valid
+// Annotation validation resolves through imports: a valid
 // qualified use of an imported annotation publishes clean, and
 // invalid uses diagnose in the importing file with positions there.
 func TestDidOpen_AnnotationDiagnostics_CrossFileImport(t *testing.T) {

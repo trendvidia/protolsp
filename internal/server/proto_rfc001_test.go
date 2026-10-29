@@ -130,7 +130,7 @@ message M {}
 			wantRng: rng(3, 3, 3, 5),
 		},
 		{
-			// protocompile v0.17.0 (#94): a parameter declared
+			// protocompile v0.17.0: a parameter declared
 			// without a default is required, and an unbound one now
 			// diagnoses at the whole use site. Bare `@d`, `@d()`, and
 			// partial argument lists all fire; this pins the bare form.

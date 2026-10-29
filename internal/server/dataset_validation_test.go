@@ -181,7 +181,7 @@ func TestDatasetValidate_NullOnAScalarIsAnError(t *testing.T) {
 	// null may sit only on a field that can hold it, a message field
 	// (draft § Booleans, Null, and Identifier Values; protowire#339).
 	// qty is a plain int32, so the decoder rejects the cell, and so does
-	// this check (#290). An absent cell is fine anywhere.
+	// this check. An absent cell is fine anywhere.
 	srv, fc := newServerWithFakeConn(t)
 	lookup := newFakeLookup()
 	lookup.add(buildTradeMessageType(t))

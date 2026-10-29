@@ -87,7 +87,7 @@ func (s *Workspace) renderDatasetHover(doc *Document, region *DatasetRegion, pos
 	}
 	// The row type as validation resolves it: a dataset bound to an
 	// anonymous @proto has no TypeFQN, and its synthetic name is not
-	// shown (#287).
+	// shown.
 	name, anonymous := region.TypeFQN, false
 	if doc.Parsed != nil {
 		if d := indexParsedDatasets(doc.Parsed.Datasets)[region.Range.Start.Line]; d != nil {

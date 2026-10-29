@@ -443,7 +443,7 @@ var (
 // can chain or restore.
 //
 // Deprecated-ish: the global affects every Parse call in the
-// process, so two independent embedders fight over it (#180).
+// process, so two independent embedders fight over it.
 // Prefer ParseWithEnv, which scopes the resolver to one call;
 // this stays for single-instance CLI-style callers.
 func SetEnvLookup(fn func(name string) string) func(name string) string {

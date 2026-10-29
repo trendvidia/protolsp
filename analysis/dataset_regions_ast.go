@@ -58,7 +58,7 @@ type DatasetRegionsChangedParams struct {
 // Also re-evaluates Huge once RowCount is known (the design's
 // threshold = rows OR bytes, whichever hits first). Pass 0 for
 // thresholds to use the defaults. typeOf names each dataset's row
-// type: its own, or the anonymous @proto bound to it (#287).
+// type: its own, or the anonymous @proto bound to it.
 func enrichDatasetRegionsTyped(regions []DatasetRegion, parsed *pxf.Document, lookup datasetLookup, hugeRows, hugeBytes int, typeOf func(*pxf.DatasetDirective) string) []DatasetRegion {
 	if hugeRows <= 0 {
 		hugeRows = defaultHugeRegionRows

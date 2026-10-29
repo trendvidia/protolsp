@@ -20,7 +20,7 @@ func TestProtoScopedCandidates(t *testing.T) {
 		name, refPkg, targetPkg string
 		want                    []string
 	}{
-		// Bare names resolve through the scope chain only (#241): a
+		// Bare names resolve through the scope chain only: a
 		// bare reference can't land in an unrelated package.
 		{"Foo", "acme.v1", "other.v1", nil},
 		{"Foo", "acme.v1", "acme.v1", []string{"Foo"}},
@@ -30,20 +30,20 @@ func TestProtoScopedCandidates(t *testing.T) {
 		{"other.lib.v1.Bar", "acme.v1", "other.lib.v1", []string{"Bar"}},
 		{"other.lib.v1.Bar", "acme.v1", "wrong.pkg.v1", nil},
 
-		// Outer-qualified nested references (#237).
+		// Outer-qualified nested references.
 		{"other.lib.v1.Outer.Inner", "acme.v1", "other.lib.v1", []string{"Outer.Inner"}},
 		{"Outer.Inner", "acme.v1", "acme.v1", []string{"Outer.Inner"}},
 		{"Outer.Inner", "acme.v1", "other.v1", nil},
 		// The whole qualifier can also be a deeper package.
 		{"other.lib.v1.Outer.Inner", "acme.v1", "other.lib.v1.Outer", []string{"Inner"}},
 
-		// Reference-site message scopes participate (#239): refScope
+		// Reference-site message scopes participate: refScope
 		// carries the enclosing messages, innermost interpretations
 		// first.
 		{"Middle.Inner", "pkg.Outer", "pkg", []string{"Outer.Middle.Inner", "Middle.Inner"}},
 		{"Inner", "pkg.Outer.Middle", "pkg", []string{"Outer.Middle.Inner", "Outer.Inner", "Inner"}},
 		// No scope interpretation lands in the target package → no
-		// candidates, even for a bare name (#241).
+		// candidates, even for a bare name.
 		{"Inner", "pkg.Outer", "other", nil},
 
 		// Enclosing-package scopes of refPkg participate, innermost
@@ -140,7 +140,7 @@ enum Color {
 
 func TestProtoRefScopeAt(t *testing.T) {
 	// The lexical scope at a cursor is the package plus the enclosing
-	// message names, outermost first (#239).
+	// message names, outermost first.
 	src := `syntax = "proto3";
 package acme.v1;
 
@@ -256,7 +256,7 @@ message B {
 
 func TestProtoGroupScopes(t *testing.T) {
 	// A proto2 group declares a message named after it; its body is
-	// that message's scope (#241). Both the scope derivation and the
+	// that message's scope. Both the scope derivation and the
 	// rooted path walk must treat groups as message scopes — without
 	// this, dropping the lenient any-depth fallback would strand
 	// references written inside (or naming types inside) group bodies.
@@ -281,7 +281,7 @@ message M {
 }
 
 func TestProtoExtendScopePassthrough(t *testing.T) {
-	// An extend block is not a scope (#246): a proto2 group declared
+	// An extend block is not a scope: a proto2 group declared
 	// inside one defines a message in the ENCLOSING scope, so the
 	// rooted walk must scan extend bodies transparently — at the top
 	// level and inside messages alike.

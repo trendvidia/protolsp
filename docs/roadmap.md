@@ -16,13 +16,13 @@ deferred until the hosted pivot starts.
 
 | Cluster | Status |
 |---|---|
-| P0 — concurrency (C1–C6) | ✅ shipped (#60, #61, #65) |
-| P0 — resource exhaustion (R1–R4) | ✅ shipped (#63, #67, #69) |
+| P0 — concurrency (C1–C6) | ✅ shipped |
+| P0 — resource exhaustion (R1–R4) | ✅ shipped |
 | P0 — hosted-platform (H1–H4) | ⏸ parked until hosted pivot |
-| P1 — tech debt (T1–T5) | ✅ shipped (#75, #76, #77, #78, #79) |
-| P1 — test coverage (TC1–TC8) | ✅ shipped (#80) |
-| P1 — documentation (D1–D8) | ✅ shipped (#71, #73, #74) |
-| P2 — hygiene (Z1–Z6) | ✅ shipped (#81) |
+| P1 — tech debt (T1–T5) | ✅ shipped |
+| P1 — test coverage (TC1–TC8) | ✅ shipped |
+| P1 — documentation (D1–D8) | ✅ shipped |
+| P2 — hygiene (Z1–Z6) | ✅ shipped |
 
 ## P0 — correctness & security
 

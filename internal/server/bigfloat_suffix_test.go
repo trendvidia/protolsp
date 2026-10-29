@@ -16,7 +16,7 @@ import (
 
 // A pxf.BigFloat literal may carry a precision suffix, 0.1p53
 // (protowire#406, protowire-go v1.12.0); any other field rejects one
-// (#303).
+// .
 const suffixSchema = `@proto """
 syntax = "proto3";
 package s.v1;

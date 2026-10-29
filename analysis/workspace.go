@@ -97,7 +97,7 @@ type WorkspaceState struct {
 	// async rebuild keyed on its OWN effective registry config,
 	// so a flurry of edits to one sub-workspace's .protolsp.pxf
 	// doesn't cancel the root rebuild (or vice versa).
-	// Unexported rebuild bookkeeping (#179); observers use
+	// Unexported rebuild bookkeeping; observers use
 	// LastRebuiltConfig / RebuildInFlight.
 	lastRebuiltCfg schema.Config
 	rebuildMu      sync.Mutex
@@ -123,7 +123,7 @@ func (ws *WorkspaceState) RebuildInFlight() bool {
 
 // SubWorkspaceCount returns the number of lazily-loaded
 // sub-workspaces. Concurrent-safe. Pairs with SubWorkspaceByDir as
-// the sanctioned view of the sub-workspace map (#179).
+// the sanctioned view of the sub-workspace map.
 func (s *Workspace) SubWorkspaceCount() int {
 	s.ws.workspacesMu.Lock()
 	defer s.ws.workspacesMu.Unlock()
@@ -180,7 +180,7 @@ func FindWorkspaceDirFor(docPath, workspaceRoot string) (string, bool) {
 // not already set and lazily loads the sub-workspace state when the
 // doc belongs to one. Safe to call multiple times; second + calls
 // short-circuit on the cached WorkspaceDir. Safe to call
-// concurrently (#187): the check-then-set below isn't atomic, but
+// concurrently: the check-then-set below isn't atomic, but
 // racing callers compute the same wsDir from the same inputs, and
 // EnsureSubWorkspace serializes internally on workspacesMu — the
 // worst case is a redundant idempotent store.
@@ -419,7 +419,7 @@ func (s *Workspace) SubWorkspaceForDoc(doc *Document) *WorkspaceState {
 // an absolute workspace directory, or nil for the empty dir, the
 // root dir, or a directory that isn't a registered sub-workspace.
 //
-// The registry:// resolution paths (#215) route by a workspaceDir
+// The registry:// resolution paths route by a workspaceDir
 // carried on the request or on the preview's shadow Document rather
 // than by a Document value, so they call this directly.
 func (s *Workspace) subWorkspaceForDir(dir string) *WorkspaceState {
@@ -467,7 +467,7 @@ func (s *Workspace) snapshotSubWorkspaceLookup(ws *WorkspaceState) schema.Lookup
 // SwapSubWorkspaceLookup installs new lookup state on ws and
 // returns the prior closer for the caller to close outside the
 // lock. Mirrors the server-wide swapLookup, including the
-// LookupChanged fire (#209) — sub-workspace slots don't route
+// LookupChanged fire — sub-workspace slots don't route
 // through LookupManager, so the seam is fired here.
 func (s *Workspace) SwapSubWorkspaceLookup(ws *WorkspaceState, newLookup schema.Lookup, newCloser io.Closer) io.Closer {
 	if ws == nil {
@@ -492,7 +492,7 @@ func (s *Workspace) SwapSubWorkspaceLookup(ws *WorkspaceState, newLookup schema.
 //
 // It also drops the cross-file registry AST cache, mirroring the root
 // manager's onChanged (see the newLookupManager closure): now that a
-// sub-workspace's registry backs registry:// resolution (#215), a
+// sub-workspace's registry backs registry:// resolution, a
 // swap on its slot can change what an import path resolves to, so a
 // parse cached under this dir must not leak into resolution against
 // the new lookup. clearRegistryASTCache drops the whole cache, so a
@@ -600,7 +600,7 @@ func (s *Workspace) dialAndInstallSubWorkspaceLookup(ctx context.Context, ws *Wo
 	lookup, closer, err := schema.Open(ctx, cfg, openOpts...)
 	if err != nil {
 		// Keep the previous lookup, but still fire LookupChanged
-		// (#209): a per-workspace status surface waiting on this
+		//: a per-workspace status surface waiting on this
 		// rebuild needs to know the attempt resolved — same
 		// contract as the root's failed-dial path.
 		s.log.Warn("background sub-workspace schema lookup rebuild failed; keeping previous",
@@ -665,7 +665,7 @@ func (s *Workspace) LookupForDoc(doc *Document) schema.Lookup {
 // rather than the root's proto_files (whose descriptors can't have
 // backed this doc).
 //
-// Used by resolveDefinitionURI's exact-attribution step (#185).
+// Used by resolveDefinitionURI's exact-attribution step.
 // Callers need the raw proto_files slot — not the composed W3
 // resolver — because only it retains the descriptor-path →
 // disk-path mapping from the compile.

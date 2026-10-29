@@ -98,7 +98,7 @@ func (s *Workspace) dialAndInstallLookup(ctx context.Context, cfg schema.Config)
 		// Non-fatal: a dial failure leaves the previous lookup in
 		// place. The user keeps editing against the old state
 		// until they fix the registry config or it becomes
-		// reachable again. Still fire LookupChanged (#204): the
+		// reachable again. Still fire LookupChanged: the
 		// snapshot is unchanged, but a status surface waiting on
 		// this rebuild needs to know the attempt resolved.
 		s.log.Warn("background schema lookup rebuild failed; keeping previous lookup",

@@ -97,7 +97,7 @@ func TestRFC001CarrierSignatures(t *testing.T) {
 }
 
 // A carried function's doc-bearing bracket options — lowered into
-// FunctionDecl.options by protocompile v0.20.0+ (#118) — render into
+// FunctionDecl.options by protocompile v0.20.0+ — render into
 // the hover card in the doc-comment slot: deprecation marker first,
 // then the description paragraph, then the error code. Non-doc
 // options and pre-v0.20.0 carriers (empty options) add nothing.
@@ -146,7 +146,7 @@ func TestRFC001CarrierDecl_FunctionOptions(t *testing.T) {
 }
 
 // classicDescriptorDecl resolves classic messages and enums straight
-// off the compiled descriptor (#229) — nested scopes included, map
+// off the compiled descriptor — nested scopes included, map
 // entries skipped — with declaration-site ranges from SourceCodeInfo
 // when the descriptor kept it.
 func TestClassicDescriptorDecl(t *testing.T) {
@@ -212,7 +212,7 @@ func TestClassicDescriptorDecl(t *testing.T) {
 	assert.Contains(t, md, "**enum Color**")
 	assert.Equal(t, uint32(12), rng.Start.Line)
 
-	// Candidates are rooted (#241): a bare name no longer matches a
+	// Candidates are rooted: a bare name no longer matches a
 	// declaration nested inside another message — protoc would reject
 	// the reference, so resolution misses too.
 	_, _, ok = classicDescriptorDecl(fd, []string{"Inner"}, "acme/classic.proto")
@@ -221,7 +221,7 @@ func TestClassicDescriptorDecl(t *testing.T) {
 	assert.False(t, ok, "bare names don't match nested enums either")
 
 	// Outer-qualified scoped paths descend the enclosing-message
-	// chain (#237): both the nested message and the nested enum.
+	// chain: both the nested message and the nested enum.
 	// Without a SourceCodeInfo entry their range degrades to the top
 	// of the file.
 	md, rng, ok = classicDescriptorDecl(fd, []string{"Anchor.Inner"}, "acme/classic.proto")
