@@ -28,15 +28,15 @@ import (
 // rewriting from a partial AST would lose their text) and when the
 // output does not carry every token and comment word of the input.
 // The second check is a guard, not a formatting rule: the printer
-// has dropped text before (annotation uses, protocompile#258; a
-// comment after `};`), and refusing to format is always cheaper
-// than deleting part of the user's file on save.
+// has dropped text before (annotation uses, protocompile#258;
+// comments, protocompile#273), and refusing to format is always
+// cheaper than deleting part of the user's file on save.
 func formatProto(path string, src []byte) ([]byte, error) {
 	in, err := parseProtoStrict(path, string(src))
 	if err != nil {
 		return nil, err
 	}
-	out, err := printer.PrintFile(printer.Options{Format: true, Formatting: printer.Legacy()}, in)
+	out, err := printProto(in)
 	if err != nil {
 		return nil, fmt.Errorf("printing: %w", err)
 	}
@@ -48,6 +48,12 @@ func formatProto(path string, src []byte) ([]byte, error) {
 		return nil, fmt.Errorf("formatter would change content (lost %q, added %q); not formatting", lost, added)
 	}
 	return []byte(out), nil
+}
+
+// printProto is the printer call, a variable so a test can swap in
+// one that loses text and check the guard catches it.
+var printProto = func(f *ast.File) (string, error) {
+	return printer.PrintFile(printer.Options{Format: true, Formatting: printer.Legacy()}, f)
 }
 
 // parseProtoStrict parses text and fails on the first error-level

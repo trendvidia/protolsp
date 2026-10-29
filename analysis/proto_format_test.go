@@ -4,20 +4,28 @@
 package analysis
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trendvidia/protocompile/ast"
 )
 
-// TestFormatProto_RefusesWhenPrinterDropsAComment pins why the
-// server returns no edits for this shape: the content guard, not a
-// parse error. protocompile's printer drops the comment after `};`.
-func TestFormatProto_RefusesWhenPrinterDropsAComment(t *testing.T) {
-	src := []byte("syntax = \"proto3\";\n\nmessage Foo {\n  oneof choice {\n    string a = 1;\n  }; // kept-or-refused\n}\n")
-	_, err := formatProto("foo.proto", src)
+// TestFormatProto_RefusesWhenPrinterLosesText checks the guard is
+// wired in: with a printer that drops a comment, formatProto returns
+// an error naming the loss instead of the shortened text.
+func TestFormatProto_RefusesWhenPrinterLosesText(t *testing.T) {
+	real := printProto
+	t.Cleanup(func() { printProto = real })
+	printProto = func(f *ast.File) (string, error) {
+		out, err := real(f)
+		return strings.Replace(out, " // note", "", 1), err
+	}
+
+	_, err := formatProto("foo.proto", []byte("syntax = \"proto3\";\n\nmessage Foo {\n  string a = 1; // note\n}\n"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `lost ["comment:kept-or-refused"]`)
+	assert.Contains(t, err.Error(), `lost ["comment:note"]`)
 }
 
 // TestContentOf_SeesADroppedAnnotationUse checks the guard against

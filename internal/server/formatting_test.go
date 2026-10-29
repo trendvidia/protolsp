@@ -181,29 +181,60 @@ message TempoRange {
   int32 max_bpm = 2;
 }
 `
+	// Long annotation uses wrap at 100 columns, one argument per
+	// line (protocompile#281); short ones stay on the field's line.
+	const want = `syntax = "proto3";
+package daysong.v1alpha1;
+
+// TempoRange min <= max.
+function tempo_ordered(t: TempoRange);
+
+message StyleDescriptor {
+  // 0.0-1.0.
+  float energy = 1
+    @validate(
+      this >= 0.0 && this <= 1.0,
+      code = "descriptor.energy.range",
+      message = "energy must be within [0, 1]"
+    );
+  TempoRange tempo = 3 @required;
+  Mode mode = 5
+    @required
+    @validate(
+      this in [1, 2],
+      code = "descriptor.mode.known",
+      message = "mode must be match or regulate"
+    );
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    MODE_MATCH = 1;
+    MODE_REGULATE = 2;
+  }
+}
+
+// Beats per minute, 40-220, min <= max.
+@validate(
+  tempo_ordered(this),
+  code = "tempo.min_le_max",
+  message = "min_bpm must not exceed max_bpm"
+)
+message TempoRange {
+  int32 min_bpm = 1
+    @validate(
+      this >= 40 && this <= 220,
+      code = "tempo.min.range",
+      message = "min_bpm out of range"
+    );
+  int32 max_bpm = 2;
+}
+`
 	edits := formatProtoDoc(t, src)
 	require.Len(t, edits, 1, "v1.2 source is formatted, not skipped")
 	got := edits[0].NewText
-	for _, use := range []string{
-		`@validate(this >= 0.0 && this <= 1.0, code = "descriptor.energy.range", message = "energy must be within [0, 1]")`,
-		`@validate(this in [1, 2], code = "descriptor.mode.known", message = "mode must be match or regulate")`,
-		`@validate(tempo_ordered(this), code = "tempo.min_le_max", message = "min_bpm must not exceed max_bpm")`,
-		`@validate(this >= 40 && this <= 220, code = "tempo.min.range", message = "min_bpm out of range")`,
-		`function tempo_ordered(t: TempoRange);`,
-	} {
-		assert.Contains(t, got, use)
-	}
+	assert.Equal(t, want, got)
 	assert.Equal(t, strings.Count(src, "@validate"), strings.Count(got, "@validate"))
 	assert.Equal(t, strings.Count(src, "@required"), strings.Count(got, "@required"))
-	for _, comment := range []string{
-		"// TempoRange min <= max.",
-		"// 0.0-1.0.",
-		"// Beats per minute, 40-220, min <= max.",
-	} {
-		assert.Contains(t, got, comment)
-	}
-	assert.Contains(t, got, "  float energy = 1 @validate(", "the run of spaces is normalized")
-	assert.Contains(t, got, "  enum Mode {\n    MODE_UNSPECIFIED = 0;\n", "the one-line enum is broken out")
+	assert.Equal(t, strings.Count(src, "//"), strings.Count(got, "//"))
 
 	assert.Empty(t, formatProtoDoc(t, got), "formatting is idempotent")
 }
@@ -221,23 +252,30 @@ func TestProtoFormatting_NilOnParseError(t *testing.T) {
 	assert.Nil(t, formatProtoDoc(t, "syntax = \"proto3\";\nmessage Foo {\n  string name = \n"))
 }
 
-// TestProtoFormatting_NilWhenPrinterWouldDropAComment pins a printer
-// divergence: protocompile's printer drops a comment that follows
-// `};` (it removes the empty `;` declaration and its trailing comment
-// with it). The content guard in formatProto must turn that into "no
-// edits" rather than a buffer that lost the comment. When the printer
-// is fixed this test fails on the nil: assert the comment is kept
-// instead.
-func TestProtoFormatting_NilWhenPrinterWouldDropAComment(t *testing.T) {
+// TestProtoFormatting_KeepsCommentAfterBodySemicolon: the printer
+// drops the empty `;` after a body. Before protocompile#273 the
+// comment trailing it went too, and the content guard refused to
+// format the file; now the comment moves to its own line.
+func TestProtoFormatting_KeepsCommentAfterBodySemicolon(t *testing.T) {
 	const src = `syntax = "proto3";
 
 message Foo {
   oneof choice {
     string a = 1;
-  }; // kept-or-refused
+  }; // kept
 }
 `
-	assert.Nil(t, formatProtoDoc(t, src))
+	edits := formatProtoDoc(t, src)
+	require.Len(t, edits, 1)
+	assert.Equal(t, `syntax = "proto3";
+
+message Foo {
+  oneof choice {
+    string a = 1;
+  }
+  // kept
+}
+`, edits[0].NewText)
 }
 
 func TestFormatting_AdvertisesCapability(t *testing.T) {
