@@ -7,6 +7,8 @@ without a major bump.
 
 ## [Unreleased]
 
+## [0.23.1] – 2026-10-29
+
 ### Changed
 
 - **protowire v1.12.0 → v1.13.0**, the module protolsp reads the schemas a
