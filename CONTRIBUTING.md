@@ -69,9 +69,10 @@ Read the log before rerunning anything, and classify first:
   at `-count=100` or more and read the counts. It does not get a retry
   annotation — a retry hides the rate, and the rate is the diagnosis.
 
-Pull requests from forks run the `community` job only: stock Go on a
-GitHub-hosted runner. The remaining jobs run for branches of this
-repository.
+CI runs on GitHub-hosted runners with stock Go. Pull requests from
+forks run the `ci` job only: the untagged build, which needs no private
+module. The `protocheck` job builds and tests `-tags protocheck`, which
+links private modules, so it runs for branches of this repository only.
 
 ## Reporting Bugs
 
