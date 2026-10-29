@@ -17,15 +17,29 @@ cd protolsp
 go install ./cmd/protolsp ./cmd/protolsp-ws    # stdio, websocket
 ```
 
-Install from a checkout: `go install …@latest` is refused because
-`go.mod` replaces `google.golang.org/protobuf` with the
-[TrendVidia fork](https://github.com/trendvidia/protobuf-go), which
-protoregistry's namespaced registry types require, and `go install`
-rejects modules carrying `replace` directives.
+For a release, check out its tag first (`git checkout v0.23.0`).
+
+> **Known limitation: `go install …@latest` does not work.** protolsp's
+> `go.mod` replaces `google.golang.org/protobuf` with the
+> [TrendVidia fork](https://github.com/trendvidia/protobuf-go), which
+> carries the namespaced registry types protolsp and
+> [protoregistry](https://github.com/trendvidia/protoregistry) use.
+> `go install` refuses a module whose `go.mod` has a `replace`, so
+> install from a checkout as above. This is accepted for now; it goes
+> away only if those types reach upstream protobuf-go.
+>
+> The same `replace` matters if you import protolsp as a library: Go
+> ignores a dependency's `replace`, so copy the line into your own
+> `go.mod` (this version, or a later fork release):
+>
+> ```
+> replace google.golang.org/protobuf => github.com/trendvidia/protobuf-go v1.36.12
+> ```
 
 The default build is the community build. Building with
-`-tags protocheck` adds protocheck runtime validation and needs
-modules that are not yet public.
+`-tags protocheck` adds protocheck runtime validation through the
+govm expression engine, and needs the `govm` and `protocheck-govm`
+modules, which are not public.
 
 ## Features at v0.1.0
 
