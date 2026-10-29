@@ -1,0 +1,35 @@
+# Generation config for protolsp's authored + vendored descriptors.
+#
+# Run from this directory:
+#
+#   buf generate
+#
+# Produces, alongside each .proto:
+#   protolsp/v1/workspace_config.pb.go
+#   chameleon/v1/chain.pb.go
+#   pxf/annotations.pb.go
+#   protolsp/v1/rpc/*.pb.go            (message types for the Connect-RPC surface)
+#   protolsp/v1/rpc/rpcconnect/*.go    (connect-go service stubs)
+#
+# Workspace-config + chain + annotations Go bindings self-register in
+# protoregistry.GlobalFiles via their init() — internal/schema's
+# lookup walks the registry to expose them as a schema.Lookup.
+#
+# The rpc/*.proto files are not part of that registry-backed schema —
+# they're the wire shapes for the Connect-RPC servers protolsp exposes
+# alongside its LSP handler.
+#
+# Prerequisites:
+#   - protoc-gen-go: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#   - protoc-gen-connect-go: go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+version: v2
+
+plugins:
+  - local: protoc-gen-go
+    out: .
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-connect-go
+    out: .
+    opt:
+      - paths=source_relative

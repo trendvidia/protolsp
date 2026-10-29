@@ -1,0 +1,127 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// ChameleonService: surface the workspace's chain-spec topology and
+// per-document layer membership so editors can render "this is the
+// staging layer of env=prod" badges. Mirrors protolsp/chainStatus +
+// protolsp/layerInfo.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+import "protolsp/v1/rpc/common.proto";
+
+message ChainEnvironment {
+  string name = 1;
+  // ancestors lists the environments this one inherits from in
+  // resolution order. Empty for root environments.
+  repeated string ancestors = 2;
+  // key_name is the name of the entry in a sops PXF AgeKeyFile
+  // whose recipient is used when encrypting this environment's
+  // layers. Empty when the chain spec doesn't set it (the
+  // common case; encrypt falls back to the key file's default
+  // recipient). Mirrors chameleon.v1.Environment.key_name from
+  // the upstream schema's v0.22.1 release.
+  string key_name = 3;
+}
+
+message ChainError {
+  string message = 1;
+  // line/column are zero when the issue isn't tied to a specific
+  // token (e.g. an ancestry cycle); editors anchor against the
+  // chain spec file when both are non-zero.
+  int32 line = 2;
+  int32 column = 3;
+}
+
+message GetChainStatusRequest {}
+
+// SetEnvironmentKeyNameRequest names an environment in the
+// workspace's chain spec + the desired age key entry name.
+// Empty key_name removes the assignment (the "inherit from
+// parent" canonical form).
+message SetEnvironmentKeyNameRequest {
+  string environment = 1;
+  string key_name = 2;
+}
+
+message SetEnvironmentKeyNameResponse {
+  // Echoed back so the caller can update local state without
+  // a follow-up GetChainStatus pull. May differ from the
+  // request (e.g. trimmed) — currently always equals the
+  // request's key_name verbatim.
+  string key_name = 1;
+}
+
+message GetChainStatusResponse {
+  // configured is true when the workspace has a loadable chain spec.
+  bool configured = 1;
+  // chain_spec_path is the on-disk location of the chain spec when
+  // configured; empty otherwise.
+  string chain_spec_path = 2;
+  repeated ChainEnvironment environments = 3;
+  // schema_fqn names the message type the chain spec resolves to;
+  // editors render this in the chain UI header.
+  string schema_fqn = 4;
+  repeated ChainError errors = 5;
+  string version = 6;
+  string default_environment = 7;
+  // active_environment is the session-scoped env the user has
+  // selected via SetActiveEnv. Defaults to default_environment when
+  // unset. Editors render this in the chain UI's "currently
+  // browsing" indicator.
+  string active_environment = 8;
+}
+
+message GetLayerInfoRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message GetLayerInfoResponse {
+  // is_layer is true when the document is a chameleon layer
+  // (matches the chain spec's layer-path pattern).
+  bool is_layer = 1;
+  // environment names the chain env this document belongs to; empty
+  // when is_layer is false.
+  string environment = 2;
+  // ancestors is the resolution chain from base up to this layer;
+  // editors render it as a breadcrumb. Empty when is_layer is false.
+  repeated string ancestors = 3;
+}
+
+// SetActiveEnvRequest carries the env name the client wants to make
+// active for this session. Empty string resets to the chain's
+// default_environment (the natural "go back to default" gesture).
+message SetActiveEnvRequest {
+  string environment = 1;
+}
+
+message SetActiveEnvResponse {
+  // previous_environment is what was active before this call,
+  // mirroring what GetChainStatus.active_environment would have
+  // returned just beforehand. Lets clients animate transitions or
+  // confirm-then-revert without an extra round-trip.
+  string previous_environment = 1;
+}
+
+service ChameleonService {
+  rpc GetChainStatus(GetChainStatusRequest) returns (GetChainStatusResponse);
+  rpc GetLayerInfo(GetLayerInfoRequest) returns (GetLayerInfoResponse);
+  // SetActiveEnv changes the session-scoped active environment. The
+  // server validates that the env exists in the chain spec; an
+  // empty environment string resets to default. Pure UI signal
+  // today — present so future hover / effective-config flows can
+  // resolve relative to the user's selection without an extra
+  // capability negotiation.
+  rpc SetActiveEnv(SetActiveEnvRequest) returns (SetActiveEnvResponse);
+  // SetEnvironmentKeyName rewrites the workspace's chain.pxf to
+  // set / clear an environment's `key_name` field. Empty
+  // key_name removes the assignment (canonical "inherit from
+  // parent"). Unlike SetActiveEnv this is a persistent on-disk
+  // edit; the file is re-read by the editor via the standard
+  // watched-files pipeline once the rename completes.
+  rpc SetEnvironmentKeyName(SetEnvironmentKeyNameRequest) returns (SetEnvironmentKeyNameResponse);
+}

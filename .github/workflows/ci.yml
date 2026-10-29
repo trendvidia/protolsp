@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  vet:
+    runs-on: [self-hosted, macOS, ARM64]
+    # Self-hosted runner: never run code from fork PRs on it.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+      - name: Assert go-plus toolchain
+        run: |
+          go version
+          # Match "(plus" with no closing paren: newer go-plus builds
+          # print a version suffix — "(plus v1.26.5a)" — where older
+          # ones printed a bare "(plus)".
+          go version | grep -q '(plus' || { echo "::error::runner go is not the go-plus fork"; exit 1; }
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "gofmt needed on:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - name: Set GOPRIVATE for trendvidia modules
+        # Private-module auth comes from the self-hosted runner's own stable git
+        # credentials (credential helper / ssh key), NOT a per-run
+        # `git config --global … insteadOf` — that wrote a PAT rewrite into the
+        # persistent runner's shared ~/.gitconfig, which accumulated stale
+        # tokens and broke checkouts across every repo on the box.
+        run: go env -w GOPRIVATE=github.com/trendvidia
+      - run: go vet ./...
+
+  build:
+    runs-on: [self-hosted, macOS, ARM64]
+    # Self-hosted runner: never run code from fork PRs on it.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+      - name: Assert go-plus toolchain
+        run: |
+          go version
+          # Match "(plus" with no closing paren: newer go-plus builds
+          # print a version suffix — "(plus v1.26.5a)" — where older
+          # ones printed a bare "(plus)".
+          go version | grep -q '(plus' || { echo "::error::runner go is not the go-plus fork"; exit 1; }
+      - name: Set GOPRIVATE for trendvidia modules
+        # Private-module auth comes from the self-hosted runner's own stable git
+        # credentials (credential helper / ssh key), NOT a per-run
+        # `git config --global … insteadOf` — that wrote a PAT rewrite into the
+        # persistent runner's shared ~/.gitconfig, which accumulated stale
+        # tokens and broke checkouts across every repo on the box.
+        run: go env -w GOPRIVATE=github.com/trendvidia
+      - run: go build ./...
+
+  test:
+    runs-on: [self-hosted, macOS, ARM64]
+    # Self-hosted runner: never run code from fork PRs on it.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+      - name: Assert go-plus toolchain
+        run: |
+          go version
+          # Match "(plus" with no closing paren: newer go-plus builds
+          # print a version suffix — "(plus v1.26.5a)" — where older
+          # ones printed a bare "(plus)".
+          go version | grep -q '(plus' || { echo "::error::runner go is not the go-plus fork"; exit 1; }
+      - name: Set GOPRIVATE for trendvidia modules
+        # Private-module auth comes from the self-hosted runner's own stable git
+        # credentials (credential helper / ssh key), NOT a per-run
+        # `git config --global … insteadOf` — that wrote a PAT rewrite into the
+        # persistent runner's shared ~/.gitconfig, which accumulated stale
+        # tokens and broke checkouts across every repo on the box.
+        run: go env -w GOPRIVATE=github.com/trendvidia
+      - run: go test -race ./...
+      - name: go test -race -tags protocheck
+        run: go test -race -tags protocheck ./...
+
+  community:
+    # Stock Go on a GitHub-hosted runner with no private-module access:
+    # the untagged build an outside contributor gets. Unlike the jobs
+    # above it is safe to run for fork PRs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go version
+      - run: go vet ./...
+      - run: go test -race ./...

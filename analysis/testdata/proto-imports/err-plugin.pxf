@@ -1,0 +1,11 @@
+# reject: google/protobuf/compiler/plugin.proto is bundled with protoc but
+# is not a well-known type, so a source-form @proto may not import it
+# (#388).
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "google/protobuf/compiler/plugin.proto";
+message P { int32 a = 1; }
+"""
+@type imports.v1.P
+a = 1

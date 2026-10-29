@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
+// Structural document schema for AppViewer PXF documents (appviewer#331).
+//
+// This is the *navigation* schema: it declares the keyed collections —
+// Node.children keyed by id, Manifest.routes keyed by name — so
+// schema-driven tooling understands AppViewer's named-list convention
+// (trendvidia/protowire#116, keyed repeated fields) with no app-specific
+// extension. protolsp gets folding / outline-by-name / rename / duplicate
+// diagnostics; protocheck gets per-element context. Documents opt in with
+// a leading `@type appviewer.ui.v1.<Kind>` directive.
+//
+// SCOPE: structural only. A Node's widget-specific attributes and events
+// (text, placeholder, onTapped, …) are intentionally omitted — they are
+// widget-type-dependent and cannot live in one message; the full
+// per-property schema (for completion and strict validation) is
+// appviewer#332, built by joining the --dump-registry catalog. So a real
+// document does NOT strict-validate against this schema — it is a
+// navigation aid for the keyed structure, not a decoder contract.
+//
+// This file is hand-authored and drift-guarded by schema/drift_test.go,
+// which fails if the model's keyed collections diverge from what is keyed
+// here. AppViewer has no proto toolchain (ADR-0012): this schema is
+// published as a data artifact for external tools and is never compiled
+// into the runtime. The `pxf/annotations.proto` import resolves from the
+// protowire proto include path on the consumer's side.
+
+syntax = "proto3";
+
+package appviewer.ui.v1;
+
+import "pxf/annotations.proto";
+
+// Node is one element of the layout tree. `children` is the keyed
+// collection AppViewer authors write as named blocks
+// (`children { greeting { … } }`), keyed by the node id — the block name
+// supplies the id (config/loader.go parseNode). Widget-specific props and
+// events are out of scope here (see the file header; appviewer#332).
+message Node {
+  string id = 1;
+  string type = 2;
+  string template = 3;
+
+  string bind = 4;
+  string repeat = 5;
+  string repeat_as = 6;
+  string content_slot = 7;
+  string slot = 8;
+
+  repeated Node children = 9 [(pxf.key) = "id"];
+
+  // Template slot fills: slot name → content subtree. A map — the key is
+  // the slot name, not a field of the fill node — distinct from the keyed
+  // `children` above.
+  map<string, Node> slots = 10;
+}
+
+message Screen {
+  string name = 1;
+  string title = 2;
+  Node root = 3;
+}
+
+message Blueprint {
+  string name = 1;
+  string parent = 2;
+  string parent_slot = 3;
+  Node root = 4;
+}
+
+message Template {
+  string name = 1;
+  Node root = 2;
+}
+
+message Route {
+  string name = 1;
+  string blueprint = 2;
+  string screen = 3;
+  string transition = 4;
+  // Slot assignments: slot name → screen name.
+  map<string, string> slots = 5;
+}
+
+message Manifest {
+  string title = 1;
+  string initial_route = 2;
+  string locale = 3;
+  string variant = 4;
+  string transition = 5;
+  repeated Route routes = 6 [(pxf.key) = "name"];
+}

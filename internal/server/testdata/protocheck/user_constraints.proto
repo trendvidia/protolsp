@@ -1,0 +1,54 @@
+// Test fixture: a small message with a representative spread of
+// protocheck constraints so the e2e harness can exercise scalar
+// rules, message-level cross-field expressions, and the
+// FieldPath → pxf-position resolver path in one compile.
+//
+// Field choices map 1:1 to the assertions in
+// protocheck_data_e2e_test.go — adding a new constraint here
+// without updating the test will produce an unexpected violation.
+
+syntax = "proto3";
+
+package protolsp.test.protocheck;
+
+import "protocheck/protocheck.proto";
+
+message User {
+  // Email — exercises the string.email well-known validator.
+  string email = 1 [(.protocheck.field) = {
+    string: { email: true, max_len: 255 }
+  }];
+
+  // Age — exercises integer range rules + the lte boundary.
+  int32 age = 2 [(.protocheck.field).int32 = { gte: 0, lte: 150 }];
+
+  // Score — exercises a custom protocheck expression (the Phase 0
+  // analyzer already validates this expression's syntax/type;
+  // here we're checking the runtime evaluation produces a
+  // violation when the data lies outside the range).
+  double score = 3 [(.protocheck.field) = {
+    check: [{
+      id: "score_range",
+      message: "score must be between 0 and 100",
+      expression: "this >= 0.0 && this <= 100.0"
+    }]
+  }];
+}
+
+message Transfer {
+  string from_account = 1;
+  string to_account = 2;
+  double amount = 3;
+
+  // Message-level cross-field expression — different from the
+  // scalar rules above. Verifies the resolver pins the
+  // diagnostic at the root (empty FieldPath) when a cross-field
+  // check fails.
+  option (.protocheck.message) = {
+    check: [{
+      id: "different_accounts",
+      message: "cannot transfer to the same account",
+      expression: "from_account != to_account"
+    }]
+  };
+}

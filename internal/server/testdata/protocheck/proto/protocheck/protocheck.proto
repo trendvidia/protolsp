@@ -1,0 +1,215 @@
+syntax = "proto3";
+
+package protocheck;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/trendvidia/protocheck/v2/protocheckpb";
+
+// ─── Extensions ─────────────────────────────────────────────────────────────
+
+extend google.protobuf.FieldOptions {
+  optional FieldConstraints field = 1347;
+}
+
+extend google.protobuf.MessageOptions {
+  optional MessageConstraints message = 1348;
+}
+
+extend google.protobuf.OneofOptions {
+  optional OneofConstraints oneof = 1349;
+}
+
+// ─── Core types ─────────────────────────────────────────────────────────────
+
+// Expression defines a custom GoVM expression for validation.
+// Field-level: `this` refers to the field value.
+// Message-level: each field name is available as a variable.
+// The expression must evaluate to bool (true = valid).
+message Expression {
+  string id = 1;
+  string message = 2;
+  string expression = 3;
+}
+
+// Ignore controls when a field's constraints are skipped.
+enum Ignore {
+  IGNORE_UNSPECIFIED = 0;
+  IGNORE_IF_UNPOPULATED = 1;
+  IGNORE_IF_DEFAULT_VALUE = 2;
+  IGNORE_ALWAYS = 3;
+}
+
+// ─── Constraint containers ──────────────────────────────────────────────────
+
+// FieldConstraints defines validation rules for a single field.
+message FieldConstraints {
+  repeated Expression check = 1;
+  bool required = 25;
+  Ignore ignore = 27;
+
+  oneof type {
+    FloatRules float = 2;
+    DoubleRules double = 3;
+    Int32Rules int32 = 4;
+    Int64Rules int64 = 5;
+    UInt32Rules uint32 = 6;
+    UInt64Rules uint64 = 7;
+    BoolRules bool = 14;
+    StringRules string = 15;
+    BytesRules bytes = 16;
+    EnumRules enum = 17;
+    RepeatedRules repeated = 18;
+    MapRules map = 19;
+  }
+}
+
+// MessageConstraints defines validation rules for an entire message.
+message MessageConstraints {
+  bool disabled = 1;
+  repeated Expression check = 2;
+}
+
+// OneofConstraints defines validation rules for a oneof group.
+message OneofConstraints {
+  bool required = 1;
+}
+
+// ─── Numeric rules ──────────────────────────────────────────────────────────
+
+message FloatRules {
+  optional float const = 1;
+  optional float lt = 2;
+  optional float lte = 3;
+  optional float gt = 4;
+  optional float gte = 5;
+  repeated float in = 6;
+  repeated float not_in = 7;
+  bool finite = 8;
+}
+
+message DoubleRules {
+  optional double const = 1;
+  optional double lt = 2;
+  optional double lte = 3;
+  optional double gt = 4;
+  optional double gte = 5;
+  repeated double in = 6;
+  repeated double not_in = 7;
+  bool finite = 8;
+}
+
+message Int32Rules {
+  optional int32 const = 1;
+  optional int32 lt = 2;
+  optional int32 lte = 3;
+  optional int32 gt = 4;
+  optional int32 gte = 5;
+  repeated int32 in = 6;
+  repeated int32 not_in = 7;
+}
+
+message Int64Rules {
+  optional int64 const = 1;
+  optional int64 lt = 2;
+  optional int64 lte = 3;
+  optional int64 gt = 4;
+  optional int64 gte = 5;
+  repeated int64 in = 6;
+  repeated int64 not_in = 7;
+}
+
+message UInt32Rules {
+  optional uint32 const = 1;
+  optional uint32 lt = 2;
+  optional uint32 lte = 3;
+  optional uint32 gt = 4;
+  optional uint32 gte = 5;
+  repeated uint32 in = 6;
+  repeated uint32 not_in = 7;
+}
+
+message UInt64Rules {
+  optional uint64 const = 1;
+  optional uint64 lt = 2;
+  optional uint64 lte = 3;
+  optional uint64 gt = 4;
+  optional uint64 gte = 5;
+  repeated uint64 in = 6;
+  repeated uint64 not_in = 7;
+}
+
+// ─── Scalar rules ───────────────────────────────────────────────────────────
+
+message BoolRules {
+  optional bool const = 1;
+}
+
+message StringRules {
+  optional string const = 1;
+  optional uint64 len = 2;
+  optional uint64 min_len = 3;
+  optional uint64 max_len = 4;
+  optional uint64 len_bytes = 5;
+  optional uint64 min_bytes = 6;
+  optional uint64 max_bytes = 7;
+  optional string pattern = 8;
+  optional string prefix = 9;
+  optional string suffix = 10;
+  optional string contains = 11;
+  optional string not_contains = 12;
+  repeated string in = 13;
+  repeated string not_in = 14;
+
+  oneof well_known {
+    bool email = 20;
+    bool hostname = 21;
+    bool ip = 22;
+    bool ipv4 = 23;
+    bool ipv6 = 24;
+    bool uri = 25;
+    bool uri_ref = 26;
+    bool uuid = 27;
+  }
+}
+
+message BytesRules {
+  optional bytes const = 1;
+  optional uint64 len = 2;
+  optional uint64 min_len = 3;
+  optional uint64 max_len = 4;
+  optional bytes prefix = 5;
+  optional bytes suffix = 6;
+  optional bytes contains = 7;
+  repeated bytes in = 8;
+  repeated bytes not_in = 9;
+
+  oneof well_known {
+    bool ip = 10;
+    bool ipv4 = 11;
+    bool ipv6 = 12;
+  }
+}
+
+message EnumRules {
+  optional int32 const = 1;
+  bool defined_only = 2;
+  repeated int32 in = 3;
+  repeated int32 not_in = 4;
+}
+
+// ─── Collection rules ───────────────────────────────────────────────────────
+
+message RepeatedRules {
+  optional uint64 min_items = 1;
+  optional uint64 max_items = 2;
+  bool unique = 3;
+  optional FieldConstraints items = 4;
+}
+
+message MapRules {
+  optional uint64 min_pairs = 1;
+  optional uint64 max_pairs = 2;
+  optional FieldConstraints keys = 3;
+  optional FieldConstraints values = 4;
+}

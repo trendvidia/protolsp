@@ -1,0 +1,9 @@
+# accept: a source-form @proto may import a well-known type.
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "google/protobuf/timestamp.proto";
+message Event { google.protobuf.Timestamp at = 1; }
+"""
+@type imports.v1.Event
+at = 2026-10-28T00:00:00Z

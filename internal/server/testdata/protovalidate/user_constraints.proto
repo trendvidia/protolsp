@@ -1,0 +1,41 @@
+// Test fixture: a small message with a representative spread of
+// buf.validate constraints so the e2e harness can exercise scalar
+// rules, message-level CEL expressions, and the FieldPath → pxf-
+// position resolver path in one compile. Mirrors the protocheck
+// fixture's structure so the two e2e paths are directly
+// comparable.
+
+syntax = "proto3";
+
+package protolsp.test.protovalidate;
+
+import "buf/validate/validate.proto";
+
+message User {
+  string email = 1 [(buf.validate.field).string.email = true];
+  int32 age = 2 [(buf.validate.field).int32 = { gte: 0, lte: 150 }];
+
+  // CEL expression. Phase 0 for the protovalidate side will
+  // type-check expressions on this annotation (`buf/validate/cel`
+  // diagnostic source); Phase 1 (this PR) runtime-evaluates it
+  // against the data and reports violations under `buf/validate`.
+  double score = 3 [(buf.validate.field).cel = {
+    id: "score_range",
+    message: "score must be between 0 and 100",
+    expression: "this >= 0.0 && this <= 100.0"
+  }];
+}
+
+message Transfer {
+  string from_account = 1;
+  string to_account = 2;
+  double amount = 3;
+
+  // Message-level CEL — protovalidate's equivalent of
+  // protocheck's `(protocheck.message).check`.
+  option (buf.validate.message).cel = {
+    id: "different_accounts",
+    message: "cannot transfer to the same account",
+    expression: "this.from_account != this.to_account"
+  };
+}

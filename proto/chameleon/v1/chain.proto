@@ -1,0 +1,144 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
+syntax = "proto3";
+
+package chameleon.v1;
+
+import "pxf/annotations.proto";
+
+option go_package = "github.com/trendvidia/protolsp/proto/chameleon/v1;chameleonv1";
+
+// ChainSpec is the admin-authored description of an environment hierarchy
+// and the ordered set of layer files that compose a resolved config.
+//
+// Resolution model: given a leaf environment name and a context map, the
+// resolver
+//   1. Walks the environment ancestry (root → leaf) using `environments`.
+//   2. Expands each LayerEntry into zero or more concrete layer paths by
+//      substituting ${env} and ${ctx.<key>} in `path`. An entry whose
+//      template references an unset context key is silently skipped
+//      unless `required = true`.
+//   3. Loads each resolved file (decrypting via sops if `encrypted`) and
+//      merges them in declared order, low → high. Higher layers override.
+//   4. Applies pxf.default for fields still absent, then pxf.required.
+//   5. Runs a single string-interpolation pass over scalar fields.
+message ChainSpec {
+  // Spec format version. Resolver rejects unknown majors.
+  string version = 1 [(pxf.required) = true];
+
+  // Default environment if the caller does not pass one. Must reference a
+  // name in `environments`.
+  string default_environment = 2;
+
+  // Environment ancestry tree. Single-parent inheritance only; cycles are
+  // rejected at load time.
+  repeated Environment environments = 3 [(pxf.required) = true];
+
+  // Layer entries, applied base → top in declared order after expansion.
+  repeated LayerEntry layers = 4 [(pxf.required) = true];
+
+  // Declared context keys. The resolver validates caller-supplied context
+  // against this list (rejects unknown keys, applies defaults, enforces
+  // allowed_values).
+  repeated ContextKey context_keys = 5;
+
+  // Logical sources by name. The resolver looks up `LayerEntry.source` in
+  // this map; the Go API binds each name to a backing implementation
+  // (filesystem path, embed.FS, sops-wrapped reader, etc.). Empty map
+  // means "use the resolver's single default source".
+  map<string, SourceRef> sources = 6;
+}
+
+// Environment is one node in the ancestry tree. The resolution chain for
+// a leaf is: root → ... → parent(leaf) → leaf, so leaves override
+// ancestors.
+message Environment {
+  string name = 1 [(pxf.required) = true];
+
+  // Parent environment name. Empty for root environments.
+  string extends = 2;
+
+  // Free-form labels. The resolver does not interpret these; consumers
+  // may use them for their own selectors (region tagging, tier, etc.).
+  map<string, string> labels = 3;
+
+  // Name of the age key to use when encrypting layers for this
+  // environment. Resolved against SOPS_AGE_KEY_FILE (must be PXF
+  // multi-key format, .pxf extension) via the sops library's
+  // RecipientFromKeyFileByName. Empty means inherit from the parent
+  // environment; if no ancestor sets it, the resolver falls back to the
+  // default recipient (DefaultRecipientFromKeyFile). The editor and
+  // encrypt path use this to select per-env recipients without
+  // chameleon needing to know how keys are stored on disk.
+  string key_name = 4;
+}
+
+// LayerEntry declares one slot in the layer stack. After template
+// expansion it produces zero or more concrete files.
+message LayerEntry {
+  // Stable id for diagnostics ("explain why field X = Y" cites this id).
+  string id = 1 [(pxf.required) = true];
+
+  // Path template, resolved against ${env} and ${ctx.<key>}. Examples:
+  //   "base.pxf"
+  //   "env/${env}.pxf"
+  //   "region/${ctx.region}.pxf"
+  //   "tenant/${ctx.tenant}/overrides.pxf"
+  // A template that references an unset variable collapses the entry to
+  // empty unless `required = true`.
+  string path = 2 [(pxf.required) = true];
+
+  // How to materialize the entry across the env ancestry.
+  ForEach for_each = 3;
+
+  // If true, the entry MUST resolve to at least one existing file; the
+  // resolver errors otherwise. Default (false) skips silently.
+  bool required = 4;
+
+  // If true, the file is sops-encrypted. The resolver streams the
+  // decrypted plaintext into a memguard LockedBuffer rather than a []byte
+  // and parses PXF over the locked region. The buffer is destroyed once
+  // the layer has been merged into the resolved struct (Secret-typed
+  // fields are moved to per-field Enclaves before destruction).
+  bool encrypted = 5;
+
+  // Source name (key into ChainSpec.sources). Empty means "default".
+  string source = 6;
+
+  // Materialization strategy.
+  enum ForEach {
+    // Expand the template once, with ${env} bound to the leaf env name.
+    ONCE = 0;
+    // Expand once per environment in the ancestry, root → leaf. ${env}
+    // takes each ancestor's name in turn. Use this for env/${env}.pxf
+    // so prod.pxf is loaded before dev.pxf when dev extends prod.
+    PER_ENV = 1;
+  }
+}
+
+// SourceRef tells the resolver where a logical source physically lives.
+// The Go API maps the `kind` to a backing factory; unknown kinds error.
+message SourceRef {
+  string kind = 1 [(pxf.required) = true];
+  // Kind-specific options. For "fs": {"root": "/path/to/dir"}. For
+  // "embed": {"prefix": "config/"}. The resolver does not interpret keys.
+  map<string, string> options = 2;
+}
+
+// ContextKey declares a caller-supplied context variable. Context never
+// appears inside resolved values — it only steers chain materialization.
+message ContextKey {
+  string name = 1 [(pxf.required) = true];
+  string description = 2;
+
+  // If non-empty, the caller's value must match one of these. Empty list
+  // means any value is accepted.
+  repeated string allowed_values = 3;
+
+  // Applied if the caller omits the key entirely.
+  string default = 4;
+
+  // If true, the caller MUST supply a value (no default fallback).
+  bool required = 5;
+}

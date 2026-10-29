@@ -1,0 +1,11 @@
+# accept: google/protobuf/descriptor.proto may be imported directly, so a
+# @proto can declare its own custom options (#388).
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "google/protobuf/descriptor.proto";
+extend google.protobuf.FieldOptions { string label = 50000; }
+message P { int32 a = 1 [(label) = "count"]; }
+"""
+@type imports.v1.P
+a = 1

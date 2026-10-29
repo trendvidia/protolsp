@@ -1,0 +1,60 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// DatasetsService: locate @dataset regions in a document so editors
+// can render fold markers, row counts, and lazy-load affordances.
+// Mirrors protolsp/datasetRegions + protolsp/datasetRegionsChanged.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+import "protolsp/v1/rpc/common.proto";
+
+message DatasetRegion {
+  Range range = 1;
+  // type_fqn is the FQN of the row message — e.g. "acme.v1.Row".
+  // Empty when the @dataset names no type.
+  string type_fqn = 2;
+  // resolvable is true when the row type is known: type_fqn to the
+  // current lookup or to the document's own @proto. With an empty
+  // type_fqn, it is true when the region is bound to the anonymous
+  // @proto before it; that type has no name to send. False when the
+  // schema is unavailable or the FQN is unrecognized; editors
+  // typically still render the region but skip schema-aware
+  // affordances.
+  bool resolvable = 3;
+  // row_count is -1 when the parse hasn't determined it (huge
+  // regions don't get a row count until streaming).
+  int32 row_count = 4;
+  int32 byte_size = 5;
+  // huge is set when the region exceeded the size or row threshold;
+  // editors fold-by-default and offer "expand" rather than auto-
+  // rendering.
+  bool huge = 6;
+}
+
+message DatasetsServiceGetRegionsRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DatasetsServiceGetRegionsResponse {
+  repeated DatasetRegion regions = 1;
+}
+
+message DatasetsServiceSubscribeRequest {
+  TextDocumentIdentifier text_document = 1;
+}
+
+message DatasetsServiceSubscribeResponse {
+  int32 version = 1;
+  repeated DatasetRegion regions = 2;
+}
+
+service DatasetsService {
+  rpc GetRegions(DatasetsServiceGetRegionsRequest) returns (DatasetsServiceGetRegionsResponse);
+
+  rpc Subscribe(DatasetsServiceSubscribeRequest) returns (stream DatasetsServiceSubscribeResponse);
+}

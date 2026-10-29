@@ -1,0 +1,98 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+
+package analysis
+
+import (
+	"bytes"
+	"context"
+	"errors"
+
+	"go.lsp.dev/protocol"
+
+	"github.com/trendvidia/protolsp/buftool"
+	"github.com/trendvidia/protolsp/positions"
+	"github.com/trendvidia/protowire-go/encoding/pxf"
+)
+
+// ProtoFormattingEditsFor invokes `buf format` against the .proto
+// document and returns a whole-document TextEdit when the formatter
+// changes the source. Returns nil when:
+//
+//   - the doc isn't open or has no source,
+//   - buf isn't installed (ErrBufNotFound — feature degrades to
+//     unavailable rather than spamming "missing tool" errors),
+//   - buf itself fails (typically: unparseable source mid-edit);
+//     a log line goes out via slog so users can dig into it via the
+//     trace panel.
+//
+// Returns an empty (non-nil) edit slice when the source is already
+// canonical — mirrors FormattingEditsFor's contract so "format on
+// save" doesn't dirty the buffer unnecessarily.
+func (s *Workspace) ProtoFormattingEditsFor(ctx context.Context, docURI protocol.DocumentURI) []protocol.TextEdit {
+	doc := s.docs.Get(docURI)
+	if doc == nil {
+		return nil
+	}
+	doc.mu.RLock()
+	src := append([]byte(nil), doc.Source...)
+	doc.mu.RUnlock()
+	if len(src) == 0 {
+		return nil
+	}
+	formatted, err := buftool.Format(ctx, src)
+	if err != nil {
+		if errors.Is(err, buftool.ErrBufNotFound) {
+			// Buf isn't installed. No log — this is the steady
+			// state on machines that don't have buf, and we don't
+			// want to churn the trace panel on every save attempt.
+			return nil
+		}
+		s.log.Warn("proto formatting failed", "uri", docURI, "err", err)
+		return nil
+	}
+	if bytes.Equal(formatted, src) {
+		return []protocol.TextEdit{}
+	}
+	endLine, endCharacter := positions.LineCol(src, len(src), s.positionEncoding)
+	return []protocol.TextEdit{{
+		Range: protocol.Range{
+			Start: protocol.Position{Line: 0, Character: 0},
+			End:   protocol.Position{Line: endLine, Character: endCharacter},
+		},
+		NewText: string(formatted),
+	}}
+}
+
+// FormattingEditsFor returns the TextEdits needed to bring a document
+// to canonical form, or nil when there's nothing to apply (doc not
+// open, doc didn't parse, doc already canonical).
+//
+// "Already canonical" returns an empty (non-nil) slice rather than
+// nil so the client treats it as "formatter ran, no edits needed"
+// instead of "formatter unavailable" — the difference matters for
+// editor commands like "format on save" that want to suppress
+// no-op feedback.
+func (s *Workspace) FormattingEditsFor(docURI protocol.DocumentURI) []protocol.TextEdit {
+	doc := s.docs.Get(docURI)
+	if doc == nil {
+		return nil
+	}
+	doc.mu.RLock()
+	defer doc.mu.RUnlock()
+	if doc.Parsed == nil {
+		return nil
+	}
+	formatted := pxf.FormatDocument(doc.Parsed)
+	if bytes.Equal(formatted, doc.Source) {
+		return []protocol.TextEdit{}
+	}
+	endLine, endCharacter := positions.LineCol(doc.Source, len(doc.Source), s.positionEncoding)
+	return []protocol.TextEdit{{
+		Range: protocol.Range{
+			Start: protocol.Position{Line: 0, Character: 0},
+			End:   protocol.Position{Line: endLine, Character: endCharacter},
+		},
+		NewText: string(formatted),
+	}}
+}

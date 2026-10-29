@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
+syntax = "proto3";
+
+package protolsp.v1;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1;protolspv1";
+
+// WorkspaceConfig is the on-disk shape of `.protolsp.pxf` — the
+// per-workspace LSP configuration. Authored by users and consumed
+// at LSP initialize / W5 reload time.
+//
+// The internal/workspaceconfig Go package hand-rolls a parser that
+// produces a Go view of this same shape; the proto here is the
+// source of truth for the schema users edit. Shipping the
+// descriptor with the LSP means opening `.protolsp.pxf` in an
+// editor resolves @type to a real message — hover, completion,
+// and go-to-definition work without the user's registry needing
+// to know about protolsp's internal types.
+//
+// Evolving the schema: add fields at the bottom of each message
+// with new field numbers. Don't renumber or change kinds without
+// a major-version bump (and migration shims in the parser).
+message WorkspaceConfig {
+  // Field 1 was `repeated SchemaSource schema_sources`. Dropped in
+  // 0.4.0: the wrapper added no information; `registry` and
+  // `proto_files` are now direct fields below. The parser still
+  // accepts the legacy `schema_sources { ... }` block shape with
+  // a deprecation warning so checked-in files keep loading.
+  reserved 1;
+  reserved "schema_sources";
+
+  // Security policy block. Today: inline_secrets only.
+  SecurityConfig security = 2;
+
+  // Chameleon chain-integration block. When chain_spec is set,
+  // the LSP loads the named chain.pxf and turns on chain-aware
+  // diagnostics + hover.
+  ChameleonConfig chameleon = 3;
+
+  // Remote protoregistry source. The LSP dials it for descriptors;
+  // optional on-disk cache for offline use. Empty disables the
+  // registry-backed lookup.
+  RegistrySource registry = 4;
+
+  // Local .proto files compiled in-process. Empty disables the
+  // proto_files-backed lookup. Composes with `registry` via
+  // schema.WithFallback (W3).
+  ProtoFilesSource proto_files = 5;
+}
+
+message RegistrySource {
+  // gRPC address of the registry, e.g. "registry.example.com:443".
+  string address = 1;
+
+  // Namespace ID to bind to.
+  string namespace = 2;
+
+  // Optional bearer token for authenticated registries. Supports
+  // ${env.VAR} interpolation in the .protolsp.pxf source.
+  string token = 3;
+
+  // Optional on-disk cache dir. The resolver persists fetched
+  // descriptors here and falls back to them when the registry is
+  // unreachable at dial time. Supports ${env.VAR} interpolation.
+  string cache_dir = 4;
+}
+
+message ProtoFilesSource {
+  // Paths to .proto files or directories, relative to the
+  // workspace root. Compiled via protocompile; descriptors merge
+  // into the lookup.
+  repeated string paths = 1;
+}
+
+message SecurityConfig {
+  // inline_secrets policy. Recognized values: "allow", "warn",
+  // "refuse". Governs the literal-secret diagnostic from
+  // secret-handling S3.
+  //
+  // Stored as a string (rather than an enum) so unrecognized
+  // future values flow through the parser and surface as
+  // warnings — keeps schema evolution painless.
+  string inline_secrets = 1;
+}
+
+message ChameleonConfig {
+  // Path to the chain.pxf, relative to the .protolsp.pxf
+  // directory. Empty disables chain-aware mode.
+  string chain_spec = 1;
+
+  // Assumed message type for chain layer files that don't carry
+  // their own @type directive. Optional.
+  string schema_fqn = 2;
+
+  // Toggle for chain-aware behaviors. Defaults to true when
+  // chain_spec is non-empty; explicit `enabled = false` opts out.
+  bool enabled = 3;
+}

@@ -1,0 +1,5 @@
+// Not a schema any fixture binds to: err-filesystem.pxf imports it to
+// show that a file on disk is not an import source for a @proto.
+syntax = "proto3";
+package imports.v1;
+message Sibling { int32 a = 1; }

@@ -1,0 +1,9 @@
+# accept: a source-form @proto may import pxf/bignum.proto (#369).
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "pxf/bignum.proto";
+message Amount { pxf.Decimal value = 1; }
+"""
+@type imports.v1.Amount
+value = 12.50

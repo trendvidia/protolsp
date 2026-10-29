@@ -1,0 +1,108 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// ConfigService: flat-attribute access to `.protolsp.pxf` for editors
+// that prefer a key/value model over parsing PXF. Mirrors the
+// protolsp/configList | configGet | configSet JSON-RPC methods.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+import "protolsp/v1/rpc/common.proto";
+
+// AttributeKind names the wire type of a workspace attribute's value.
+// String values match the JSON-RPC method's Kind field so editors that
+// already render off the old surface can pivot without re-mapping.
+enum AttributeKind {
+  ATTRIBUTE_KIND_UNSPECIFIED = 0;
+  ATTRIBUTE_KIND_STRING = 1;
+  ATTRIBUTE_KIND_STRING_LIST = 2;
+  ATTRIBUTE_KIND_BOOL = 3;
+}
+
+// AttributeValue carries one settable value. Exactly one of the
+// `*_value` fields is populated per the attribute's declared kind.
+// Modeling this as a oneof avoids the JSON-RPC version's untyped `any`
+// payload — Connect-RPC clients get strong typing across the wire.
+message AttributeValue {
+  oneof value {
+    string string_value = 1;
+    StringList string_list_value = 2;
+    bool bool_value = 3;
+  }
+}
+
+// AttributeSpec describes one settable attribute — name, display
+// label, human-readable description, and wire kind. Returned in
+// declaration order.
+message AttributeSpec {
+  // name is the dotted identifier used as the wire key for
+  // GetAttribute / SetAttribute. Stable across releases; not for
+  // direct UI display.
+  string name = 1;
+  // description is a one-liner explaining what the attribute does.
+  // Suitable for tooltips / hover panels next to the input.
+  string description = 2;
+  AttributeKind kind = 3;
+  // display_name is the label editors should render next to the
+  // input widget. Short, title-case-ish, free of dots / underscores.
+  // Owned by protolsp so every UI client (pxfed, the VS Code
+  // extension's settings panel, the hosted IDE) renders the same
+  // wording for an attribute.
+  string display_name = 4;
+}
+
+message ListAttributesRequest {}
+
+message ListAttributesResponse {
+  repeated AttributeSpec attributes = 1;
+}
+
+message GetAttributeRequest {
+  // workspace_dir selects the workspace whose `.protolsp.pxf` is read.
+  // Empty means the root workspace; non-empty must name one of the
+  // sub-workspaces protolsp tracks (W4). Cross-workspace calls are
+  // rejected.
+  string workspace_dir = 1;
+  string name = 2;
+}
+
+message GetAttributeResponse {
+  string name = 1;
+  AttributeKind kind = 2;
+  // value is unset (no oneof case selected) when present=false. Clients
+  // can blind-render against the zero value for kind in that case.
+  AttributeValue value = 3;
+  bool present = 4;
+}
+
+message SetAttributeRequest {
+  string workspace_dir = 1;
+  string name = 2;
+  // value's populated oneof case must match the attribute's declared
+  // kind — server validates and rejects mismatches.
+  AttributeValue value = 3;
+}
+
+message SetAttributeResponse {
+  bool ok = 1;
+}
+
+service ConfigService {
+  // ListAttributes returns every workspace attribute the running
+  // protolsp knows. Pure metadata — no I/O.
+  rpc ListAttributes(ListAttributesRequest) returns (ListAttributesResponse);
+
+  // GetAttribute reads one attribute's literal value from disk. Empty
+  // string / list / false when the attribute isn't set in the file
+  // (with present=false).
+  rpc GetAttribute(GetAttributeRequest) returns (GetAttributeResponse);
+
+  // SetAttribute writes one attribute's value back to disk. Round-
+  // trips through the AST so comments and unrelated content are
+  // preserved.
+  rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
+}

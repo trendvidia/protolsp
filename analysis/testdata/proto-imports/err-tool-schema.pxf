@@ -1,0 +1,12 @@
+# reject: docs/v1/topic.proto is a canonical schema, but not one a
+# source-form @proto may import (#369). Only pxf/annotations.proto,
+# pxf/bignum.proto, pxf/secret.proto, sbe/annotations.proto and
+# envelope/v1/envelope.proto are.
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "docs/v1/topic.proto";
+message Page { string title = 1; }
+"""
+@type imports.v1.Page
+title = "x"

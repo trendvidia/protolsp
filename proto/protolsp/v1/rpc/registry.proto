@@ -1,0 +1,28 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// RegistryService: introspection of the user-registry connection
+// state. Mirrors the protolsp/registryStatus JSON-RPC method.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+message RegistryServiceGetStatusRequest {}
+
+message RegistryServiceGetStatusResponse {
+  // configured is true when the running protolsp has an active
+  // schema.Lookup backed by the user's registry config.
+  bool configured = 1;
+
+  // stale is true when the lookup is serving disk-cached descriptors
+  // because the registry was unreachable at boot. Editors should
+  // surface a "schema may be out of date" hint in this case.
+  bool stale = 2;
+}
+
+service RegistryService {
+  rpc GetStatus(RegistryServiceGetStatusRequest) returns (RegistryServiceGetStatusResponse);
+}

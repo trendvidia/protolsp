@@ -1,0 +1,61 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// SchemaService: browse and fetch the .proto sources the running
+// protolsp's lookup exposes. Mirrors the protolsp/listMessages and
+// protolsp/sourceContent JSON-RPC methods.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+message MessageEntry {
+  // full_name is the proto FQN, e.g. "acme.billing.v1.Invoice".
+  string full_name = 1;
+  // file is the path the lookup knows the descriptor under — usually
+  // the registry-relative .proto path. Editors use this to drive a
+  // `registry://` virtual buffer for read-only browsing.
+  string file = 2;
+  // namespace is the registry namespace the descriptor came from
+  // when the underlying lookup tracks it (registry-backed lookups
+  // do; the internal lookup doesn't).
+  string namespace = 3;
+}
+
+message ListMessagesRequest {
+  // prefix narrows the response to entries whose full_name starts
+  // with the given string. Empty means "return all messages."
+  string prefix = 1;
+}
+
+message ListMessagesResponse {
+  // messages are sorted by full_name and deduped.
+  repeated MessageEntry messages = 1;
+}
+
+message GetSourceContentRequest {
+  // uri must be a `registry://` URI naming a .proto path the lookup
+  // can resolve. file:// and inmemory:// are rejected — editors that
+  // want file:// content should read it themselves.
+  string uri = 1;
+  // workspace_dir optionally scopes the fetch to a sub-workspace's
+  // own registry: the absolute directory of the sub-workspace the
+  // preview was opened from (#215). Empty selects the root lookup —
+  // the pre-#215 behavior — so single-root callers can omit it.
+  string workspace_dir = 2;
+}
+
+message GetSourceContentResponse {
+  // content is the raw .proto source. Empty string when the URI
+  // resolved but the underlying descriptor source isn't available
+  // (older registry servers); rejected with NotFound when the URI
+  // doesn't resolve.
+  string content = 1;
+}
+
+service SchemaService {
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc GetSourceContent(GetSourceContentRequest) returns (GetSourceContentResponse);
+}

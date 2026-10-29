@@ -1,0 +1,30 @@
+# buf module for protolsp's vendored and authored proto descriptors.
+# Generated Go bindings land alongside the .proto files (see buf.gen.yaml).
+#
+# What's here:
+#   - protolsp/v1/workspace_config.proto — schema for .protolsp.pxf
+#   - chameleon/v1/chain.proto           — schema for chain.pxf
+#                                          (vendored from chameleon)
+#   - pxf/annotations.proto              — pxf.required + pxf.default
+#                                          extension definitions
+#                                          (also vendored)
+#
+# The vendor pattern matches chameleon's own: chain.proto and the
+# annotations file are owned upstream but checked into our tree so
+# protolsp can compile descriptors without depending on the
+# chameleon Go module (the chameleon-integration design's
+# decoupling requirement).
+version: v2
+
+modules:
+  - path: .
+
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+
+breaking:
+  use:
+    - FILE

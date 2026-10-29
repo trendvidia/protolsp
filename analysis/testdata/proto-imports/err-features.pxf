@@ -1,0 +1,10 @@
+# reject: a language features file such as google/protobuf/go_features.proto
+# is not one of the well-known types a source-form @proto may import (#388).
+@proto """
+syntax = "proto3";
+package imports.v1;
+import "google/protobuf/go_features.proto";
+message P { int32 a = 1; }
+"""
+@type imports.v1.P
+a = 1

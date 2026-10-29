@@ -1,0 +1,44 @@
+// Copyright (c) 2026 TrendVidia, LLC.
+// SPDX-License-Identifier: MIT
+//
+// Shared message shapes used across more than one Connect-RPC service.
+// Mirrors the subset of LSP types the existing custom methods accept
+// over JSON-RPC — declared here so each service definition can stay
+// focused on its own surface.
+
+syntax = "proto3";
+
+package protolsp.v1.rpc;
+
+option go_package = "github.com/trendvidia/protolsp/proto/protolsp/v1/rpc;rpcpb";
+
+// Position is a UTF-16-based document position. Mirrors LSP's
+// `Position` shape (zero-based line + character). The protolsp
+// server honors the negotiated positionEncoding when converting to
+// byte offsets internally; the wire shape stays UTF-16 for parity
+// with the LSP custom-method surface this replaces.
+message Position {
+  uint32 line = 1;
+  uint32 character = 2;
+}
+
+// Range is a half-open [start, end) span in a document. Mirrors LSP's
+// `Range`.
+message Range {
+  Position start = 1;
+  Position end = 2;
+}
+
+// TextDocumentIdentifier names a document by URI. Mirrors LSP's
+// `TextDocumentIdentifier`. URIs are the same scheme set protolsp
+// accepts today (`file://`, `registry://`, `inmemory://`).
+message TextDocumentIdentifier {
+  string uri = 1;
+}
+
+// StringList wraps a repeated string so it can sit inside a oneof
+// (proto3 disallows `repeated` directly inside `oneof`). Used by
+// attribute / section value carriers that may hold a list of strings.
+message StringList {
+  repeated string values = 1;
+}
