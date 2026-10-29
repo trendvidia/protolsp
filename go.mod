@@ -11,7 +11,7 @@ require (
 	github.com/trendvidia/govm/v2 v2.11.0
 	github.com/trendvidia/protocheck-govm v0.2.0
 	github.com/trendvidia/protocheck/v2 v2.7.0
-	github.com/trendvidia/protocompile v0.35.1
+	github.com/trendvidia/protocompile v0.35.2-0.20261029084543-e007a9bef23d
 	github.com/trendvidia/protoregistry v0.72.0
 	github.com/trendvidia/protowire-go v1.12.0
 	go.lsp.dev/jsonrpc2 v0.10.0

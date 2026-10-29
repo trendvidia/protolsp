@@ -7,6 +7,31 @@ without a major bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Format document works on v1.2 `.proto` files** (#9). It used to run
+  `buf format`, which cannot parse `@validate`, `@required`, `function`
+  or `type`, so formatting did nothing on those files. Some v1.2 files
+  buf did accept and printed wrong: `@http(...)` came back as `http (...)`.
+  Formatting now uses protocompile's own printer with its buf-compatible
+  preset, and no longer needs `buf` installed (`buf lint` still does).
+  - Every annotation use and comment is kept. On a real v1.2 schema, all
+    8 `@validate`, 3 `@required` and 62 comment lines survive.
+  - If the printer's output would lose any word, number, string or
+    comment word of the file, nothing is formatted and the reason is
+    logged. Two comment shapes trigger this today (trendvidia/protocompile#273).
+  - Most files that buf formatted come out the same: 3,342 of 3,507
+    byte-identical in a corpus run. Outside test fixtures, 43 of 1,922
+    files format differently from buf 1.74, in whitespace only: nested
+    message literals stay on one line, and empty bodies `{}` are
+    expanded (trendvidia/protocompile#274).
+
+### Changed
+
+- **protocompile v0.35.1 → v0.35.2-0.20261029084543-e007a9bef23d**
+  (unreleased tip) for the printer fix that keeps annotation uses
+  (trendvidia/protocompile#258).
+
 ## [0.23.1] – 2026-10-29
 
 ### Changed

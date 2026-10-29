@@ -170,6 +170,8 @@ github.com/trendvidia/protocheck/v2 v2.7.0 h1:Pxx7NOd4BIyrbvPYjWUuVjq3qaiiF4n3P4
 github.com/trendvidia/protocheck/v2 v2.7.0/go.mod h1:DorSuWMeudvCjWhexOqXbWA/hRqPp15lcxkc/Z7sBhI=
 github.com/trendvidia/protocompile v0.35.1 h1:lwfw6Zdwn6JX8I189w/gDcIzREJ+3K+JTC5LsVYOuP8=
 github.com/trendvidia/protocompile v0.35.1/go.mod h1:UNTOsxI9xwsCnwIuNEfAVqRivwSwbmzeurVOT8b3DYk=
+github.com/trendvidia/protocompile v0.35.2-0.20261029084543-e007a9bef23d h1:bks4pjnVSP4FsEFzwyowN0UMaPJjA444j9EaP5qGNF0=
+github.com/trendvidia/protocompile v0.35.2-0.20261029084543-e007a9bef23d/go.mod h1:UNTOsxI9xwsCnwIuNEfAVqRivwSwbmzeurVOT8b3DYk=
 github.com/trendvidia/protoregistry v0.72.0 h1:vvuVe9O/t6XL5uWVD/DIGJ40pRDY+XEQNOvD3nzZZEY=
 github.com/trendvidia/protoregistry v0.72.0/go.mod h1:7pFkNB/vToykc5b/TGXPx7AzS+jRGGUxwUsPRKL+yVc=
 github.com/trendvidia/protowire v1.13.0 h1:kMiKYfz/96ugD5IOj9GX9YA/SjAPt36lmJ6mtdBPh/o=
