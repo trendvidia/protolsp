@@ -14,7 +14,7 @@ import (
 )
 
 // TestOffsetIn pins the position→offset conversion under both
-// negotiated encodings (#232 — the input-side twin of RangeIn).
+// negotiated encodings (the input-side twin of RangeIn).
 // Line 1 of the fixture puts a 4-byte / 2-code-unit emoji inside a
 // block comment BEFORE the message keyword, so every column after
 // it differs between the two encodings:

@@ -40,7 +40,7 @@ type SourceContentParams struct {
 	// WorkspaceDir optionally scopes the fetch to a sub-workspace's
 	// registry: the absolute directory of the sub-workspace
 	// the preview was opened from. Empty selects the root lookup —
-	// the pre-#215 behavior — so callers with no multi-root context
+	// the earlier behavior — so callers with no multi-root context
 	// can omit it.
 	WorkspaceDir string `json:"workspaceDir,omitempty"`
 }

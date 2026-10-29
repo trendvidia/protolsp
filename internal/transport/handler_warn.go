@@ -12,8 +12,8 @@
 // server's stderr goes quiet, and the only reliable symptom is "the
 // feature stopped working" reported by a user some time later.
 //
-// PR #128 fixed the one currently-known instance of this (the
-// dispatchDidChangeConfiguration inline conn.Call). PR #129 added a
+// The one known instance of this (the
+// dispatchDidChangeConfiguration inline conn.Call) is fixed, and a
 // real-transport smoke test so the exact regression can't return.
 // This file is the complementary live-system tripwire: any future
 // handler that takes too long to return raises a Warn log naming

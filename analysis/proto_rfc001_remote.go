@@ -1,8 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Remote resolution for RFC-001 declarations (#219 Phase C, second
-// half) and for classic message/enum type references. The
+// Remote resolution for RFC-001 declarations and for classic message/enum type references. The
 // AST-first resolvers (proto_rfc001_nav.go, proto_cross_file.go)
 // cover files protolsp can parse: the current buffer, on-disk
 // imports via the protoindex, and registry files whose source is
@@ -31,7 +30,7 @@
 //
 // A pre-v1.2 toolchain emits none of the extensions; both layers
 // then miss and the caller's AST-only answer stands — the graceful
-// degradation #219 requires. Extension payloads decode because this
+// degradation that is required. Extension payloads decode because this
 // package links the gen/protowire/schema/v1 types into the global
 // registry: any in-process descriptor unmarshal resolves fields
 // 1327–1331 instead of parking them in unknown fields.
@@ -82,8 +81,8 @@ const (
 // import already had its AST-first chance, and re-resolving it here
 // could only produce a worse answer.
 //
-// refScope is the reference site's lexical scope (protoRefScopeAt,
-// #239), consumed by the type-slot kind only; "" falls back to the
+// refScope is the reference site's lexical scope (protoRefScopeAt),
+// consumed by the type-slot kind only; "" falls back to the
 // file's package. Annotation/function references pass "".
 func (s *Workspace) resolveRFC001RemoteDecl(ctx context.Context, wsDir string, currentFile *protoast.File, kind rfc001DeclKind, name, refScope string) (string, *protocol.Location, bool) {
 	if currentFile == nil || name == "" {
@@ -398,7 +397,7 @@ func carrierFunctionSignature(d *schemav1.FunctionDecl) string {
 // classicDescriptorDecl finds the first scoped candidate among fd's
 // message and enum descriptors and renders a hover card +
 // declaration-site range. Every candidate descends the enclosing-
-// message chain from the file's top level (#241 — the descriptor
+// message chain from the file's top level (the descriptor
 // twin of findTypeByScopedCandidates' rooted matching). The card has
 // no doc comment — none survives without SourceCodeInfo, and hovers
 // don't re-derive one from it — but the shape matches the AST-

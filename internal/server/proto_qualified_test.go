@@ -358,7 +358,7 @@ func TestProtoNavigation_SiblingNestedTypeFromEnclosingScope(t *testing.T) {
 	// `Middle.Inner` referenced from a field of
 	// Outer, where Middle nests in Outer. The reference resolves via
 	// the enclosing scope .pkg.Outer — the message-level scope the
-	// pre-#239 resolver didn't model.
+	// earlier resolver didn't model.
 	root := t.TempDir()
 	mustWrite(t, filepath.Join(root, "buf.yaml"), "version: v2\nmodules:\n  - path: proto\n")
 	fooPath := filepath.Join(root, "proto", "acme", "foo.proto")
@@ -444,7 +444,7 @@ func TestProtoNavigation_StrictMatching_ProtocRejectedFormsDoNotResolve(t *testi
 	//   - a bare name whose declaration lives in a DIFFERENT package,
 	//   - a package-qualified leaf whose declaration is nested inside
 	//     another message (protoc requires the full Outer.Inner path).
-	// The pre-#241 lenient fallbacks resolved both.
+	// The earlier lenient fallbacks resolved both.
 	root := t.TempDir()
 	mustWrite(t, filepath.Join(root, "buf.yaml"), "version: v2\nmodules:\n  - path: proto\n")
 	mustWrite(t, filepath.Join(root, "proto", "other", "bar.proto"), `syntax = "proto3";
@@ -497,7 +497,7 @@ message Foo {
 func TestProtoNavigation_BareSamePackageCrossFile_StillResolves(t *testing.T) {
 	// The protoc-accepted twin of the strict-matching test: a bare
 	// name declared top-level in ANOTHER file of the SAME package must
-	// keep resolving after #241 (the scope chain covers it — no
+	// keep resolving under strict scoping (the scope chain covers it — no
 	// leniency involved).
 	root := t.TempDir()
 	mustWrite(t, filepath.Join(root, "buf.yaml"), "version: v2\nmodules:\n  - path: proto\n")

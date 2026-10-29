@@ -50,8 +50,8 @@ import (
 // caller's job (they handle it and stamp the request URI); this only
 // walks imports.
 //
-// refScope is the reference site's lexical scope (protoRefScopeAt,
-// #239); "" falls back to the file's package.
+// refScope is the reference site's lexical scope (protoRefScopeAt);
+// "" falls back to the file's package.
 func (s *Workspace) resolveRegistryProtoTypeLookup(ctx context.Context, namespace, workspaceDir string, currentFile *protoast.File, name, refScope string) (protoTypeLookup, string) {
 	if currentFile == nil || name == "" {
 		return protoTypeLookup{}, ""

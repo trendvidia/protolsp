@@ -110,7 +110,7 @@ func TestSecretRanges_DocumentWithoutSecretsReturnsEmpty(t *testing.T) {
 func TestSecretRangesChanged_FiresOnDidOpenWithSecrets(t *testing.T) {
 	srv, fc, _ := newServerWithCredentialsType(t)
 	// Opt in to legacy-LSP-client mode so the notification gate
-	// added in #113 doesn't suppress the notification we're
+	// doesn't suppress the notification we're
 	// asserting fired. Real clients flip this bit by calling the
 	// matching legacy request method; tests flip it directly.
 	srv.legacyLspClients.secretRanges.Store(true)
@@ -137,7 +137,7 @@ func TestSecretRangesChanged_SilentForDocumentWithoutSecrets(t *testing.T) {
 }
 
 // enableLegacySecretRanges flips the legacy-client gate so tests
-// that pre-date #113 can exercise the LSP notification path
+// that pre-date the gate can exercise the LSP notification path
 // without the publish-gate suppressing it.
 func enableLegacySecretRanges(srv *Server) {
 	srv.legacyLspClients.secretRanges.Store(true)
@@ -148,14 +148,13 @@ func enableLegacySecretRanges(srv *Server) {
 // without calling the legacy protolsp/secretRanges request, no
 // notification fires even when the secret-range table changes.
 // The RPC publish path still fires (covered by
-// rpc_secrets_subscribe_test.go); this test pins the LSP-side gate
-// added in #113.
+// rpc_secrets_subscribe_test.go); this test pins the LSP-side gate.
 func TestSecretRangesChanged_GatedUntilLegacyDispatchCalled(t *testing.T) {
 	srv, fc, _ := newServerWithCredentialsType(t)
 	require.NoError(t, srv.Handle(context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 	assert.Empty(t, fc.secretRangesChangedNotifications(),
-		"no notification fires until a legacy request is invoked — this is the #113 gate")
+		"no notification fires until a legacy request is invoked — this is the legacy-client gate")
 
 	// After the legacy request fires once, subsequent edits do
 	// emit the notification — the client has self-identified as

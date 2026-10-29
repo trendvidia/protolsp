@@ -365,8 +365,7 @@ without a major bump.
 
 ### Changed
 
-- **Embedded engines migrated to the protocheck v2 seam** (#260 §3,
-  the issue's last item). The Phase 1 data validator moves from
+- **Embedded engines migrated to the protocheck v2 seam** . The Phase 1 data validator moves from
   protocheck v1.2.0 to `protocheck/v2` v2.4.0 with expressions
   evaluated through the RFC-001 §9.4 `ExpressionEngine` seam.
   Fallout across the surface:
@@ -386,7 +385,7 @@ without a major bump.
   - **v2 violation model.** Findings carry the structured path's
     canonical string, the stable violation `code`, the spec fallback
     message, and `for_key` — map-key violations render the same
-    ` (key)` suffix as `Report.Format` and the #262 runtime overlay.
+    ` (key)` suffix as `Report.Format` and the runtime overlay.
   - **Phase 0 unsigned binding fixed.** The expression type-checker
     bound `uint32/uint64/fixed32/fixed64` as signed ints while the
     runtime engine binds them as `uint`; the two now agree (a uint
@@ -443,7 +442,7 @@ without a major bump.
   from the publish) rather than mis-join. Also picks up v0.17.1's
   declaration-site locations on the 50401–50403 carriers and v0.20.0's
   populated `FunctionDecl.options` + `EnrichedViolation.for_key` /
-  `source_ref` bindings (feature work tracked separately in #260 §2).
+  `source_ref` bindings (feature work tracked separately).
 
 - **protocompile bumped v0.20.0 → v0.21.0.** Brings the
   reserved-prefix rejection above and fully-qualified
@@ -541,7 +540,7 @@ without a major bump.
   (`(pxf.key)="id"`), outlines each child by its node id, and flags a
   duplicate node id (`protolsp/keyed`). Resolving against the bundled
   annotations proto (rather than a vendored fixture copy) makes this the
-  regression guard for #254.
+  regression guard for the bundled-annotations fix.
 
 ## [0.17.0] – 2026-07-18
 
@@ -614,8 +613,7 @@ without a major bump.
   dotted qualifiers matched against the imported package; registry://
   previews stay scoped to in-file targets.
 
-- **RFC-001 type/function navigation + descriptor fallback** (#219
-  Phase C). Hover and go-to-definition now cover the remaining
+- **RFC-001 type/function navigation + descriptor fallback**. Hover and go-to-definition now cover the remaining
   RFC-001 constructs: `type` aliases resolve everywhere type
   references live (field types, alias values, function/annotation
   parameter types) and `function` declarations resolve from parsed
@@ -730,7 +728,7 @@ without a major bump.
   through.
 
 - **Expression-diagnostic ranges honor the negotiated position
-  encoding** (closing out the #219-criterion-4 sweep). The
+  encoding** (closing out the position-encoding sweep). The
   protocheck and protovalidate schema analyzers and the shared
   `nodeRange` helper still emitted fixed UTF-16 columns; under a
   client-negotiated `utf-8` encoding, a diagnostic on a line with a
@@ -917,8 +915,8 @@ without a major bump.
   for sub-workspace lookups.** The 0.8.0 hook covered only
   the root `LookupManager`; sub-workspace lookups install through
   `WorkspaceState` and fired nothing, so per-workspace status
-  surfaces were back to polling for exactly the transitions #204
-  eliminated. The signature is now
+  surfaces were back to polling for exactly the transitions the lookup-change
+  notification had eliminated. The signature is now
   `LookupChanged(ctx, workspaceDir string)` — `""` for the root
   workspace's lookup, the sub-workspace directory otherwise — and
   every sub-workspace transition fires: async dial install, failed
@@ -960,8 +958,8 @@ without a major bump.
 
 ### Changed
 
-- **`analysis.DefaultFor` and `analysis.WalkMessages` unexported**
- , finishing the #179 curation. Both were kept exported only
+- **`analysis.DefaultFor` and `analysis.WalkMessages` unexported**,
+  finishing the API curation. Both were kept exported only
   because server-scaffolded tests still referenced them; those tests
   now assert through the effective-config RPC surface / a local AST
   walk. Neither symbol was part of the documented embedder core.
@@ -1004,7 +1002,7 @@ without a major bump.
 
 ### `analysis` API curation
 
-Breaking pre-1.0 cleanup of the surface the #177 export campaign
+Breaking pre-1.0 cleanup of the surface the export campaign
 created. Embedders (goed) are unaffected — the embedder core
 documented in the package comment is unchanged.
 
@@ -1218,7 +1216,7 @@ EffectiveConfig / Config also lands, with workspace-config flatten
 
 ### Test coverage
 
-Eight test-coverage closure PRs (#147–154) covering: unit gaps
+Eight test-coverage closure PRs covering: unit gaps
 (workspace close, schema cache, exit, interceptor), functional
 gaps (redaction, dataset, config, watch), integration gaps
 (stdio cap, tripwire, bind fail, chain reload), buf.lock
@@ -1242,8 +1240,7 @@ mid-session deps add, alternative-path follow-ups.
 
 ### Documentation
 
-- **Package + type doc surface refresh**. Closes #112;
-  every exported package and significant type carries a
+- **Package + type doc surface refresh**. Every exported package and significant type carries a
   doc-comment with usage shape.
 
 ### Dependencies
@@ -1523,8 +1520,8 @@ Seven new methods + three notifications since 0.1.0:
 
 ### Changed
 
-- **Bump `github.com/trendvidia/protoregistry` to v0.72.0** (
-  #93). v0.71.0 (namespace hierarchy, `WithServerChain`,
+- **Bump `github.com/trendvidia/protoregistry` to v0.72.0**.
+  v0.71.0 (namespace hierarchy, `WithServerChain`,
   `RangeMessages`, `Find*WithOrigin`, `GetSource`, `WithDiskCache`)
   promoted from a pseudo-version pin, then v0.72.0 picked up the
   new `client.WithTransportCredentials` option that powers the TLS

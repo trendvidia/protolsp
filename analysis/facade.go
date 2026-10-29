@@ -137,9 +137,9 @@ func (s *Workspace) Publisher() Publisher { return s.pub }
 func (s *Workspace) Logger() *slog.Logger { return s.log }
 
 // lookupEnv is the `${env.X}` resolver this Workspace passes to
-// workspaceconfig.ParseWithEnv at every config parse (#180 removed
-// the process-global SetEnvLookup installation, so two Workspaces
-// in one process no longer share a resolver). Reads the Workspace's
+// workspaceconfig.ParseWithEnv at every config parse. There is no
+// process-global SetEnvLookup installation, so two Workspaces in one
+// process do not share a resolver. Reads the Workspace's
 // bwSession override under RLock; falls back to os.Getenv when no
 // override is set or when the requested var is something other
 // than BW_SESSION.

@@ -346,7 +346,7 @@ func TestLint_NonLocalRelPathFallsBack(t *testing.T) {
 	}
 }
 
-// Integration guard against the #195 regression with a real buf
+// Integration guard against the staging regression with a real buf
 // (skips when buf isn't installed): a packaged file staged at its
 // relative path must NOT trigger PACKAGE_DIRECTORY_MATCH.
 func TestLint_RealBufNoDirectoryMismatch(t *testing.T) {

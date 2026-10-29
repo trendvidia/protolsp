@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 remote resolution (#219 Phase C, second half): references
+// RFC-001 remote resolution: references
 // into imports the protoindex doesn't hold resolve through the
 // schema lookup — as served source when GetSource works, else from
 // the compiled descriptor's protowire.schema.v1 carrier options.
@@ -184,7 +184,7 @@ func TestProtoNavigation_RFC001ServedSourceFallback(t *testing.T) {
 
 // Pre-v1.2 toolchains emit no carrier extensions: with no source and
 // no carrier, references degrade to "no hover / no definition"
-// rather than erroring — #219's graceful-degradation criterion.
+// rather than erroring: graceful degradation.
 func TestProtoNavigation_RFC001RemoteFallback_PreV12Degrades(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	lookup := newFakeLookup()

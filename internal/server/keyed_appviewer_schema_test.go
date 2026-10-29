@@ -19,7 +19,7 @@
 // so the test is hermetic — no runtime dependency on an appviewer
 // checkout. Its `import "pxf/annotations.proto"` resolves against
 // protolsp's own bundled proto/ tree (not a vendored fixture copy), so
-// this test doubles as the regression guard for #254: if the bundled
+// this test doubles as the regression guard for the bundled annotations: if the bundled
 // annotations.proto were missing (pxf.key) = 1316, the (pxf.key)="id"
 // annotation on Node.children would compile as an unknown extension and
 // the keyed assertions below would fail.
@@ -47,7 +47,7 @@ const appviewerSchemaRoot = "testdata/appviewer_schema"
 // bundledProtoRoot is protolsp's own proto/ tree (relative to this
 // package), which ships pxf/annotations.proto. Adding it as a second
 // import root is what lets the vendored schema resolve its annotations
-// import against the bundled copy — the seam #254 fixed.
+// import against the bundled copy — the seam this depends on.
 const bundledProtoRoot = "../../proto"
 
 // A real AppViewer Screen document (composite/screens shape): `@type`

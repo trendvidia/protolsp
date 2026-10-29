@@ -15,7 +15,7 @@ import (
 )
 
 // TestClassificationDoesNotRaceWatchedFilesReanalyze is the
-// regression test for #184: RunAnalyzeAndMaybeLiveReload's tail
+// regression test for an unlocked read: RunAnalyzeAndMaybeLiveReload's tail
 // read doc.Parsed through IsWorkspaceConfigDoc / IsChainSpecDoc
 // with no doc lock, racing the watched-files reanalyze pass
 // (processWatchedFiles → reanalyzeOpenDocs → runAnalyzePipeline →
@@ -25,7 +25,7 @@ import (
 // paths run on independent goroutines: one drives the didOpen /
 // scheduled-analyze pipeline for an open doc, the other feeds a
 // .protolsp.pxf change event through the watched-files pipeline.
-// Run under -race; the pre-#184 code trips the detector within a
+// Run under -race; the earlier code trips the detector within a
 // handful of iterations.
 func TestClassificationDoesNotRaceWatchedFilesReanalyze(t *testing.T) {
 	dir := t.TempDir()
@@ -49,8 +49,8 @@ func TestClassificationDoesNotRaceWatchedFilesReanalyze(t *testing.T) {
 	// Deliberately NO EnsureWorkspaceForDoc warm-up: leaving
 	// WorkspaceDir undiscovered makes both goroutines race through
 	// the lazy-populate path (EnsureWorkspaceForDoc's write vs. the
-	// unlocked classification / reanalyze reads), covering #187
-	// alongside the doc.Parsed pair from #184.
+	// unlocked classification / reanalyze reads), covering the lazy
+	// workspaceDir populate alongside the doc.Parsed reads.
 
 	events := []*protocol.FileEvent{
 		{URI: uri.File(configPath), Type: protocol.FileChangeTypeChanged},

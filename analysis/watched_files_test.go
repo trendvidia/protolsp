@@ -19,7 +19,7 @@ import (
 
 // chameleonTemplateChainSpec mirrors pxfed's chameleon template: a
 // single "default" fs source and layer entries that omit `source =`.
-// The shape #208's staleness repro (goed's
+// The shape the stale-diagnostics repro (goed's
 // TestChainRequiredDiagnostics) uses.
 const chameleonTemplateChainSpec = `@type chameleon.v1.ChainSpec
 version = "1.0.0"
@@ -57,8 +57,8 @@ func changeEvent(path string) []*protocol.FileEvent {
 	}
 }
 
-// TestClassifyWatchedEvents_LayerFileUnderFsSourceRoot is the #208
-// regression test: an on-disk change to a chain layer file must flag
+// TestClassifyWatchedEvents_LayerFileUnderFsSourceRoot is the
+// regression test for stale chain diagnostics: an on-disk change to a chain layer file must flag
 // the batch for an open-doc reanalyze, because chain-aware required-
 // field diagnostics on open leaves are computed from the union of
 // fields set across resolve-order siblings/ancestors read from disk.
@@ -174,7 +174,7 @@ func TestClassifyWatchedEvents_SubWorkspaceLayerFile(t *testing.T) {
 // TestProcessWatchedFiles_LayerEventReanalyzesOpenDocs asserts the
 // fan-out end to end: a layer-file event must re-run the analyze
 // pipeline for open documents (the piece whose absence left leaf
-// diagnostics stale in #208).
+// diagnostics stale).
 func TestProcessWatchedFiles_LayerEventReanalyzesOpenDocs(t *testing.T) {
 	w, dir := newWorkspaceWithChain(t, chameleonTemplateChainSpec)
 	w.SetWatchedFilesWindow(0)

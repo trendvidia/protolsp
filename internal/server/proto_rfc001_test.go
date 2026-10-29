@@ -159,8 +159,8 @@ message M {}
 			wantRng: rng(3, 0, 3, 4),
 		},
 		{
-			// Arg-count mismatch carries both counts (#220 acceptance
-			// criterion). The snippet covers the whole use site.
+			// Arg-count mismatch carries both counts. The
+			// snippet covers the whole use site.
 			name: "use with too many arguments",
 			src: `syntax = "proto3";
 package t;

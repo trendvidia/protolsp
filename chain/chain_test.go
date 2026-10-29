@@ -460,7 +460,7 @@ func contains(haystack, needle string) bool {
 // (packages/pxfed-shell/resources/templates/chameleon/chain.pxf):
 // a single "default" fs source and layer entries that OMIT
 // `source =`. The runtime binds those layers to the default source
-// implicitly; #207 is Expand missing that rule, leaving
+// implicitly; Expand used to miss that rule, leaving
 // ResolvedPath without the `layers/` root and downgrading every
 // chain-aware feature to the permissive fs-root fallback.
 const chameleonTemplateSpec = `@type chameleon.v1.ChainSpec
@@ -527,7 +527,7 @@ func TestResolveOrder_ImplicitDefaultSourceAppliesRoot(t *testing.T) {
 
 func TestExpand_NoDeclaredDefaultKeepsBarePaths(t *testing.T) {
 	// Sources exist but none is named "default": a sourceless layer
-	// must keep its bare path and empty Source — the pre-#207
+	// must keep its bare path and empty Source — the earlier
 	// behavior for chains that genuinely have no default source.
 	spec := &Spec{
 		Environments: []Environment{{Name: "dev"}},

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Request positions in .proto documents honor the negotiated
-// position encoding (#232 — the input-side twin of #227). A cursor
+// position encoding (the input-side twin of the diagnostic ranges). A cursor
 // after a non-ASCII character on the same line converts to a
 // different byte offset under utf-8 (character = bytes) than under
 // utf-16 (character = code units); these tests pin hover and
@@ -104,7 +104,7 @@ func TestProtoDefinition_NonASCIIPrefix_UTF16Encoding(t *testing.T) {
 }
 
 // expressionDiagFixture carries a broken CEL expression preceded by
-// an emoji block comment on the same line (#227 — the output-side
+// an emoji block comment on the same line (the output-side
 // twin of the request-position tests above). The concatenated
 // literal forces the whole-token diagnostic range, whose start is
 // the opening quote: byte column 25, UTF-16 column 23.

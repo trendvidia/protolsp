@@ -304,8 +304,8 @@ message Foo {
 }
 
 // Nested in-file types complete under their scoped path: the
-// #241-strict resolver only binds `Outer.Inner1` from outside Outer,
-// so that's the label completion must offer — the pre-#240 bare
+// strict scope resolver only binds `Outer.Inner1` from outside Outer,
+// so that's the label completion must offer — the earlier bare
 // `Inner1` inserted a reference that resolved to nothing.
 func TestProtoCompletion_InFileNestedTypesScopedLabels(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
@@ -327,7 +327,7 @@ func TestProtoCompletion_InFileNestedTypesScopedLabels(t *testing.T) {
 }
 
 // Imported nested types complete under package + enclosing-message
-// path. The pre-#240 `pkg.leaf` shape for nested types named
+// path. The earlier `pkg.leaf` shape for nested types named
 // something the resolver rejects.
 func TestProtoCompletion_ImportedNestedTypesFullPath(t *testing.T) {
 	root := t.TempDir()
@@ -449,7 +449,7 @@ message Foo {
 }
 
 // Dot completion resolves the qualifier through the cursor's
-// enclosing scopes (the completion twin of #239): `Middle.`
+// enclosing scopes (the completion twin of scoped resolution): `Middle.`
 // written inside Outer names Outer.Middle, so Middle's nested types
 // are the completions.
 func TestProtoCompletion_DotCompletion_SiblingNestedScope(t *testing.T) {

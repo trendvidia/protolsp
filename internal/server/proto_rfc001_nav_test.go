@@ -267,7 +267,7 @@ func TestProtoNavigation_AnnotationUse_CrossFile(t *testing.T) {
 }
 
 // Bare annotation/function references don't leak across packages
-// (the RFC-001 twin of #241): a bare `@audited` written in
+// (the RFC-001 twin of strict scoping): a bare `@audited` written in
 // acme.app.v1 must NOT bind an annotation declared in an
 // other.lib.v1 import — protoc-style scoping can't reach it.
 func TestProtoNavigation_RFC001BareCrossPackage_DoesNotResolve(t *testing.T) {

@@ -955,7 +955,7 @@ func (s *Server) dispatchConfigSet(ctx context.Context, reply jsonrpc2.Replier, 
 // configPathJSONError maps ConfigPathForWorkspace's sentinel errors
 // onto JSON-RPC error codes: a caller-supplied unknown workspaceDir
 // is InvalidParams; a missing root workspace is a server-side
-// InternalError (matches the pre-#172 inline codes).
+// InternalError (matches the earlier inline codes).
 func configPathJSONError(err error) *jsonrpc2.Error {
 	if errors.Is(err, analysis.ErrUnknownWorkspaceDir) {
 		return jsonrpc2.NewError(jsonrpc2.InvalidParams, err.Error())

@@ -64,7 +64,7 @@ func (p serverPublisher) SecretRangesChanged(ctx context.Context, docURI uri.URI
 	}
 	// Skip the legacy LSP notification when no client this
 	// session has called the matching legacy request method.
-	// RPC-only clients (pxfed post-#34, etc.) would otherwise
+	// RPC-only clients (pxfed since pxfed#34, etc.) would otherwise
 	// pay doubled wire traffic on every analyze pass.
 	if !p.s.legacyLspClients.secretRanges.Load() {
 		return

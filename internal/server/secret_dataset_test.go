@@ -133,7 +133,7 @@ func TestCollectSecretRanges_DatasetCellRange(t *testing.T) {
 
 // The body walk takes the same value forms the cells do: a Secret
 // written as `= { ... }`, a message written as `= { ... }`, a list and
-// a map. Before #286 it recorded only `pw = "x"` and `pw { ... }`.
+// a map. It used to record only `pw = "x"` and `pw { ... }`.
 func TestCollectSecretRanges_BodyValueForms(t *testing.T) {
 	_, doc := openLoginDoc(t, `@type acme.demo.v1.Login
 

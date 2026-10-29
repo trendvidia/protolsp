@@ -16,7 +16,7 @@ import (
 
 // newProtoFilesWorkspace builds an engine over a proto_files
 // workspace with two messages (myapp.v1.Farewell / .Greeting), the
-// same shape the shell's initialize produces. Shared by the #203
+// same shape the shell's initialize produces. Shared by the
 // schema-browsing recipe tests below.
 func newProtoFilesWorkspace(t *testing.T) *Workspace {
 	t.Helper()

@@ -98,7 +98,7 @@ func (r protoTypeLookup) Node() source.Spanner {
 // a lenient any-depth, any-file fallback after the scoped attempts.
 //
 // refScope is the cursor's lexical scope from protoScopeAt; "" means
-// "unknown" and falls back to the file's package (the pre-#239
+// "unknown" and falls back to the file's package (the earlier
 // posture).
 //
 // Returns the zero protoTypeLookup when no declaration matches.
@@ -147,8 +147,8 @@ func resolveProtoTypeInFile(f *protoast.File, name, refScope string) protoTypeLo
 
 // findTypeByScopedCandidates tries each scoped candidate against f's
 // declarations, first match wins. Every candidate resolves as a
-// nested-scope path rooted at the file's top level (#241 — protoc's
-// rule; the pre-#241 any-depth walk resolved references protoc
+// nested-scope path rooted at the file's top level (protoc's
+// rule; the earlier any-depth walk resolved references protoc
 // rejects and could land on the wrong declaration when names collide
 // across scopes). Single-segment candidates additionally try RFC-001
 // `type` aliases, which are top-level-only, after message → enum —
@@ -187,7 +187,7 @@ func findTypeByScopedCandidates(f *protoast.File, candidates []string) protoType
 // inside pkg.Outer.Middle yields "Outer.Middle.Inner", "Outer.Inner",
 // "Inner", in that order. That chain is exhaustive: a
 // reference protoc can't resolve produces no candidates, so a bare
-// name no longer leaks across packages the way the pre-#241 lenient
+// name no longer leaks across packages the way the earlier lenient
 // fallback allowed.
 func protoScopedCandidates(name, refScope, targetPkg string) []string {
 	name = strings.TrimPrefix(name, ".")
@@ -231,7 +231,7 @@ func protoScopedCandidates(name, refScope, targetPkg string) []string {
 // the file's package followed by the names of the message (or proto2
 // group, whose body is the declared message's scope)
 // declarations enclosing the cursor, outermost first. With no
-// enclosing messages this is just the package, so pre-#239 call
+// enclosing messages this is just the package, so earlier call
 // shapes are the degenerate case. (Not to be confused with
 // protoScopeAt, completion's block-kind classifier.)
 func protoRefScopeAt(f *protoast.File, path *protoPath) string {
@@ -264,8 +264,8 @@ func protoRefScopeAt(f *protoast.File, path *protoPath) string {
 // undotted entries: annotations, functions, and type aliases can't
 // nest, so only interpretations landing directly in the package
 // participate — a bare name binds only in files whose package is an
-// enclosing scope of the reference site, exactly like #241's type
-// discipline.
+// enclosing scope of the reference site, exactly like the type
+// resolver's scoping.
 func protoTopLevelNameCandidates(name, refScope, targetPkg string) []string {
 	var out []string
 	for _, cand := range protoScopedCandidates(name, refScope, targetPkg) {

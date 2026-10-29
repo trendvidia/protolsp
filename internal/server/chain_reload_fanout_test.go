@@ -37,7 +37,7 @@ import (
 // secretRangesChanged is checked opportunistically: a chain-only
 // edit doesn't shift the per-doc secret-range table, so the test
 // pins absence of that notification — same-shape edits stay
-// quiet (the #113 gate logic).
+// quiet (the legacy-client gate logic).
 func TestChainReload_FanoutAcrossOpenLayerDocs(t *testing.T) {
 	workspaceDir := t.TempDir()
 	chainPath := filepath.Join(workspaceDir, "chain.pxf")
@@ -132,7 +132,7 @@ layers = [
 	// Negative: chain-only edits don't shift the per-doc secret-
 	// range table (layer file contents are unchanged), so no
 	// secretRangesChanged notification should fire after the
-	// reload. The #113 gate also requires the legacy method to
+	// reload. The legacy-client gate also requires the legacy method to
 	// have been called for the notification to ever fire; we
 	// haven't called it, so both layers of defense should keep
 	// the surface quiet. Pinning this rules out a regression

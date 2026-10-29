@@ -220,7 +220,8 @@ func rfc001TypeRefAt(path *protoPath) (string, bool) {
 // ExprPath captures classify; opaque engine-expression fragments
 // (AnnotationUseArg.Value() zero) have no AST nodes to hit, so
 // function calls inside them can't navigate (that's the source-map's
-// job for compiled artifacts, #220 territory for live buffers).
+// job for compiled artifacts, and runtime-error mapping's for live
+// buffers).
 func rfc001FunctionRefAt(path *protoPath) (string, bool) {
 	tok, ok := path.Leaf().(token.Token)
 	if !ok || tok.Kind() != token.Ident {

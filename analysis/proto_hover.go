@@ -257,8 +257,8 @@ func renderProtoEnumValueHover(f *protoast.File, v ast.DefEnumValue) *protocol.H
 // preview's sub-workspace registry, matching the definition
 // path; it is unused on the on-disk path.
 //
-// refScope is the reference site's lexical scope (protoRefScopeAt,
-// #239); "" falls back to the file's package inside the resolvers.
+// refScope is the reference site's lexical scope (protoRefScopeAt);
+// "" falls back to the file's package inside the resolvers.
 func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, workspaceDir string, f *protoast.File, name, refScope string) string {
 	if isProtoBuiltinType(name) {
 		// Built-in scalars (string, int32, bool, …) — no hover.

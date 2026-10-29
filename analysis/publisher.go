@@ -16,8 +16,8 @@ import (
 // transports that deliver results:
 //
 //   - the LSP + Connect-RPC server installs serverPublisher, which
-//     fans out to jsonrpc2 notifications (gated per legacy client,
-//     see #113) and to the sidecar's Subscribe streams;
+//     fans out to jsonrpc2 notifications (gated per legacy
+//     client) and to the sidecar's Subscribe streams;
 //   - in-process embedders (goed) install their own
 //     implementation and receive direct callbacks — no transport.
 //

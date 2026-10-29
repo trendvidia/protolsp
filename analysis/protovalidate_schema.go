@@ -24,8 +24,8 @@
 //     can't disambiguate without semantic resolution, and
 //     accurate enum-typing isn't worth the resolver pass.
 //   - Diagnostic ranges narrow to the CEL token via
-//     *common.Error.Location, mirroring the per-column work in
-//     #164. Backslash-escape fallback is the same as Phase 0
+//     *common.Error.Location, mirroring protocheck's per-column
+//     ranges. Backslash-escape fallback is the same as Phase 0
 //     for protocheck.
 //   - The environment is protovalidate's own: every rule
 //     compiles against `pvcel.NewLibrary()` — the strings
@@ -211,7 +211,7 @@ func validateSingleCelExpression(file *protoast.File, lit ast.ExprDict, env *cel
 // failed to load, which cel-go only does on conflicting
 // declarations) disables the analysis rather than degrading to a
 // bare environment: a bare environment reports every protovalidate
-// function as undeclared, which is the false positive #279 removed.
+// function as undeclared, a false positive.
 var (
 	protovalidateEnvOnce sync.Once
 	protovalidateEnv     *cel.Env

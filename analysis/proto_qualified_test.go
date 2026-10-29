@@ -14,7 +14,7 @@ import (
 )
 
 func TestProtoScopedCandidates(t *testing.T) {
-	// The #237 scope-peeling rules: interpretations of `name` against
+	// The scope-peeling rules: interpretations of `name` against
 	// each enclosing scope of refPkg, with targetPkg's prefix peeled.
 	cases := []struct {
 		name, refPkg, targetPkg string
@@ -26,7 +26,7 @@ func TestProtoScopedCandidates(t *testing.T) {
 		{"Foo", "acme.v1", "acme.v1", []string{"Foo"}},
 		{"Foo", "", "", []string{"Foo"}},
 
-		// Package-qualified leaf (#229 behavior preserved).
+		// Package-qualified leaf.
 		{"other.lib.v1.Bar", "acme.v1", "other.lib.v1", []string{"Bar"}},
 		{"other.lib.v1.Bar", "acme.v1", "wrong.pkg.v1", nil},
 
@@ -67,7 +67,7 @@ func TestProtoScopedCandidates(t *testing.T) {
 }
 
 func TestProtoTopLevelNameCandidates(t *testing.T) {
-	// The #245 filter for top-level-only namespaces (annotations,
+	// The filter for top-level-only namespaces (annotations,
 	// functions): only undotted scope-chain interpretations survive.
 	cases := []struct {
 		name, refScope, targetPkg string
@@ -76,7 +76,7 @@ func TestProtoTopLevelNameCandidates(t *testing.T) {
 		// Bare names bind in the same package and enclosing packages…
 		{"audited", "acme.v1", "acme.v1", []string{"audited"}},
 		{"audited", "acme.v1", "acme", []string{"audited"}},
-		// …but never across unrelated packages (the #245 tightening).
+		// …but never across unrelated packages .
 		{"audited", "acme.v1", "other.v1", nil},
 
 		// Qualified names work fully qualified and under any

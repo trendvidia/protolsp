@@ -328,7 +328,7 @@ func protoDefBareName(def ast.DeclDef) string {
 // intra-package references unqualified. Nested types carry the
 // shortest scope path that resolves from the cursor: bare
 // `Inner` when the cursor sits inside its enclosing message,
-// `Outer.Inner` elsewhere — always a name the #241-strict resolver
+// `Outer.Inner` elsewhere — always a name the strict scope resolver
 // binds to exactly this declaration.
 //
 // cursorChain is the enclosing-message portion of the cursor's
@@ -406,7 +406,7 @@ func protoResolveInFileChain(f *protoast.File, name, cursorChain string) string 
 // and RFC-001 `type` aliases declared in files this file imports.
 // Qualified with the imported file's package plus any enclosing-
 // message segments (e.g. `acme.demo.v1.Outer.Inner`) because
-// cross-package references require the full path — the pre-#240
+// cross-package references require the full path — the earlier
 // `pkg.leaf` shape for a nested type is a name the resolver
 // (correctly) rejects.
 //
@@ -439,7 +439,7 @@ func (s *Workspace) protoImportedTypeItems(currentFile *protoast.File) []protoco
 
 // walkScopedTypeDefs visits every message- and enum-classified def in
 // the file with its scope path rooted at the top level ("Outer.Inner")
-// — the label shape the #241-strict resolver binds from any scope.
+// — the label shape the strict scope resolver binds from any scope.
 // proto2 group bodies contribute path segments (a group declares a
 // message named after it) but groups themselves aren't emitted. The
 // callback returns false to stop the walk.

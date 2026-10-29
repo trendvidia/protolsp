@@ -48,7 +48,7 @@ message Envelope {
 }
 `
 
-// nested.proto declares a message nested inside another — the #237
+// nested.proto declares a message nested inside another — the
 // outer-qualified target. Line map: 3 `message Wrapper {`,
 // 4 `  message Payload {`.
 const xfNestedProto = `syntax = "proto3";

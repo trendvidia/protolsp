@@ -126,7 +126,7 @@ func TestRegistrySubWorkspace_RootScopedPreviewMissesSubOnlyType(t *testing.T) {
 
 	// The SAME preview, opened at ROOT scope (no workspace dir). The root
 	// registry has no myapp/v1/greeting.proto, so the cross-file jump
-	// finds nothing — the miss #215 attributes to scope, now correct.
+	// finds nothing, which is correct at root scope.
 	w.OpenShadowProto(uri.URI(importerRegistryURI), xfImporterProto)
 
 	loc := w.DefinitionFor(protocol.DocumentURI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})

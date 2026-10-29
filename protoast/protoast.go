@@ -110,8 +110,8 @@ func (f *File) OffsetIn(pos protocol.Position, enc positions.Encoding) int {
 // RangeIn converts a span into a 0-indexed LSP range under the
 // negotiated position encoding. Zero spans yield the zero range.
 //
-// The fixed-UTF-16 Range/SpanRange forms are gone (#227 closed the
-// last approximate call sites): every emitted range must state the
+// The fixed-UTF-16 Range/SpanRange forms are gone (no approximate call
+// sites remain): every emitted range must state the
 // encoding, same rule as OffsetIn on the input side.
 func (f *File) RangeIn(s source.Span, enc positions.Encoding) protocol.Range {
 	if f == nil {

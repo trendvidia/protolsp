@@ -43,7 +43,7 @@ message GetSourceContentRequest {
   // workspace_dir optionally scopes the fetch to a sub-workspace's
   // own registry: the absolute directory of the sub-workspace the
   // preview was opened from. Empty selects the root lookup —
-  // the pre-#215 behavior — so single-root callers can omit it.
+  // the earlier behavior — so single-root callers can omit it.
   string workspace_dir = 2;
 }
 

@@ -18,7 +18,7 @@ When adding a handler, a new transport, a new schema source, or a new use of `co
 - `internal/transport/handler_warn.go` wraps the dispatcher and emits a Warn log when any handler takes >5 s. Visible in the trace panel the first time it triggers.
 - `internal/transport/dispatcher_smoke_test.go` is a real-transport regression: `didChangeConfiguration` followed by `didOpen` must produce `publishDiagnostics` within 3 s. Fails the moment a new handler regresses.
 
-**Bug paid for.** PR #128.
+**Bug paid for.** A jsonrpc2 dispatcher deadlock: the `didChangeConfiguration` follow-up ran inline, until it moved to a goroutine.
 
 ---
 
@@ -30,7 +30,7 @@ When adding a handler, a new transport, a new schema source, or a new use of `co
 
 **How to apply.** Every `dispatchDid{Open,Change,Close}` already guards. New handlers that touch a URI must do the same. `isProtoURI(u)` already implies `isFileURI(u)`.
 
-**Bug paid for.** PRs #122, #123.
+**Bug paid for.** A panic in `didOpen` on a non-file URI, and the same guard extended to `didChange` and `didClose`.
 
 ---
 
@@ -42,7 +42,7 @@ When adding a handler, a new transport, a new schema source, or a new use of `co
 
 **How to apply.** Search for `s.lookupMgr.InvalidateBaseline()` — the existing call site in `SetBwSession` is the model.
 
-**Bug paid for.** PR #125.
+**Bug paid for.** A Bitwarden session change that never re-dialed the registry, until it invalidated the lookup baseline.
 
 ---
 

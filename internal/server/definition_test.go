@@ -217,15 +217,15 @@ func TestDefinition_PrefersLocalCopy_WhenBothExist(t *testing.T) {
 }
 
 func TestDefinition_ProtoFilesSourceResolvesToLocalFile(t *testing.T) {
-	// Regression test for #185: a message backed by a local
+	// Regression test: a message backed by a local
 	// proto_files source must resolve go-to-definition to the
 	// file:// path the compile read from disk — NOT a registry://
 	// preview of a file the user could be editing directly.
 	// Descriptor paths are search-path-relative
 	// ("myapp/v1/greeting.proto"), the file lives under the
 	// configured search path ("proto/myapp/v1/greeting.proto"), so
-	// the workspace-root existence probe misses and pre-#185 the
-	// lookup's origin attribution won.
+	// the workspace-root existence probe misses, and the lookup's
+	// origin attribution used to win.
 	workspaceDir := t.TempDir()
 	require.NoError(t, os.WriteFile(
 		filepath.Join(workspaceDir, ".protolsp.pxf"),
@@ -253,7 +253,7 @@ func TestDefinition_ProtoFilesSourceResolvesToLocalFile(t *testing.T) {
 }
 
 func TestDefinition_SubWorkspaceProtoFilesResolvesToLocalFile(t *testing.T) {
-	// Sub-workspace variant of #185: the sub's proto_files paths are
+	// Sub-workspace variant of the test above: the sub's proto_files paths are
 	// relative to ITS .protolsp.pxf dir, so resolution must route
 	// through the sub-workspace's lookup — probing the root gets it
 	// wrong even after the exact-attribution fix.
