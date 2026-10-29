@@ -181,14 +181,14 @@ not valid pxf at all !!!
 }
 
 // enableLegacyDatasetRegions flips the legacy-client gate so
-// tests that pre-date #113 can exercise the LSP notification
+// tests that pre-date the gate can exercise the LSP notification
 // path without the publish-gate suppressing it.
 func enableLegacyDatasetRegions(srv *Server) {
 	srv.legacyLspClients.datasetRegions.Store(true)
 }
 
 // TestDatasetRegionsChanged_GatedUntilLegacyDispatchCalled pins
-// the #113 gate: didOpen with a @dataset block doesn't push the
+// the legacy-client gate: didOpen with a @dataset block doesn't push the
 // LSP notification when no client this session has called the
 // legacy protolsp/datasetRegions request. RPC subscribers still
 // see the publish.

@@ -38,7 +38,7 @@ type RegistryStatusResult struct {
 // answer, not a failure. The composed recipe behind
 // [MethodRegistryStatus] and the RPC sidecar's GetStatus; exported
 // so in-process embedders share it instead of re-deriving status
-// from Lookups().Snapshot() (#203).
+// from Lookups().Snapshot().
 func (s *Workspace) RegistryStatus() RegistryStatusResult {
 	lk := s.lookupMgr.Snapshot()
 	return RegistryStatusResult{

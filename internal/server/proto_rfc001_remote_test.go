@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 remote resolution (#219 Phase C, second half): references
+// RFC-001 remote resolution: references
 // into imports the protoindex doesn't hold resolve through the
 // schema lookup — as served source when GetSource works, else from
 // the compiled descriptor's protowire.schema.v1 carrier options.
@@ -184,7 +184,7 @@ func TestProtoNavigation_RFC001ServedSourceFallback(t *testing.T) {
 
 // Pre-v1.2 toolchains emit no carrier extensions: with no source and
 // no carrier, references degrade to "no hover / no definition"
-// rather than erroring — #219's graceful-degradation criterion.
+// rather than erroring: graceful degradation.
 func TestProtoNavigation_RFC001RemoteFallback_PreV12Degrades(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	lookup := newFakeLookup()
@@ -209,8 +209,8 @@ func TestProtoNavigation_RFC001RemoteFallback_PreV12Degrades(t *testing.T) {
 		"no carrier + no source → no definition")
 }
 
-// Navigation ranges must count columns in the negotiated encoding
-// (#219 criterion 4). The declaration line carries a non-ASCII
+// Navigation ranges must count columns in the negotiated encoding.
+// The declaration line carries a non-ASCII
 // comment before the name, so UTF-8 (byte) and UTF-16 (code unit)
 // columns genuinely diverge: é is 2 bytes / 1 code unit.
 func TestProtoDefinition_RFC001_PositionEncodingRoundTrip(t *testing.T) {

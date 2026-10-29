@@ -535,7 +535,7 @@ message Transfer {
 }
 
 func TestAnalyzeProtocheckExpressions_NonASCIIPrefix_EncodingAware(t *testing.T) {
-	// #227: a block-comment emoji BEFORE the expression on the same
+	// A block-comment emoji BEFORE the expression on the same
 	// line makes the literal's byte column and UTF-16 column differ
 	// (emoji = 4 bytes, 2 code units). The concatenated literal
 	// forces the whole-token fallback, whose start is exactly the

@@ -46,7 +46,7 @@ type LookupManager struct {
 	// onChanged fires after Swap / swapProtoFiles lands an actual
 	// install or teardown (a nil→nil swap is silent), outside
 	// lookupMu so the callback can read Snapshot freely. Wired by
-	// New to the Publisher's LookupChanged seam (#204); nil in
+	// New to the Publisher's LookupChanged seam; nil in
 	// managers that don't publish.
 	onChanged func()
 

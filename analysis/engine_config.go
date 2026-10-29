@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Engine-configuration surface (#260 §3). A protowire project's
+// Engine-configuration surface. A protowire project's
 // engine selection and engine-level knobs live in a single
 // protowire.config.textproto at the project root, resolved by the
 // RFC-001 §9.4 discovery/precedence rules. protocompile's

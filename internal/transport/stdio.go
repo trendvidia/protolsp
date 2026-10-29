@@ -69,7 +69,7 @@ func serve(ctx context.Context, log *slog.Logger, rwc io.ReadWriteCloser) error 
 	srv.AttachConn(conn)
 
 	// Wrap the handler with a tripwire so any future regression to
-	// the #128 bug class (handler blocking the single-goroutine
+	// the dispatcher-deadlock bug class (handler blocking the single-goroutine
 	// jsonrpc2 reader) shows up as a Warn log in the trace panel
 	// the first time it triggers, instead of going silent until a
 	// user reports broken behavior. Threshold default in

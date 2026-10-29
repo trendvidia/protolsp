@@ -86,8 +86,8 @@ func TestRPCInterceptor_LogsUnaryStartAndDone(t *testing.T) {
 	assert.NotContains(t, logs, `"msg":"rpc stream close"`)
 }
 
-// TestRPCInterceptor_LogsStreamingHandler covers the bug from
-// issue #108: Subscribe RPCs must produce stream-open / stream-
+// TestRPCInterceptor_LogsStreamingHandler covers streaming
+// handlers: Subscribe RPCs must produce stream-open / stream-
 // close log lines AND report a send count covering the snapshot
 // message + any subsequent change events. The first Subscribe to
 // a doc with one secret + a follow-up edit that removes the

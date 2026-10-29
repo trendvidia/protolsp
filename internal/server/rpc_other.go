@@ -76,7 +76,7 @@ func (h *rpcSchemaService) ListMessages(
 	ctx context.Context,
 	req *connect.Request[rpcpb.ListMessagesRequest],
 ) (*connect.Response[rpcpb.ListMessagesResponse], error) {
-	// Thin shim over the engine recipe (#203); the no-lookup case
+	// Thin shim over the engine recipe; the no-lookup case
 	// returns an empty list rather than an error — the editor UI
 	// should render "no schema connected", not pop an RPC error.
 	res, err := h.srv.ListMessages(ctx, req.Msg.Prefix)
@@ -98,9 +98,9 @@ func (h *rpcSchemaService) GetSourceContent(
 	ctx context.Context,
 	req *connect.Request[rpcpb.GetSourceContentRequest],
 ) (*connect.Response[rpcpb.GetSourceContentResponse], error) {
-	// Thin shim over the engine recipe (#203), which owns the
+	// Thin shim over the engine recipe, which owns the
 	// `_internal_` namespace routing. WorkspaceDir scopes the fetch
-	// to a sub-workspace's own registry when set (#215). Error
+	// to a sub-workspace's own registry when set. Error
 	// classes map to Connect codes here.
 	res, err := h.srv.SourceContentForWorkspace(ctx, uri.URI(req.Msg.Uri), req.Msg.WorkspaceDir)
 	if err != nil {

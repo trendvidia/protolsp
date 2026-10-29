@@ -17,7 +17,7 @@ import (
 )
 
 // cellCheckSchema has a field of every kind whose accepted literals
-// #290 measured against protowire's `pxf validate`.
+// Measured against protowire's `pxf validate`.
 const cellCheckSchema = `
 syntax = "proto3";
 package c.v1;
@@ -70,7 +70,7 @@ func buildCellCheckType(t *testing.T) protoreflect.MessageType {
 
 // Each cell is accepted or rejected as the decoder accepts or rejects
 // it. The verdicts are protowire's `pxf validate` on protowire-go
-// v1.10.0, measured 2026-10-27 (#290), and on v1.11.0 for null on an
+// v1.10.0, measured 2026-10-27, and on v1.11.0 for null on an
 // optional scalar; a rejection gives the message the check reports.
 func TestDatasetCellCheck_MatchesTheDecoder(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
@@ -102,7 +102,7 @@ func TestDatasetCellCheck_MatchesTheDecoder(t *testing.T) {
 		{"sv", "null", ""},
 		{"pw", "null", ""},
 		{"pw", `{ value = "x" }`, ""},
-		// Accepted since protowire-go v1.11.0 (protowire-go#182, #303).
+		// Accepted since protowire-go v1.11.0 (protowire-go#182).
 		{"oi", "null", ""},
 		{"oi", "5", ""},
 		// Rejected by the decoder; the check used to accept the first three.

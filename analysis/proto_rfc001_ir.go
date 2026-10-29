@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 IR artifacts (#220). The compile pass (analyzeProto's
+// RFC-001 IR artifacts. The compile pass (analyzeProto's
 // queries.IR run) produces more than diagnostics: the IR knows which
 // function each call site inside an opaque engine-expression
 // fragment resolved to, and the fdp lowering emits the canonical
@@ -146,7 +146,7 @@ func rfc001SourceMapFor(irFile *ir.File) *schemav1.SourceMap {
 // rfc001CallSiteAt returns the resolved function FQN when the cursor
 // sits on the callee name of an extracted call site. The position's
 // column is interpreted in the negotiated encoding, same as
-// protoFindAt (#232). Caller holds doc.mu (read side) — same
+// protoFindAt. Caller holds doc.mu (read side) — same
 // discipline as every protoAST consumer.
 func rfc001CallSiteAt(doc *Document, pos protocol.Position, enc positions.Encoding) (string, bool) {
 	if len(doc.rfc001Calls) == 0 || doc.protoAST == nil {
@@ -202,7 +202,7 @@ func (s *Workspace) rfc001OpaqueCallHover(wsDir string, doc *Document, pos proto
 // RFC001SourceRange resolves a source-map descriptor_path key (RFC-001
 // §8.3.1 — the key a protowire runtime attaches to violations) to the
 // editor range of its source anchor in the given document. This is
-// the runtime-error → source mapping primitive (#220): a future
+// the runtime-error → source mapping primitive: a future
 // violation-overlay feed calls this per violation and renders the
 // result as an informational diagnostic.
 //
@@ -222,7 +222,7 @@ func (s *Workspace) RFC001SourceRange(docURI protocol.DocumentURI, descriptorPat
 
 // rfc001SourceRangeLocked is RFC001SourceRange's body. Caller holds
 // doc.mu (read or write) — split out so the runtime-violation
-// overlay (#231) can resolve keys from inside diagnosticsForLocked's
+// overlay can resolve keys from inside diagnosticsForLocked's
 // single-RLock window without recursing on the document lock.
 func (s *Workspace) rfc001SourceRangeLocked(doc *Document, descriptorPath string) (protocol.Range, bool) {
 	sm := doc.rfc001SourceMap

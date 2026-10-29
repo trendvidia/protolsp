@@ -11,7 +11,7 @@
 // This path supplements it: for a registry preview, resolve the
 // imports through the SAME schema lookup the preview came from
 // (lookupForNamespaceInWorkspace — the preview's sub-workspace
-// registry, or the root when it has none, #215), fetching each
+// registry, or the root when it has none), fetching each
 // imported file's source
 // (Lookup.GetSource) and parsing it for the declaration's position.
 // Targets are emitted as registry:// Locations, so a cross-file jump
@@ -46,12 +46,12 @@ import (
 // Mirrors the on-disk cross-file walk in resolveProtoTypeRef, but
 // sources imported files from the preview's schema lookup instead of
 // the disk index. workspaceDir scopes that lookup to the preview's
-// sub-workspace (#215); "" selects the root. In-file resolution is the
+// sub-workspace; "" selects the root. In-file resolution is the
 // caller's job (they handle it and stamp the request URI); this only
 // walks imports.
 //
-// refScope is the reference site's lexical scope (protoRefScopeAt,
-// #239); "" falls back to the file's package.
+// refScope is the reference site's lexical scope (protoRefScopeAt);
+// "" falls back to the file's package.
 func (s *Workspace) resolveRegistryProtoTypeLookup(ctx context.Context, namespace, workspaceDir string, currentFile *protoast.File, name, refScope string) (protoTypeLookup, string) {
 	if currentFile == nil || name == "" {
 		return protoTypeLookup{}, ""
@@ -68,7 +68,7 @@ func (s *Workspace) resolveRegistryProtoTypeLookup(ctx context.Context, namespac
 		// on-disk resolver — `pkg.Foo` doesn't resolve against an
 		// unrelated file that happens to declare `Foo`, and
 		// `pkg.Outer.Inner` peels the enclosing-message segments after
-		// the package prefix (#237).
+		// the package prefix.
 		if r := resolveProtoTypeInFile(importedFile, name, refScope); !r.IsZero() {
 			return r, imp
 		}
@@ -133,7 +133,7 @@ func registryProtoLocation(namespace, importPath string, fileNode *protoast.File
 // isn't refetched until the next lookup swap clears the cache).
 func (s *Workspace) registryImportAST(ctx context.Context, namespace, workspaceDir, importPath string) *protoast.File {
 	// workspaceDir participates in the key: two sub-workspaces can
-	// share a namespace but bind different registries (#215), so a
+	// share a namespace but bind different registries, so a
 	// parse cached under one must not satisfy a fetch scoped to the
 	// other. Root-scoped requests (workspaceDir=="") get their own
 	// slot, distinct from any sub-workspace's.

@@ -55,7 +55,7 @@ import (
 
 // analyzeProtocheckExpressions returns diagnostics for any broken
 // protocheck expressions in the file, with ranges in the negotiated
-// position encoding (#227). Nil-safe on the input — the caller
+// position encoding. Nil-safe on the input — the caller
 // (analyzeProto) passes the parsed file which may be nil if the
 // parser bailed completely.
 func analyzeProtocheckExpressions(file *protoast.File, enc positions.Encoding) []protocol.Diagnostic {

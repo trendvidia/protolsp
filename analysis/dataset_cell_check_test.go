@@ -102,7 +102,7 @@ func bindAndCheck(t *testing.T, desc protoreflect.MessageDescriptor, col, cell s
 // The cell check gives the decoder's verdict on every cell below,
 // checked against protowire-go's own pxf.BindRow rather than recorded
 // from a run of it, so a protowire bump that moves a verdict fails
-// here (#290). ok is the decoder's verdict as of protowire-go v1.10.0.
+// here. ok is the decoder's verdict as of protowire-go v1.10.0.
 func TestCellCheck_AgreesWithTheDecoder(t *testing.T) {
 	desc := decoderCheckRowType(t)
 	for _, tc := range []struct {
@@ -150,7 +150,7 @@ func TestCellCheck_AgreesWithTheDecoder(t *testing.T) {
 		{"md", `{ "k": inf }`, true}, {"md", `{ "k": foo }`, false}, {"mi", `{ 1: "a" }`, true},
 		// What the decoder decides from the value rather than its kind:
 		// a name the enum lacks, a map key its key type cannot parse, an
-		// int out of range, and what a block holds (#293).
+		// int out of range, and what a block holds.
 		{"c", "BLUE", false}, {"mi", `{ x: "a" }`, false}, {"i", "99999999999", false},
 		{"sub", `{ x = "a" }`, true}, {"sub", `{ x = 1 }`, false}, {"sub", `{ nope = 1 }`, false},
 		{"items", `{ a = 1 }`, false}, {"plain", `[{ nope = 1 }]`, false}, {"ms", `{ "k": { nope = 1 } }`, false},

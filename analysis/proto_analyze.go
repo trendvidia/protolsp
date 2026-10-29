@@ -64,7 +64,7 @@ func IsFileURI(u uri.URI) bool {
 //     Those land in later phases of the proto-authoring plan and
 //     don't change the dispatch shape — they read doc.Source and
 //     the AST that this function discards.
-//   - Workspace imports resolve through the proto index (#193):
+//   - Workspace imports resolve through the proto index:
 //     protocompile's standard imports (google/protobuf/*) come from
 //     its built-in well-knowns, everything else looks up the
 //     buf.yaml-driven include paths via SnapshotProtoIndex. Imports
@@ -88,7 +88,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 	}
 
 	// Compile against the in-memory source, resolving imports
-	// through the proto index (#193): the same buf.yaml-driven
+	// through the proto index: the same buf.yaml-driven
 	// include paths that back hover / definition / completion also
 	// back the compile pass, so a valid workspace import never
 	// squiggles. The index maps the import path to its on-disk file
@@ -125,7 +125,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 	// surface editors saw before the fork swap.
 	// The IR, when the pipeline produced one (a partially-diagnosed
 	// file still has one): the RFC-001 artifacts below distill it, and
-	// the unresolved-call quick-fix (#276) needs its visible `function`
+	// the unresolved-call quick-fix needs its visible `function`
 	// declarations.
 	var irFile *ir.File
 	if len(results) > 0 && results[0].Fatal == nil {
@@ -185,7 +185,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 	}
 	doc.ProtoDiagnostics = diags
 
-	// RFC-001 IR artifacts (#220) — before this pass discards the IR,
+	// RFC-001 IR artifacts — before this pass discards the IR,
 	// distill the two things only the compile result knows: resolved
 	// function-call sites inside opaque engine-expression fragments
 	// (opaque-fragment navigation) and the canonical source map
@@ -309,7 +309,7 @@ func (s *Workspace) appendBufLintDiagnostics(doc *Document) {
 
 // lintRelPath maps the document's disk path to its include-path-
 // relative form (forward slashes) so buf's directory- and filename-
-// based lint rules judge the file where it actually lives (#195).
+// based lint rules judge the file where it actually lives.
 // Empty when no index is built or the document lies outside every
 // include path — buftool then falls back to bare staging.
 func (s *Workspace) lintRelPath(doc *Document) string {

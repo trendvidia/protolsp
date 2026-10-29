@@ -154,7 +154,7 @@ func TestDidOpen_BrokenProtoPublishesDiagnostics(t *testing.T) {
 
 // Belt-and-suspenders: a .proto with an import that doesn't resolve.
 // No workspace root is set here, so the proto index is empty and the
-// import can't be supplied (#193 covers index-backed resolution in
+// import can't be supplied (index-backed resolution is covered in
 // proto_cross_file_test.go); protocompile reports it as a compile
 // error. Confirms the diagnostic reaches the editor rather than
 // silently dropping.

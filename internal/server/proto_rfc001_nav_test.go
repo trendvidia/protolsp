@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// RFC-001 completion + navigation (#218 Phase B): the `type` /
+// RFC-001 completion + navigation: the `type` /
 // `function` / `annotation` keywords in file-scope completion,
 // declared annotation names after `@`, and hover / go-to-definition
 // wiring from `@name` use sites to their `annotation` declarations.
@@ -267,7 +267,7 @@ func TestProtoNavigation_AnnotationUse_CrossFile(t *testing.T) {
 }
 
 // Bare annotation/function references don't leak across packages
-// (#245, the RFC-001 twin of #241): a bare `@audited` written in
+// (the RFC-001 twin of strict scoping): a bare `@audited` written in
 // acme.app.v1 must NOT bind an annotation declared in an
 // other.lib.v1 import — protoc-style scoping can't reach it.
 func TestProtoNavigation_RFC001BareCrossPackage_DoesNotResolve(t *testing.T) {
@@ -371,7 +371,7 @@ message Foo {
 }
 
 // A qualifier also binds under enclosing-scope interpretations
-// (#245): `@demo.v1.checked` written in acme.app.v1 names
+// : `@demo.v1.checked` written in acme.app.v1 names
 // acme.demo.v1.checked via the shared `acme` scope — protoc's rule.
 func TestProtoNavigation_RFC001ScopeRelativeQualifier_Resolves(t *testing.T) {
 	fooPath, barPath, srv := setupRFC001CrossFileWorkspace(t)
@@ -405,7 +405,7 @@ message M {}
 }
 
 // `@` completion honors scope-relative package qualifiers too
-// (#245): `@demo.v1.` written in acme.app.v1 completes the
+// : `@demo.v1.` written in acme.app.v1 completes the
 // annotations of acme.demo.v1.
 func TestProtoCompletion_AnnotationUse_ScopeRelativeQualifier(t *testing.T) {
 	fooPath, _, srv := setupRFC001CrossFileWorkspace(t)
@@ -430,7 +430,7 @@ message M {}
 		"the scope-relative qualifier completes the package's annotations")
 }
 
-// ─── Phase C (#219): type / function navigation ──────────────────
+// ─── Phase C: type / function navigation ──────────────────
 
 // typeFuncFixture exercises every RFC-001 type/function reference
 // site Phase C wires: alias-as-field-type, alias value chains,

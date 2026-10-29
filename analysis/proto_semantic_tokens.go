@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Semantic tokens for .proto documents (#218 Phase A). Editors ship
+// Semantic tokens for .proto documents. Editors ship
 // tmLanguage grammars for stock proto2/proto3, so protolsp stays out
 // of their way there — the semantic layer only marks the RFC-001
 // schema-extension constructs those grammars don't know about:

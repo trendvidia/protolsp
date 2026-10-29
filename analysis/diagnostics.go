@@ -96,7 +96,7 @@ func (s *Workspace) Analyze(doc *Document) {
 	doc.LastGoodParse = parsed
 
 	// The document's own @proto types, before anything resolves a
-	// type: the embedded schema is authoritative (#287).
+	// type: the embedded schema is authoritative.
 	loadInlineSchema(doc)
 
 	// R2 enrichment: the line-based scanner already ran above
@@ -360,7 +360,7 @@ func (s *Workspace) PublishDiagnosticsRaw(ctx context.Context, u uri.URI, versio
 // for redaction.
 //
 // Takes the document read lock internally, like the other feature
-// queries (#199). Callers must NOT already hold doc.RLock —
+// queries. Callers must NOT already hold doc.RLock —
 // recursive RLock deadlocks against a queued writer (see
 // PublishDiagnostics, which snapshots under one RLock window via
 // diagnosticsForLocked instead).
@@ -380,7 +380,7 @@ func (s *Workspace) diagnosticsForLocked(doc *Document) []protocol.Diagnostic {
 	// deprecatedUses, SchemaErr, literal-secret etc. are all
 	// .pxf concepts. Returning the snapshot directly keeps proto
 	// diagnostics isolated from the pxf aggregation logic. The
-	// runtime-violation overlay (#231) concatenates after the
+	// runtime-violation overlay concatenates after the
 	// analyze snapshot — resolved fresh against the current source
 	// map on every publish, into a new slice so concurrent readers
 	// never append into ProtoDiagnostics' backing array.

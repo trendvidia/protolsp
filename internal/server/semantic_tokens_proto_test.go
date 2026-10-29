@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Semantic tokens for .proto documents (#218 Phase A). The server
+// Semantic tokens for .proto documents. The server
 // highlights ONLY the RFC-001 schema-extension constructs — stock
 // proto syntax (message/enum/rpc/...) stays with the editor's own
 // grammar layer, so these tests also pin that classic constructs

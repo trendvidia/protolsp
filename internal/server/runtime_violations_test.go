@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Runtime-violation overlay (#231): the protolsp/setRuntimeViolations
+// Runtime-violation overlay: the protolsp/setRuntimeViolations
 // custom notification feeds RFC-001 (file, descriptor_path)-keyed
 // runtime violations into the diagnostics publish path as
 // Information diagnostics with source "protolsp/runtime".
@@ -222,7 +222,7 @@ func TestSetRuntimeViolations_FullReplaceAndClear(t *testing.T) {
 	assert.Empty(t, lastDiagnostics(t, fc), "an empty set clears the overlay")
 }
 
-// The overlay joins on the v0.20.0 descriptor-path shapes (#260):
+// The overlay joins on the v0.20.0 descriptor-path shapes:
 // alias-chain ordinals in §6.4 base→derived order and map value-alias
 // rules keyed on the map field itself. A producer still emitting the
 // pre-v0.19 `…Entry.value[…]` shape misses and drops — stale keys
@@ -259,8 +259,8 @@ func TestSetRuntimeViolations_AliasChainAndMapAliasKeys(t *testing.T) {
 	}
 }
 
-// The EnrichedViolation pass-through fields (protowire#161/#125, via
-// #260 §2): a violation carrying sourceRef joins by its §8.3.1 rule
+// The EnrichedViolation pass-through fields (protowire#161/#125):
+// a violation carrying sourceRef joins by its §8.3.1 rule
 // identity — the positional descriptorPath is ignored — with the file
 // half suffix-matched against the document's source map (producers
 // carry module-relative paths, protolsp compiles under absolute

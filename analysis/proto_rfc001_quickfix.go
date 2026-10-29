@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Quick-fix for unresolved calls in PSE expression arguments (#276).
+// Quick-fix for unresolved calls in PSE expression arguments.
 //
 // Since RFC-001 §5.4 (protowire#282) the `@validate` expression
 // language is normative and protocompile parses every expression

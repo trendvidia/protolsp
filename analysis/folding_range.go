@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// General block folding (#256): a standard pull-based
+// General block folding: a standard pull-based
 // textDocument/foldingRange provider covering block structure in every
 // file protolsp handles — .pxf documents and .proto schemas — so
 // editors can collapse to read high-level structure.

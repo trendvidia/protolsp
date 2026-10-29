@@ -73,7 +73,7 @@ function is_email(s: string);
 }
 
 // Pins the diagnostics the compile pipeline (queries.IR) emits today
-// for malformed RFC-001 constructs (#218 Phase A): each case asserts
+// for malformed RFC-001 constructs: each case asserts
 // the message wording and — because the report-native pipeline
 // carries full start..end spans — that the squiggle covers exactly
 // the offending token. If a protocompile bump rewords or repositions
@@ -130,7 +130,7 @@ message M {}
 			wantRng: rng(3, 3, 3, 5),
 		},
 		{
-			// protocompile v0.17.0 (#94): a parameter declared
+			// protocompile v0.17.0: a parameter declared
 			// without a default is required, and an unbound one now
 			// diagnoses at the whole use site. Bare `@d`, `@d()`, and
 			// partial argument lists all fire; this pins the bare form.
@@ -159,8 +159,8 @@ message M {}
 			wantRng: rng(3, 0, 3, 4),
 		},
 		{
-			// Arg-count mismatch carries both counts (#220 acceptance
-			// criterion). The snippet covers the whole use site.
+			// Arg-count mismatch carries both counts. The
+			// snippet covers the whole use site.
 			name: "use with too many arguments",
 			src: `syntax = "proto3";
 package t;

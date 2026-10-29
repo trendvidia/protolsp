@@ -146,7 +146,7 @@ func TestSubWorkspace_LazyLoadRaceWithConcurrentReaders(t *testing.T) {
 }
 
 // TestSubWorkspace_Close_RaceWithConcurrentReads is the race-
-// detector test for the cascade teardown added in PR #56:
+// detector test for the cascade teardown:
 // while Close walks the SubWorkspaces map and drains each
 // lookup, concurrent lookupForDoc calls on those workspaces
 // must not race.

@@ -166,7 +166,7 @@ func TestDatasetsSubscribe_RejectsEmptyURI(t *testing.T) {
 
 // A @dataset bound to an anonymous @proto is sent with an empty
 // type_fqn and resolvable set: the row type is known, but its name is
-// protolsp's own (#292). A typeless @dataset with nothing to bind to
+// protolsp's own. A typeless @dataset with nothing to bind to
 // is not resolvable.
 func TestDatasetsGetRegions_AnonymousProto(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)

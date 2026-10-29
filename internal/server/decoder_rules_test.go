@@ -12,7 +12,7 @@ import (
 
 // The body's schema errors come from protowire-go's decoder, so the
 // editor shows what pxf validate shows. These pin the rules protowire-go
-// v1.11.0 and v1.12.0 changed (#303): each failed before its release.
+// v1.11.0 and v1.12.0 changed: each failed before its release.
 const decoderRulesSchema = `@proto """
 syntax = "proto3";
 package d.v1;

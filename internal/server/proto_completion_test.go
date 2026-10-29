@@ -303,9 +303,9 @@ message Foo {
 		"qualifier matching an imported file's package surfaces its top-level types")
 }
 
-// Nested in-file types complete under their scoped path (#240): the
-// #241-strict resolver only binds `Outer.Inner1` from outside Outer,
-// so that's the label completion must offer — the pre-#240 bare
+// Nested in-file types complete under their scoped path: the
+// strict scope resolver only binds `Outer.Inner1` from outside Outer,
+// so that's the label completion must offer — the earlier bare
 // `Inner1` inserted a reference that resolved to nothing.
 func TestProtoCompletion_InFileNestedTypesScopedLabels(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
@@ -327,7 +327,7 @@ func TestProtoCompletion_InFileNestedTypesScopedLabels(t *testing.T) {
 }
 
 // Imported nested types complete under package + enclosing-message
-// path (#240). The pre-#240 `pkg.leaf` shape for nested types named
+// path. The earlier `pkg.leaf` shape for nested types named
 // something the resolver rejects.
 func TestProtoCompletion_ImportedNestedTypesFullPath(t *testing.T) {
 	root := t.TempDir()
@@ -371,7 +371,7 @@ message Foo {
 		"the package-plus-leaf shape for a nested type is gone")
 }
 
-// In-scope nested types complete under their minimal name (#247):
+// In-scope nested types complete under their minimal name:
 // inside message B, its own nested Dup completes bare, while A's
 // shadowed Dup keeps the full path — each label binds exactly its
 // declaration.
@@ -409,7 +409,7 @@ message B {
 }
 
 // A qualifier that is a strict prefix of a reachable package offers
-// the next package segment (#247), so the user can walk
+// the next package segment, so the user can walk
 // `acme.` → demo → v1 → types.
 func TestProtoCompletion_DotCompletion_PackageSegmentContinuation(t *testing.T) {
 	root, _, _, srv := setupCrossFileWorkspace(t)
@@ -449,7 +449,7 @@ message Foo {
 }
 
 // Dot completion resolves the qualifier through the cursor's
-// enclosing scopes (#240, the completion twin of #239): `Middle.`
+// enclosing scopes (the completion twin of scoped resolution): `Middle.`
 // written inside Outer names Outer.Middle, so Middle's nested types
 // are the completions.
 func TestProtoCompletion_DotCompletion_SiblingNestedScope(t *testing.T) {
@@ -479,7 +479,7 @@ message Outer {
 		"dot completion suppresses the scope fallback")
 }
 
-// A package qualifier also honors the scope chain (#240): `demo.v1.`
+// A package qualifier also honors the scope chain: `demo.v1.`
 // written in package acme.demo.v1 names acme.demo.v1 (protoc
 // resolves `demo.v1.Bar` there), so that package's types complete —
 // from the import AND the current file, since packages span files.

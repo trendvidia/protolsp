@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Workspace-level declared-name export (#272). Editor hosts embed a
+// Workspace-level declared-name export. Editor hosts embed a
 // line-based "middle path" highlighter (bellui x/editor's
 // DeclaredNames) that colors @name annotation uses, bare type
 // references, and bare function references only when the workspace
@@ -43,7 +43,7 @@ type DeclaredNames struct {
 	Annotations []string
 	// Types are declared type names: RFC-001 `type` aliases plus
 	// top-level messages, enums, and proto2 groups — the same type
-	// namespace the reference resolvers search (#229).
+	// namespace the reference resolvers search.
 	Types []string
 	// Functions are declared `function` names.
 	Functions []string
@@ -161,7 +161,7 @@ func (a *declaredNameAcc) add(set map[string]bool, pkg, name string) {
 // addFile folds one parsed file's top-level declarations into the
 // sets. RFC-001 declarations are top-level only in well-formed
 // files, and only top-level messages/enums/groups participate — a
-// nested type's bare leaf doesn't resolve at top level (#241), and
+// nested type's bare leaf doesn't resolve at top level, and
 // its qualified use tokenizes segment-by-segment in a line-based
 // highlighter anyway.
 func (a *declaredNameAcc) addFile(f *protoast.File) {

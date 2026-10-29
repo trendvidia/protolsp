@@ -160,7 +160,7 @@ func collectSecretElement(v pxf.Value, fd protoreflect.FieldDescriptor, path str
 // column into a Secret (`pw.value`) names the Secret's value directly
 // and records the cell; `pw.hint` and `pw.fingerprint` are not
 // sensitive. A dataset bound to an anonymous @proto resolves to that
-// directive's type (#287).
+// directive's type.
 //
 // Paths are "row<N>.<field path>", N counting a dataset's rows from
 // 1, so each row's secret gets its own env-var name in the

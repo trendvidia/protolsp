@@ -1,7 +1,7 @@
 //go:build protocheck
 
 // End-to-end coverage for the §9.4 function_libraries wiring
-// (#260): a protowire.config.textproto naming a function library
+// : a protowire.config.textproto naming a function library
 // makes the protocheck/v2 validator register the library's declared
 // functions (lenient §9.2 verification), so data hitting a rule
 // that calls a declared-but-unimplemented function surfaces a
@@ -197,7 +197,7 @@ func TestProtocheckFunctionLibs_E2E_UnimplementedFunctionInformation(t *testing.
 	assert.Contains(t, diags[0].Message, "protolsp.test.fnlib.is_special",
 		"fallback message names the unimplemented FQN")
 
-	// #268: carrier rules embed a source map, so the finding links
+	// Carrier rules embed a source map, so the finding links
 	// back to the @validate declaration in the library schema.
 	require.Len(t, diags[0].RelatedInformation, 1,
 		"carrier-rule findings carry a 'go to rule' link")

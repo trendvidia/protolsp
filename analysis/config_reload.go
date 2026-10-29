@@ -75,7 +75,7 @@ func (s *Workspace) RunAnalyzeAndMaybeLiveReload(
 // directive.
 //
 // Takes doc.mu.RLock to snapshot Parsed — the watched-files
-// reanalyze pass rewrites it concurrently (#184). Callers must
+// reanalyze pass rewrites it concurrently. Callers must
 // not already hold doc.mu.
 func (s *Workspace) IsWorkspaceConfigDoc(doc *Document) bool {
 	if doc == nil {
@@ -98,7 +98,7 @@ func (s *Workspace) IsWorkspaceConfigDoc(doc *Document) bool {
 // definitely counts).
 //
 // Takes doc.mu.RLock to snapshot Parsed — same discipline (and
-// same race, #184) as IsWorkspaceConfigDoc. Callers must not
+// same race) as IsWorkspaceConfigDoc. Callers must not
 // already hold doc.mu.
 func (s *Workspace) IsChainSpecDoc(doc *Document) bool {
 	if doc == nil {

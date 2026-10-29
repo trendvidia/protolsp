@@ -120,7 +120,7 @@ func (s *Workspace) definitionForFieldAtCursor(doc *Document, pos protocol.Posit
 //     compile recorded the descriptor path's disk location, file://
 //     to that path. Descriptor paths are search-path-relative, not
 //     workspace-relative, so only this map — no probe — finds the
-//     working copy under a configured search path (#185).
+//     working copy under a configured search path.
 //  2. file:// against the workspace root when that file exists on
 //     disk — keeps the user editing their working copy when one is
 //     present.

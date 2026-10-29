@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // RFC-001 completion parity for `type` aliases and `function`
-// declarations (#228): aliases join the field-type candidate set
+// declarations: aliases join the field-type candidate set
 // (bare in-file, package-qualified when imported, bare after a typed
 // package qualifier), function/annotation parameter-type slots get
 // the same type universe a field type does, and a cursor inside an

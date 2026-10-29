@@ -59,10 +59,10 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 	require.NotNil(t, result.ServerInfo)
 	assert.Equal(t, "protolsp", result.ServerInfo.Name)
 
-	// #256: general block folding is advertised as a standard
+	// General block folding is advertised as a standard
 	// pull-based provider so editors enable textDocument/foldingRange.
 	assert.Equal(t, true, result.Capabilities.FoldingRangeProvider,
-		"FoldingRangeProvider must be advertised for #256")
+		"FoldingRangeProvider must be advertised")
 }
 
 func TestHandle_InitializedIsNoOp(t *testing.T) {

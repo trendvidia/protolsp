@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Workspace construction + the exported facade knobs (#172 rung 3).
+// Workspace construction + the exported facade knobs.
 //
 // The Workspace type itself (the former internal/server engine) is
 // declared in engine.go; this file owns everything an embedder or
@@ -82,11 +82,11 @@ func New(log *slog.Logger) *Workspace {
 	// a validator built against the resolved engine config.
 	w.protocheckBaseline = "\x00unbuilt"
 	// The manager fires the Publisher's LookupChanged seam whenever
-	// an install/teardown lands (#204). The closure reads w.pub at
+	// an install/teardown lands. The closure reads w.pub at
 	// fire time so a SetPublisher installed after construction is
 	// honored. The manager owns the ROOT workspace's lookups, hence
 	// workspaceDir "" — sub-workspace slots fire with their dir via
-	// notifyLookupChanged (#209).
+	// notifyLookupChanged.
 	w.lookupMgr = newLookupManager(func() {
 		// A lookup swap can change what an import path resolves to, so
 		// drop the cross-file registry AST cache (goed#119) before
@@ -137,9 +137,9 @@ func (s *Workspace) Publisher() Publisher { return s.pub }
 func (s *Workspace) Logger() *slog.Logger { return s.log }
 
 // lookupEnv is the `${env.X}` resolver this Workspace passes to
-// workspaceconfig.ParseWithEnv at every config parse (#180 removed
-// the process-global SetEnvLookup installation, so two Workspaces
-// in one process no longer share a resolver). Reads the Workspace's
+// workspaceconfig.ParseWithEnv at every config parse. There is no
+// process-global SetEnvLookup installation, so two Workspaces in one
+// process do not share a resolver. Reads the Workspace's
 // bwSession override under RLock; falls back to os.Getenv when no
 // override is set or when the requested var is something other
 // than BW_SESSION.

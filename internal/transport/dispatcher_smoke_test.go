@@ -36,7 +36,7 @@ import (
 
 // TestDispatcher_NoDeadlockOnDidChangeConfiguration is the regression
 // guard for the locked-bw → paste-session → reopen-prod.sops.pxf
-// deadlock (see PR #128 + internal/server/configuration.go's
+// deadlock (see internal/server/configuration.go's
 // dispatchDidChangeConfiguration comment block).
 //
 // Sequence:
@@ -99,8 +99,8 @@ func TestDispatcher_NoDeadlockOnDidChangeConfiguration(t *testing.T) {
 	srv.WaitInitialized()
 
 	// The actual regression scenario: didChangeConfiguration triggers
-	// a second workspace/configuration round-trip. Pre-#128 this
-	// hung the dispatcher.
+	// a second workspace/configuration round-trip. This used to
+	// hang the dispatcher.
 	require.NoError(t, client.conn.Notify(ctx, protocol.MethodWorkspaceDidChangeConfiguration,
 		&protocol.DidChangeConfigurationParams{}))
 	syncProbe(t, ctx, client.conn)
@@ -134,7 +134,7 @@ func TestDispatcher_NoDeadlockOnDidChangeConfiguration(t *testing.T) {
 			"publishDiagnostics for the just-opened URI is the proof the dispatcher kept routing after didChangeConfiguration")
 	case <-time.After(3 * time.Second):
 		t.Fatal("textDocument/publishDiagnostics for didOpen did not arrive within 3s — " +
-			"dispatcher deadlock regression (see PR #128); some handler likely calls s.conn.Call inline")
+			"dispatcher deadlock regression; some handler likely calls s.conn.Call inline")
 	}
 }
 

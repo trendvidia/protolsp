@@ -1,8 +1,8 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// Runtime-violation overlay (#231, the transport half deferred from
-// #220/#230). A protowire runtime reports constraint violations
+// Runtime-violation overlay (the transport half of runtime
+// error mapping). A protowire runtime reports constraint violations
 // keyed by (file, descriptor_path) — RFC-001 §8.3.1. A producer
 // (protocheck's runtime feed, an editor extension bridging a
 // deployed service) pushes them in over the
@@ -22,8 +22,8 @@
 //     setRuntimeViolations notification changes it.
 //   - Resolution happens at publish time: every publish for the
 //     document re-resolves each stored violation through the
-//     canonical protowire.schema.v1 source map (RFC001SourceRange,
-//     #230). Violations whose descriptor_path no longer resolves —
+//     canonical protowire.schema.v1 source map (RFC001SourceRange).
+//     Violations whose descriptor_path no longer resolves —
 //     the construct was edited away, or the file currently fails to
 //     compile — are silently dropped from that publish, NOT evicted
 //     from the store: an undo (or a fixed compile) makes the key

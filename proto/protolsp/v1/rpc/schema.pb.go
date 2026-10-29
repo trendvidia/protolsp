@@ -194,8 +194,8 @@ type GetSourceContentRequest struct {
 	Uri string `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
 	// workspace_dir optionally scopes the fetch to a sub-workspace's
 	// own registry: the absolute directory of the sub-workspace the
-	// preview was opened from (#215). Empty selects the root lookup —
-	// the pre-#215 behavior — so single-root callers can omit it.
+	// preview was opened from. Empty selects the root lookup —
+	// the earlier behavior — so single-root callers can omit it.
 	WorkspaceDir  string `protobuf:"bytes,2,opt,name=workspace_dir,json=workspaceDir,proto3" json:"workspace_dir,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

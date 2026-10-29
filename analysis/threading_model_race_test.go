@@ -17,16 +17,16 @@ import (
 )
 
 // TestThreadingModel_ConcurrentEmbedderContract hammers the contract
-// the package comment documents (#179): feature queries are safe
+// the package comment documents: feature queries are safe
 // concurrently with the analyze pipeline and with each other, and
-// the mutating entry points are individually thread-safe. Both #184
-// (unlocked doc.Parsed classification reads) and #187 (lazy
-// workspaceDir populate) were violations of exactly that promise,
+// the mutating entry points are individually thread-safe. Both the
+// unlocked doc.Parsed classification reads and the lazy
+// workspaceDir populate were violations of exactly that promise,
 // and both were found by an embedder's race suite (goed), not ours.
 // TestClassificationDoesNotRaceWatchedFilesReanalyze pins those two
 // field pairs specifically; this test exercises the documented model
 // broadly so the next engine change can't reintroduce the class
-// without CI's -race run noticing (#192).
+// without CI's -race run noticing.
 //
 // Shape, mirroring goed's in-process embedding over a proto_files
 // workspace: goroutines mix the didOpen flow (Open +
@@ -97,7 +97,7 @@ func TestThreadingModel_ConcurrentEmbedderContract(t *testing.T) {
 	const iterations = 50
 
 	// didOpen flow. A fresh Document each round makes readers race
-	// the store swap and the lazy workspaceDir populate (#187).
+	// the store swap and the lazy workspaceDir populate.
 	for range 2 {
 		mutators.Add(1)
 		go func() {
@@ -141,7 +141,7 @@ func TestThreadingModel_ConcurrentEmbedderContract(t *testing.T) {
 	}()
 
 	// Feature-query readers, running until every mutator is done.
-	// All four are called bare — the documented contract (#199) is
+	// All four are called bare — the documented contract is
 	// that feature queries lock internally.
 	for range 4 {
 		readers.Add(1)

@@ -17,7 +17,7 @@ import (
 	"github.com/trendvidia/protolsp/schema"
 )
 
-// #215: a registry:// preview opened from a SUB-workspace must resolve
+// A registry:// preview opened from a SUB-workspace must resolve
 // its content and cross-file imports against THAT sub-workspace's
 // registry, not the root's. Before the fix, LookupForNamespace always
 // used the root lookup, so a sub-workspace-only type silently failed to
@@ -126,7 +126,7 @@ func TestRegistrySubWorkspace_RootScopedPreviewMissesSubOnlyType(t *testing.T) {
 
 	// The SAME preview, opened at ROOT scope (no workspace dir). The root
 	// registry has no myapp/v1/greeting.proto, so the cross-file jump
-	// finds nothing — the miss #215 attributes to scope, now correct.
+	// finds nothing, which is correct at root scope.
 	w.OpenShadowProto(uri.URI(importerRegistryURI), xfImporterProto)
 
 	loc := w.DefinitionFor(protocol.DocumentURI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})

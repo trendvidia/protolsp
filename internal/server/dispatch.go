@@ -5,7 +5,7 @@
 // unmarshals jsonrpc2 params, calls into the engine, and replies.
 // Relocated here from the per-feature files so those files hold
 // pure engine logic and can graduate to the public analysis
-// package (#172). Behavior-preserving moves only.
+// package. Behavior-preserving moves only.
 
 package server
 
@@ -398,7 +398,7 @@ func (s *Server) dispatchSecretRanges(ctx context.Context, reply jsonrpc2.Replie
 // essentially a UI hint.
 func (s *Server) dispatchDatasetRegions(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy dataset-regions client so the
-	// matching *Changed notifications keep firing. See #113.
+	// matching *Changed notifications keep firing.
 	s.legacyLspClients.datasetRegions.Store(true)
 	var params DatasetRegionsParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {
@@ -483,7 +483,7 @@ func (s *Server) dispatchLayerInfo(ctx context.Context, reply jsonrpc2.Replier, 
 // UI hint request.
 func (s *Server) dispatchGetEffectiveConfig(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy effective-config client so
-	// the matching *Changed notifications keep firing. See #113.
+	// the matching *Changed notifications keep firing.
 	s.legacyLspClients.effectiveConfig.Store(true)
 	var params GetEffectiveConfigParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {
@@ -531,7 +531,7 @@ func (s *Server) dispatchGetEffectiveConfig(ctx context.Context, reply jsonrpc2.
 func (s *Server) dispatchSetOverrides(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 	// Mark this session as a legacy effective-config client —
 	// setOverrides and getEffectiveConfig share the matching
-	// LSP notification surface. See #113.
+	// LSP notification surface.
 	s.legacyLspClients.effectiveConfig.Store(true)
 	var params SetOverridesParams
 	if raw := req.Params(); len(raw) > 0 && string(raw) != "null" {
@@ -579,7 +579,7 @@ func (s *Server) dispatchSetOverrides(ctx context.Context, reply jsonrpc2.Replie
 // --- from list_messages.go ---
 
 // dispatchListMessages handles [MethodListMessages]. Thin transport
-// shim over [analysis.Workspace.ListMessages] (#203) — the dedupe /
+// shim over [analysis.Workspace.ListMessages] — the dedupe /
 // prefix-filter / origin-attribution / sort recipe lives there so
 // the RPC sidecar and in-process embedders share it.
 func (s *Server) dispatchListMessages(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
@@ -605,7 +605,7 @@ func (s *Server) dispatchListMessages(ctx context.Context, reply jsonrpc2.Replie
 
 // dispatchSourceContent handles the protolsp/sourceContent custom
 // request. Thin transport shim over
-// [analysis.Workspace.SourceContent] (#203): InvalidParams for a
+// [analysis.Workspace.SourceContent]: InvalidParams for a
 // malformed URI, InternalError for missing lookup / fetch failures,
 // and a clean content payload on success. The `_internal_`
 // namespace routing to the compiled-in lookup lives in the engine
@@ -641,7 +641,7 @@ func (s *Server) dispatchEngineConfig(ctx context.Context, reply jsonrpc2.Replie
 // returns a result (never errors) — the editor's status-bar code
 // path shouldn't have to handle JSON-RPC errors for what is
 // essentially a UI hint. Thin shim over
-// [analysis.Workspace.RegistryStatus] (#203).
+// [analysis.Workspace.RegistryStatus].
 func (s *Server) dispatchRegistryStatus(ctx context.Context, reply jsonrpc2.Replier, _ jsonrpc2.Request) error {
 	return reply(ctx, s.RegistryStatus(), nil)
 }
@@ -955,7 +955,7 @@ func (s *Server) dispatchConfigSet(ctx context.Context, reply jsonrpc2.Replier, 
 // configPathJSONError maps ConfigPathForWorkspace's sentinel errors
 // onto JSON-RPC error codes: a caller-supplied unknown workspaceDir
 // is InvalidParams; a missing root workspace is a server-side
-// InternalError (matches the pre-#172 inline codes).
+// InternalError (matches the earlier inline codes).
 func configPathJSONError(err error) *jsonrpc2.Error {
 	if errors.Is(err, analysis.ErrUnknownWorkspaceDir) {
 		return jsonrpc2.NewError(jsonrpc2.InvalidParams, err.Error())

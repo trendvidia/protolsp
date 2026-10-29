@@ -47,7 +47,7 @@ type Document struct {
 	Parsed   *pxf.Document
 	ParseErr error
 
-	// inline is what Parsed's @proto directives compile to (#287): the
+	// inline is what Parsed's @proto directives compile to: the
 	// document's own types, which findTypeForDoc consults first.
 	inline inlineSchema
 
@@ -139,7 +139,7 @@ type Document struct {
 	// (through the WorkspaceDir accessor) to pick the right
 	// per-workspace config / chain.
 	//
-	// Self-synchronized (atomic) rather than mu-guarded (#187):
+	// Self-synchronized (atomic) rather than mu-guarded:
 	// readers — SubWorkspaceForDoc and every path behind it — run
 	// both with mu held (Analyze's validate pass holds the write
 	// lock; DefinitionFor holds RLock) and without it (the
@@ -182,14 +182,14 @@ type Document struct {
 	protoAST *protoast.File
 
 	// rfc001Calls holds the function-call sites the compile pass
-	// resolved inside opaque engine-expression fragments (#220) —
+	// resolved inside opaque engine-expression fragments —
 	// plain byte-offset records, nothing referencing the compile
 	// session. Reset with protoAST on every analyze pass; empty for
 	// files without RFC-001 constructs. Guarded by mu like protoAST.
 	rfc001Calls []rfc001CallSite
 
 	// rfc001SourceMap is the canonical protowire.schema.v1 source
-	// map lowered from the compile pass (#220): descriptor_path →
+	// map lowered from the compile pass: descriptor_path →
 	// source anchor for every RFC-001 construct, matching what the
 	// compiled artifact carries. nil for classic proto files. Serves
 	// RFC001SourceRange (runtime-violation mapping). Guarded by mu.
@@ -261,7 +261,7 @@ func (d *Document) secretValuesLocked() []string {
 // doc.mu.RLock. Analyze installs a freshly-allocated *pxf.Document
 // on every pass and never mutates one after publication, so the
 // returned pointer is safe to read after the lock is released —
-// only the field itself needs the lock (#184: the watched-files
+// only the field itself needs the lock (the watched-files
 // reanalyze pass rewrites it concurrently with the didOpen /
 // scheduled-analyze classification reads).
 //

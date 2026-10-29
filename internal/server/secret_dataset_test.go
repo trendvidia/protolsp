@@ -84,7 +84,7 @@ func secretsOf(doc *Document) []secretSeen {
 	return out
 }
 
-// Every way a @dataset row can hold a pxf.Secret records it (#286): a
+// Every way a @dataset row can hold a pxf.Secret records it: a
 // string or block cell under the Secret's own column, a dotted path
 // to its value, a column into a sub-message that holds one, and list
 // and map cells. Hint stays visible.
@@ -133,7 +133,7 @@ func TestCollectSecretRanges_DatasetCellRange(t *testing.T) {
 
 // The body walk takes the same value forms the cells do: a Secret
 // written as `= { ... }`, a message written as `= { ... }`, a list and
-// a map. Before #286 it recorded only `pw = "x"` and `pw { ... }`.
+// a map. It used to record only `pw = "x"` and `pw { ... }`.
 func TestCollectSecretRanges_BodyValueForms(t *testing.T) {
 	_, doc := openLoginDoc(t, `@type acme.demo.v1.Login
 

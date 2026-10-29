@@ -83,8 +83,8 @@ func (p *protoPath) Ancestor(match func(source.Spanner) bool) source.Spanner {
 // outside any tracked node.
 //
 // LSP positions are 0-indexed (line, character) pairs whose column
-// unit is the negotiated position encoding (#232 — the input-side
-// twin of #219 criterion 4); spans are half-open byte-offset ranges.
+// unit is the negotiated position encoding (the input-side twin of
+// the output ranges); spans are half-open byte-offset ranges.
 // protoast.File.OffsetIn performs the conversion, and containment is
 // a plain offset check — a cursor sitting right after a token is NOT
 // inside it; users expect hover to fire when they're ON the
@@ -366,8 +366,8 @@ func appendExpr(out []source.Spanner, e ast.ExprAny) []source.Spanner {
 }
 
 // nodeLSPRange converts a node's span to an LSP Range (0-indexed,
-// columns in the negotiated position encoding — #219 criterion 4:
-// a fixed UTF-16 count mis-places columns after non-ASCII when the
+// columns in the negotiated position encoding: a
+// fixed UTF-16 count mis-places columns after non-ASCII when the
 // client negotiated UTF-8). Zero spans yield the zero range.
 func nodeLSPRange(parsed *protoast.File, n source.Spanner, enc positions.Encoding) protocol.Range {
 	if parsed == nil || n == nil {

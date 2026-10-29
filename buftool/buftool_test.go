@@ -312,7 +312,7 @@ func writeRecordingBuf(t *testing.T, recordFile string) string {
 	return path
 }
 
-// #195: the buffer stages under its include-path-relative location so
+// The buffer stages under its include-path-relative location so
 // directory- and filename-based lint rules (PACKAGE_DIRECTORY_MATCH,
 // FILE_LOWER_SNAKE_CASE) judge the file where it actually lives.
 func TestLint_StagesUnderRelPath(t *testing.T) {
@@ -346,7 +346,7 @@ func TestLint_NonLocalRelPathFallsBack(t *testing.T) {
 	}
 }
 
-// Integration guard against the #195 regression with a real buf
+// Integration guard against the staging regression with a real buf
 // (skips when buf isn't installed): a packaged file staged at its
 // relative path must NOT trigger PACKAGE_DIRECTORY_MATCH.
 func TestLint_RealBufNoDirectoryMismatch(t *testing.T) {

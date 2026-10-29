@@ -68,7 +68,7 @@ import (
 
 // Server is the LSP handler. One Server backs one client connection.
 // It wraps the transport-free *analysis.Workspace (embedded — the
-// former in-package engine, graduated in #172 rung 3) with everything
+// former in-package engine) with everything
 // jsonrpc2/Connect-RPC specific: the client conn, the dispatch
 // switch, the RPC sidecar + its Subscribe registries, and the
 // legacy-LSP-client notification gating.
@@ -80,13 +80,13 @@ type Server struct {
 	// legacyLspClients tracks which legacy LSP request methods
 	// have been invoked this session. Used to gate the
 	// corresponding *Changed notifications so RPC-only clients
-	// (post-PR-#34 pxfed, plus any client that skips the legacy
+	// (pxfed since pxfed#34, plus any client that skips the legacy
 	// request methods) don't pay the doubled-traffic tax on
 	// every edit. Each bool flips true on the first call to its
 	// legacy request dispatcher and stays true until Server is
 	// torn down. serverPublisher reads the bool before
 	// s.conn.Notify; the RPC publish path is always fired
-	// regardless. See #113 for the deprecation horizon.
+	// regardless.
 	legacyLspClients struct {
 		secretRanges    atomic.Bool
 		datasetRegions  atomic.Bool
@@ -487,8 +487,8 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 				// completion as the user types identifier characters,
 				// which is the right UX for "suggest field names" — but
 				// `@` is not an identifier character, so RFC-001
-				// annotation-use completion in .proto files (#218 Phase
-				// B) needs it as an explicit trigger. Trigger on `{` and
+				// annotation-use completion in .proto files needs
+				// it as an explicit trigger. Trigger on `{` and
 				// `\n` could be added later for nested-block affordances.
 				CompletionProvider: &protocol.CompletionOptions{
 					TriggerCharacters: []string{"@"},
@@ -510,7 +510,7 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 				// + breadcrumbs and replaces vendored tokenizer-based
 				// outline implementations.
 				DocumentSymbolProvider: true,
-				// General block folding (#256): standard pull-based
+				// General block folding: standard pull-based
 				// textDocument/foldingRange over all block structure in
 				// both .pxf documents (nodes / children / state /
 				// lifecycle blocks + directives) and .proto schemas

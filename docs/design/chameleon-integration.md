@@ -427,7 +427,7 @@ resolve time. At edit time those values don't exist. protolsp:
 
 Determining the env var name per field uses chameleon's
 discovery rules (dotted path → `UPPER_SNAKE` + source prefix). We
-reimplement the rule; chameleon's #78 PR describes it precisely.
+reimplement the rule; chameleon#78 describes it precisely.
 
 ### PER_ENV layer expansion
 

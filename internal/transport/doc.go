@@ -15,7 +15,7 @@
 //   - handler_warn.go — WithSlowHandlerWarn, a wrapper that flags
 //     handler regressions to the trace panel when a single
 //     dispatch holds the jsonrpc2 reader goroutine past the
-//     DefaultSlowHandlerThreshold (added after the #128 deadlock
+//     DefaultSlowHandlerThreshold (added after a dispatcher deadlock
 //     so any future variant surfaces as a Warn instead of a
 //     silent freeze).
 //

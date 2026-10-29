@@ -44,7 +44,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 		return nil
 	}
 
-	// Annotation-use completion (#218 Phase B) runs first: a cursor
+	// Annotation-use completion runs first: a cursor
 	// after `@` (possibly mid-name, possibly package-qualified) is
 	// unambiguously an RFC-001 annotation use, so declared annotation
 	// names are the only sensible candidates — and the check must
@@ -54,7 +54,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 		return protoCompletionList(s.protoAnnotationCompletionItems(doc.protoAST, qualifier))
 	}
 
-	// Annotation-argument completion (#228): a cursor inside the
+	// Annotation-argument completion: a cursor inside the
 	// argument parens of a `@name(…)` use offers the declared
 	// `function` names — the parsed-path captures RFC-001 §5.1
 	// gives meaning to — mirroring how `@` completes annotation
@@ -66,7 +66,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 	// an enum value or literal).
 	//
 	// A use resolving to protowire.schema.v1.sensitive takes its
-	// class vocabulary instead (#260): the one parameter is an
+	// class vocabulary instead: the one parameter is an
 	// org-defined class string, so the workspace's harvested class
 	// names are the answer and function names never are.
 	if use := protoAnnotationUseAt(doc.protoAST, pos, s.positionEncoding); !use.IsZero() {
@@ -82,7 +82,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 	}
 
 	// The cursor's lexical scope steers dot completion, the minimal
-	// labels of in-file type items (#247), and nothing else below —
+	// labels of in-file type items, and nothing else below —
 	// computed once here.
 	refScope := protoRefScopeAt(doc.protoAST, protoFindAt(doc.protoAST, pos, s.positionEncoding))
 	cursorChain := protoCursorChain(refScope, filePackage(doc.protoAST))
@@ -92,7 +92,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 	// or package and the scope-based fallback (keywords + every
 	// reachable type) would just bury the real answer under noise.
 	// The qualifier resolves through the cursor's enclosing scopes
-	// (protoRefScopeAt, #240) — the same interpretation the type
+	// (protoRefScopeAt) — the same interpretation the type
 	// resolver gives a reference written there. Falling through to
 	// scope completion only happens when the qualifier doesn't
 	// resolve (or there isn't one).
@@ -130,7 +130,7 @@ func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol
 		return protoCompletionList(protoServiceScopeKeywords())
 	case protoScopeRFC001Param:
 		// Parameter-type slot of a `function` or `annotation`
-		// declaration (#228): the legal tokens are exactly the
+		// declaration: the legal tokens are exactly the
 		// field-type universe — scalars, in-file and imported
 		// types — with no declaration keywords.
 		items := protoBuiltinTypeItems()
@@ -153,7 +153,7 @@ const (
 	protoScopeService
 	protoScopeOneof
 	// protoScopeRFC001Param is the parameter list of a `function` or
-	// `annotation` declaration — a type position (#228).
+	// `annotation` declaration — a type position.
 	protoScopeRFC001Param
 )
 
@@ -326,9 +326,9 @@ func protoDefBareName(def ast.DeclDef) string {
 // (top-level only — aliases can't nest). No package prefix — the
 // cursor is already in the file's package scope and protobuf permits
 // intra-package references unqualified. Nested types carry the
-// shortest scope path that resolves from the cursor (#247): bare
+// shortest scope path that resolves from the cursor: bare
 // `Inner` when the cursor sits inside its enclosing message,
-// `Outer.Inner` elsewhere — always a name the #241-strict resolver
+// `Outer.Inner` elsewhere — always a name the strict scope resolver
 // binds to exactly this declaration.
 //
 // cursorChain is the enclosing-message portion of the cursor's
@@ -362,7 +362,7 @@ func protoCursorChain(refScope, pkg string) string {
 // protoMinimalScopedLabel returns the shortest dotted suffix of
 // `scoped` that, resolved from the cursor's enclosing-message chain
 // under the resolver's innermost-first candidate order, binds
-// exactly the declaration at `scoped` (#247). A suffix that an
+// exactly the declaration at `scoped`. A suffix that an
 // inner scope shadows is skipped — emitting it would insert a
 // reference that binds a different declaration — so the shadowed
 // item keeps a longer (or full) path.
@@ -405,8 +405,8 @@ func protoResolveInFileChain(f *protoast.File, name, cursorChain string) string 
 // protoImportedTypeItems emits CompletionItems for messages, enums,
 // and RFC-001 `type` aliases declared in files this file imports.
 // Qualified with the imported file's package plus any enclosing-
-// message segments (e.g. `acme.demo.v1.Outer.Inner`, #240) because
-// cross-package references require the full path — the pre-#240
+// message segments (e.g. `acme.demo.v1.Outer.Inner`) because
+// cross-package references require the full path — the earlier
 // `pkg.leaf` shape for a nested type is a name the resolver
 // (correctly) rejects.
 //
@@ -439,7 +439,7 @@ func (s *Workspace) protoImportedTypeItems(currentFile *protoast.File) []protoco
 
 // walkScopedTypeDefs visits every message- and enum-classified def in
 // the file with its scope path rooted at the top level ("Outer.Inner")
-// — the label shape the #241-strict resolver binds from any scope.
+// — the label shape the strict scope resolver binds from any scope.
 // proto2 group bodies contribute path segments (a group declares a
 // message named after it) but groups themselves aren't emitted. The
 // callback returns false to stop the walk.
@@ -456,7 +456,7 @@ func walkScopedTypeDefs(f *protoast.File, visit func(scoped string, def ast.Decl
 			}
 			kind := def.Classify()
 			if kind == ast.DefKindExtend {
-				// Extend blocks aren't scopes (#246): types declared
+				// Extend blocks aren't scopes: types declared
 				// inside (proto2 groups, and anything nested in them)
 				// belong to the enclosing scope — walk through without
 				// a path segment.
@@ -603,13 +603,13 @@ func isProtoIdentByte(c byte) bool {
 }
 
 // protoQualifiedCompletions resolves `qualifier` the way the type
-// resolver would resolve a reference written at the cursor (#240) —
+// resolver would resolve a reference written at the cursor —
 // interpreting it through the reference site's enclosing scopes
 // (refScope, protoRefScopeAt) against the current file and each
 // import — then returns the child entities of whatever it pointed
 // at:
 //
-//   - `Outer` (or `Middle` written inside Outer, #239) → nested
+//   - `Outer` (or `Middle` written inside Outer) → nested
 //     messages + enums of the resolved message
 //   - `acme.demo.v1` (a package, by any scope interpretation) →
 //     top-level types of every reachable file with that package
@@ -641,7 +641,7 @@ func (s *Workspace) protoQualifiedCompletions(currentFile *protoast.File, qualif
 	if protoScopeQualifiesPackage(qualifier, refScope, filePackage(currentFile)) {
 		items = append(fileTopLevelTypeItems(currentFile, "this file"), items...)
 	}
-	// Package-segment continuations (#247): a qualifier that is a
+	// Package-segment continuations: a qualifier that is a
 	// strict prefix of a reachable package (under any enclosing-scope
 	// interpretation) offers the next segment, so the user can walk
 	// `acme.` → demo → v1 → types. Merges with the above — a package
@@ -655,7 +655,7 @@ func (s *Workspace) protoQualifiedCompletions(currentFile *protoast.File, qualif
 
 // protoPackageSegmentItems emits one Module-kind item per distinct
 // next-segment continuation of `qualifier` toward a reachable
-// package — the current file's own and each import's (#247). The
+// package — the current file's own and each import's. The
 // import-bounded posture matches the type emitters: a package the
 // file can't reach without a new import isn't suggested.
 func (s *Workspace) protoPackageSegmentItems(currentFile *protoast.File, qualifier, refScope string) []protocol.CompletionItem {
@@ -723,7 +723,7 @@ func protoPackageContinuation(qualifier, refScope, targetPkg string) (string, bo
 // crossFileQualifiedCompletionItems handles qualifiers that resolve
 // into an imported file: a package name (under any enclosing-scope
 // interpretation — `demo.v1.` written in package acme names
-// acme.demo.v1, #240) emits the file's top-level types; a qualifier
+// acme.demo.v1) emits the file's top-level types; a qualifier
 // that resolves to a message through the scope chain emits its
 // nested types.
 //

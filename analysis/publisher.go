@@ -16,9 +16,9 @@ import (
 // transports that deliver results:
 //
 //   - the LSP + Connect-RPC server installs serverPublisher, which
-//     fans out to jsonrpc2 notifications (gated per legacy client,
-//     see #113) and to the sidecar's Subscribe streams;
-//   - in-process embedders (goed, #172) install their own
+//     fans out to jsonrpc2 notifications (gated per legacy
+//     client) and to the sidecar's Subscribe streams;
+//   - in-process embedders (goed) install their own
 //     implementation and receive direct callbacks — no transport.
 //
 // Contract notes:
@@ -64,11 +64,11 @@ type Publisher interface {
 	// per-doc LookupForDoc". workspaceDir identifies whose lookup
 	// transitioned: "" for the root workspace's (the
 	// Lookups()/RegistryStatus surface), the sub-workspace directory
-	// for a per-workspace lookup (#209) — consumers with
+	// for a per-workspace lookup — consumers with
 	// per-workspace surfaces refresh selectively on it. No further
 	// payload, deliberately: it is a refresh signal, not a state
 	// delta. Fires on the mutating goroutine (rebuild-dial and
 	// watched-files debounce goroutines included); embedders
-	// replacing a poll loop (#204) must not block in it.
+	// replacing a poll loop must not block in it.
 	LookupChanged(ctx context.Context, workspaceDir string)
 }

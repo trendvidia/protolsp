@@ -1,7 +1,7 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-// In-document schemas (#287): the types a document's own @proto
+// In-document schemas: the types a document's own @proto
 // directives define. Draft -01 § The "@proto" Directive makes the
 // embedded schema authoritative, so findTypeForDoc consults it before
 // the workspace lookups, and every per-type feature (body validation,

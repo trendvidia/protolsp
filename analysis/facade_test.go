@@ -11,15 +11,15 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// TestEnvLookupIsPerWorkspace is the regression test for #180: New
+// TestEnvLookupIsPerWorkspace is the regression test for a shared resolver: New
 // used to install the Workspace's env resolver into workspaceconfig
 // via the process-global SetEnvLookup, so the LAST-constructed
 // Workspace's bwSession override backed `${env.BW_SESSION}` for
-// every Workspace in the process. Since #180 the resolver rides
+// every Workspace in the process. Now the resolver rides
 // along each ParseWithEnv call instead.
 //
 // The failure shape this pins down: construct A, construct B (which
-// pre-#180 would steal the global), then parse A's config — the
+// used to steal the global), then parse A's config — the
 // `${env.BW_SESSION}` reference must resolve through A's override,
 // not B's.
 func TestEnvLookupIsPerWorkspace(t *testing.T) {
@@ -53,7 +53,7 @@ registry {
 
 	dirA, dirB := writeConfig(t), writeConfig(t)
 	a := newWorkspaceAt(dirA, "token-a")
-	// B is constructed AFTER A — the pre-#180 global would now be
+	// B is constructed AFTER A — the old global would now be
 	// B's resolver, and A's parse below would resolve through it.
 	b := newWorkspaceAt(dirB, "token-b")
 

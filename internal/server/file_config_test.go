@@ -233,7 +233,7 @@ func TestFileConfig_EmptyFileIsHandledCleanly(t *testing.T) {
 var _ = json.Marshal
 
 // subWS fetches a loaded sub-workspace through the sanctioned
-// accessor (#179), failing the test when the dir isn't loaded.
+// accessor, failing the test when the dir isn't loaded.
 func subWS(t *testing.T, srv *Server, dir string) *analysis.WorkspaceState {
 	t.Helper()
 	ws, ok := srv.SubWorkspaceByDir(dir)

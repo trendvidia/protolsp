@@ -106,7 +106,7 @@ func TestRename_ReturnsNilWhenCursorOffPath(t *testing.T) {
 // scope-parity guarantee: rename and references must walk the
 // same set of files. If they ever diverge, the user gets a
 // silent "Find References shows 3 hits, rename only edits 1"
-// bug — exactly the issue #107 reported.
+// bug.
 func TestRename_FindsHitsInUnopenedFileOnDisk(t *testing.T) {
 	workspaceDir := t.TempDir()
 	require.NoError(t, os.WriteFile(
@@ -193,7 +193,7 @@ other = "stale"
 }
 
 // TestRename_ScopeMatchesReferences exercises the invariant that
-// drove #107: every (uri, range) tuple References returns must
+// every (uri, range) tuple References returns must
 // also appear in the Rename WorkspaceEdit, on identical input.
 // Asserted against a mixed workspace (one open + one on-disk +
 // one in a sub-workspace that must be excluded from both).

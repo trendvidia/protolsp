@@ -107,7 +107,7 @@ func TestWatchedFiles_NoRegistrationWhenClientDoesntSupportIt(t *testing.T) {
 }
 
 // TestWatchedFiles_DebounceCoalescesRapidEvents validates issue
-// #110: back-to-back didChangeWatchedFiles notifications must
+// Back-to-back didChangeWatchedFiles notifications must
 // merge into a single classify + reload + reanalyzeOpenDocs
 // pass instead of N. The observable is `analyzeCount`, which
 // runAnalyzePipeline bumps once per doc — with one open doc,
