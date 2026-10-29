@@ -59,7 +59,7 @@ func TestCompileInlineSchema_KeepsWhatCompiled(t *testing.T) {
 
 // A source-form @proto imports only what the draft lists (protowire#369,
 // protowire#388). testdata/proto-imports is protowire's cross-port
-// fixture set (testdata/proto-imports at 5d06e42), each file stating its
+// fixture set (testdata/proto-imports at v1.13.0), each file stating its
 // verdict in its leading comment: an accepted import compiles and
 // defines the @type, a rejected one is reported as the import refused.
 func TestCompileInlineSchema_Imports(t *testing.T) {

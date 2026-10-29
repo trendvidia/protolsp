@@ -7,6 +7,15 @@ without a major bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **protowire v1.12.0 → v1.13.0**, the module protolsp reads the schemas a
+  document's `@proto` may import from. Those files change in comments only
+  (`pxf/bignum.proto` describes the BigFloat precision suffix). It also
+  brings protocompile v0.35.1 (from v0.34.0) and grpc v1.84.0. No change
+  an editor can see: the test suites pass unchanged, with and without
+  `-tags protocheck`.
+
 ## [0.23.0] – 2026-10-29
 
 ### Added
