@@ -80,10 +80,10 @@ func (s *Workspace) cycleReferenceDiagnostics(doc *Document) []protocol.Diagnost
 		out = append(out, protocol.Diagnostic{
 			Range:    assignmentNameRange(pos, name),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/schema",
-			Message: fmt.Sprintf(
+			Source:   optString("protolsp/schema"),
+			Message: protocol.String(fmt.Sprintf(
 				"field %q is part of a ${...} reference cycle: %s",
-				name, strings.Join(cyclePaths[name], " → ")),
+				name, strings.Join(cyclePaths[name], " → "))),
 		})
 	}
 	return out

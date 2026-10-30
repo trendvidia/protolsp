@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 // CodeActionsFor builds the list of quick-fix CodeActions that apply
@@ -40,6 +41,7 @@ func (s *Workspace) CodeActionsFor(doc *Document, diags []protocol.Diagnostic) [
 // through the LSP client into the typed UnresolvedNameData.
 // Returns nil when the payload isn't ours.
 func DecodeUnresolvedNameData(v interface{}) *UnresolvedNameData {
+	v = diagDataValue(v)
 	switch d := v.(type) {
 	case UnresolvedNameData:
 		if d.Kind == DiagDataKindUnresolvedName {
@@ -77,11 +79,11 @@ func replaceUnresolvedNameActions(doc *Document, diag protocol.Diagnostic, data 
 	for i, candidate := range data.Candidates {
 		out = append(out, protocol.CodeAction{
 			Title:       fmt.Sprintf("Replace %q with %q", data.Name, candidate),
-			Kind:        protocol.QuickFix,
+			Kind:        quickFixKind(),
 			Diagnostics: []protocol.Diagnostic{diag},
-			IsPreferred: i == 0,
+			IsPreferred: boolPtr(i == 0),
 			Edit: &protocol.WorkspaceEdit{
-				Changes: map[protocol.DocumentURI][]protocol.TextEdit{
+				Changes: map[uri.URI][]protocol.TextEdit{
 					doc.URI: {{Range: diag.Range, NewText: candidate}},
 				},
 			},
@@ -95,6 +97,7 @@ func replaceUnresolvedNameActions(doc *Document, diag protocol.Diagnostic, data 
 // JSON unmarshalling) into the typed UnknownFieldData. Returns nil
 // when the payload isn't ours.
 func DecodeUnknownFieldData(v interface{}) *UnknownFieldData {
+	v = diagDataValue(v)
 	if v == nil {
 		return nil
 	}
@@ -133,10 +136,10 @@ func removeFieldAction(doc *Document, diag protocol.Diagnostic, data UnknownFiel
 	}
 	return protocol.CodeAction{
 		Title:       fmt.Sprintf("Remove field %q", data.FieldName),
-		Kind:        protocol.QuickFix,
+		Kind:        quickFixKind(),
 		Diagnostics: []protocol.Diagnostic{diag},
 		Edit: &protocol.WorkspaceEdit{
-			Changes: map[protocol.DocumentURI][]protocol.TextEdit{
+			Changes: map[uri.URI][]protocol.TextEdit{
 				doc.URI: {edit},
 			},
 		},

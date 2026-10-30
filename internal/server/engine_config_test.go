@@ -10,7 +10,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,18 +22,18 @@ import (
 
 func engineConfigReply(t *testing.T, srv *Server) EngineConfigResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodEngineConfig, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodEngineConfig, nil)
 	require.NoError(t, err)
 
 	var got EngineConfigResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 

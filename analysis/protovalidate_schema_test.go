@@ -49,7 +49,7 @@ message Account {
 }`
 	diags := runProtovalidateAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "buf/validate/cel", diags[0].Source)
+	require.Equal(t, "buf/validate/cel", optText(diags[0].Source))
 	require.Equal(t, protocol.DiagnosticSeverityError, diags[0].Severity)
 }
 
@@ -65,7 +65,7 @@ message Account {
 }`
 	diags := runProtovalidateAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "buf/validate/cel", diags[0].Source)
+	require.Equal(t, "buf/validate/cel", optText(diags[0].Source))
 }
 
 func TestAnalyzeProtovalidateExpressions_MessageLevel_Valid(t *testing.T) {
@@ -102,7 +102,7 @@ message Account {
 }`
 	diags := runProtovalidateAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "buf/validate/cel", diags[0].Source)
+	require.Equal(t, "buf/validate/cel", optText(diags[0].Source))
 }
 
 func TestAnalyzeProtovalidateExpressions_AggregateForm(t *testing.T) {
@@ -273,8 +273,8 @@ message A {
 			// verbatim, so assert on the first.
 			diags := runProtovalidateAnalyzer(t, field("string", tc.expr))
 			require.NotEmpty(t, diags, tc.expr)
-			assert.Contains(t, diags[0].Message, tc.msg)
-			assert.Equal(t, "buf/validate/cel", diags[0].Source)
+			assert.Contains(t, MessageText(diags[0].Message), tc.msg)
+			assert.Equal(t, "buf/validate/cel", optText(diags[0].Source))
 		}
 	})
 }

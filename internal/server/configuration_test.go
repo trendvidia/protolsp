@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,27 +24,27 @@ func initializeWith(t *testing.T, configurationSupported, dynamicRegistration bo
 	}
 
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: configurationSupported,
-				DidChangeConfiguration: &protocol.DidChangeConfigurationWorkspaceClientCapabilities{
-					DynamicRegistration: dynamicRegistration,
+				Configuration: boolRef(configurationSupported),
+				DidChangeConfiguration: &protocol.DidChangeConfigurationClientCapabilities{
+					DynamicRegistration: boolRef(dynamicRegistration),
 				},
 			},
 		},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	// Fire `initialized` so the post-handshake pull / registration happens.
 	// Handle returns immediately and the follow-up (capability registration,
 	// editor-config pull, stale/deprecation notices) runs on a goroutine —
 	// wait for it so assertions are deterministic.
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	return srv, fc
@@ -77,10 +76,10 @@ func TestConfiguration_PullsAfterInitializedWhenSupported(t *testing.T) {
 
 	// Assert the request included our expected sections.
 	var params protocol.ConfigurationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &params))
+	require.NoError(t, protocol.Unmarshal(calls[0].params, &params))
 	sections := make([]string, 0, len(params.Items))
 	for _, item := range params.Items {
-		sections = append(sections, item.Section)
+		sections = append(sections, *item.Section)
 	}
 	assert.ElementsMatch(t,
 		[]string{
@@ -110,7 +109,7 @@ func TestConfiguration_RegistersDynamicWhenSupported(t *testing.T) {
 	require.Len(t, calls, 1, "dynamicRegistration=true → server registers")
 
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 	require.Len(t, reg.Registrations, 1)
 	assert.Equal(t, protocol.MethodWorkspaceDidChangeConfiguration, reg.Registrations[0].Method,
 		"registration is for workspace/didChangeConfiguration")
@@ -137,10 +136,10 @@ func TestConfiguration_DidChangeConfigurationRePulls(t *testing.T) {
 	second := []any{"registry.v2:443", "ns-v2", "tok-v2", "", nil}
 	fc.setCallResponse(protocol.MethodWorkspaceConfiguration, second)
 
-	change, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(3),
+	change, err := newTestCall(jsonrpc2.NewNumberID(3),
 		protocol.MethodWorkspaceDidChangeConfiguration, struct{}{})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, change))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, change))
 	// The handler returns reply() before its nested workspace/
 	// configuration call to avoid deadlocking jsonrpc2's single-
 	// goroutine reader, so the pull happens on a goroutine. Drain
@@ -166,27 +165,27 @@ func TestConfiguration_NullValuesPreserveSeed(t *testing.T) {
 
 	// Initialize with a seed that should NOT be wiped by the pull.
 	initParams := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: true,
+				Configuration: boolRef(true),
 			},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	// `initialized` triggers the pull (all nulls).
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	assert.Equal(t, "seed.example:443", srv.Config().EditorConfig.Registry.Address,
@@ -208,28 +207,28 @@ func TestConfiguration_PullFailurePreservesSeed(t *testing.T) {
 	fc.setCallResponse(protocol.MethodWorkspaceConfiguration, []any{"a", "b"})
 
 	initParams := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: true,
+				Configuration: boolRef(true),
 			},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
 	// initialized must still complete cleanly — the failed pull is
 	// non-fatal.
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	assert.Equal(t, "seed.example:443", srv.Config().EditorConfig.Registry.Address,
@@ -252,24 +251,24 @@ func TestConfiguration_DeprecationNudge_FiresOnSeededClientWithCapability(t *tes
 	})
 
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
-			Workspace: &protocol.WorkspaceClientCapabilities{Configuration: true},
+			Workspace: &protocol.WorkspaceClientCapabilities{Configuration: boolRef(true)},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	msgs := fc.shownMessages()
@@ -304,22 +303,22 @@ func TestConfiguration_DeprecationNudge_SilentWhenClientLacksCapability(t *testi
 	srv, fc := newServerWithFakeConn(t)
 
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		// No Workspace.Configuration capability.
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	for _, m := range fc.shownMessages() {
@@ -343,27 +342,27 @@ func TestConfiguration_EmptyStringValuesPreserveSeed(t *testing.T) {
 	fc.setCallResponse(protocol.MethodWorkspaceConfiguration, []any{"", "", "", "", ""})
 
 	initParams := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: true,
+				Configuration: boolRef(true),
 			},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 				"token":     "seed-token",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	assert.Equal(t, "seed.example:443", srv.Config().EditorConfig.Registry.Address,
@@ -385,27 +384,27 @@ func TestConfiguration_MixedNullAndConcreteValues_PartialOverride(t *testing.T) 
 	fc.setCallResponse(protocol.MethodWorkspaceConfiguration, []any{nil, "override-ns", nil, nil, nil})
 
 	initParams := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: true,
+				Configuration: boolRef(true),
 			},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 				"token":     "seed-token",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	// Namespace is overridden; address + token survive untouched.
@@ -425,24 +424,24 @@ func TestConfiguration_PullWinsOverSeed(t *testing.T) {
 	})
 
 	initParams := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 		Capabilities: protocol.ClientCapabilities{
-			Workspace: &protocol.WorkspaceClientCapabilities{Configuration: true},
+			Workspace: &protocol.WorkspaceClientCapabilities{Configuration: boolRef(true)},
 		},
-		InitializationOptions: map[string]any{
+		InitializationOptions: testAny(map[string]any{
 			"registry": map[string]any{
 				"address":   "seed.example:443",
 				"namespace": "seed-ns",
 			},
-		},
+		}),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, initParams)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	assert.Equal(t, "pull.example:443", srv.Config().EditorConfig.Registry.Address,

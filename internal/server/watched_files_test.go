@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,24 +30,24 @@ func initializeWithWatchSupport(t *testing.T, workspaceDir string) (*Server, *fa
 	// in Server.New but would break the synchronous-assert tests.
 	srv.SetWatchedFilesWindow(0)
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
-		WorkspaceFolders: []protocol.WorkspaceFolder{
-			{URI: string(uri.File(workspaceDir)), Name: "root"},
-		},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
+		WorkspaceFoldersInitializeParams: workspaceFolders(
+			protocol.WorkspaceFolder{URI: uri.File(workspaceDir), Name: "root"},
+		),
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesWorkspaceClientCapabilities{
-					DynamicRegistration: true,
+				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesClientCapabilities{
+					DynamicRegistration: boolRef(true),
 				},
 			},
 		},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 	return srv, fc
 }
@@ -61,7 +60,7 @@ func TestWatchedFiles_RegistrationIncludesConfigAndChainWatchers(t *testing.T) {
 	require.Len(t, calls, 1, "exactly one registerCapability batch on initialized")
 
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 
 	// Find the workspace/didChangeWatchedFiles registration.
 	var found *protocol.Registration
@@ -74,14 +73,14 @@ func TestWatchedFiles_RegistrationIncludesConfigAndChainWatchers(t *testing.T) {
 	require.NotNil(t, found, "watcher registration must be included")
 
 	// Decode RegisterOptions back into the struct to inspect watchers.
-	optsBytes, err := json.Marshal(found.RegisterOptions)
+	optsBytes, err := testCodec.Marshal(found.RegisterOptions)
 	require.NoError(t, err)
 	var opts protocol.DidChangeWatchedFilesRegistrationOptions
-	require.NoError(t, json.Unmarshal(optsBytes, &opts))
+	require.NoError(t, testCodec.Unmarshal(optsBytes, &opts))
 
 	patterns := make([]string, 0, len(opts.Watchers))
 	for _, w := range opts.Watchers {
-		patterns = append(patterns, w.GlobPattern)
+		patterns = append(patterns, patternText(w.GlobPattern))
 	}
 	assert.Contains(t, patterns, "**/.protolsp.pxf",
 		"workspace config file is watched workspace-wide")
@@ -98,7 +97,7 @@ func TestWatchedFiles_NoRegistrationWhenClientDoesntSupportIt(t *testing.T) {
 	calls := fc.callsByMethod(protocol.MethodClientRegisterCapability)
 	for _, c := range calls {
 		var reg protocol.RegistrationParams
-		require.NoError(t, json.Unmarshal(c.params, &reg))
+		require.NoError(t, testCodec.Unmarshal(c.params, &reg))
 		for _, r := range reg.Registrations {
 			assert.NotEqual(t, protocol.MethodWorkspaceDidChangeWatchedFiles, r.Method,
 				"no watcher registration when client capability is absent")
@@ -128,7 +127,7 @@ schema_sources {
 	srv.SetWatchedFilesWindow(50 * time.Millisecond)
 
 	// Open a doc so reanalyzeOpenDocs has something to run.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, validPxf)))
 	baseline := srv.AnalyzeCount()
 
@@ -137,7 +136,7 @@ schema_sources {
 	// trigger a reload + reanalyze.
 	const eventCount = 5
 	for i := 0; i < eventCount; i++ {
-		require.NoError(t, srv.Handle(context.Background(), noopReply,
+		require.NoError(t, testHandle(srv, context.Background(), noopReply,
 			fileEventCall(t, []*protocol.FileEvent{
 				{URI: uri.File(configPath), Type: protocol.FileChangeTypeChanged},
 			})))
@@ -185,7 +184,7 @@ func TestWatchedFiles_CreateDeleteCreateWithinDebounceReflectsFinalDisk(t *testi
 		{URI: uri.File(configPath), Type: protocol.FileChangeTypeDeleted},
 		{URI: uri.File(configPath), Type: protocol.FileChangeTypeCreated},
 	} {
-		require.NoError(t, srv.Handle(context.Background(), noopReply,
+		require.NoError(t, testHandle(srv, context.Background(), noopReply,
 			fileEventCall(t, []*protocol.FileEvent{&evt})))
 	}
 
@@ -213,11 +212,11 @@ schema_sources {
 }
 
 // fileEventCall builds a workspace/didChangeWatchedFiles notification.
-func fileEventCall(t *testing.T, events []*protocol.FileEvent) jsonrpc2.Request {
+func fileEventCall(t *testing.T, events []*protocol.FileEvent) rpcRequest {
 	t.Helper()
-	notif, err := jsonrpc2.NewNotification(
+	notif, err := newTestNotification(
 		protocol.MethodWorkspaceDidChangeWatchedFiles,
-		&protocol.DidChangeWatchedFilesParams{Changes: events})
+		&protocol.DidChangeWatchedFilesParams{Changes: fileEvents(events)})
 	require.NoError(t, err)
 	return notif
 }
@@ -237,7 +236,7 @@ schema_sources {
 `), 0o600))
 
 	// Fire a file-changed event.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(configPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -260,7 +259,7 @@ schema_sources {
 
 	// Delete the file and fire a delete event.
 	require.NoError(t, os.Remove(configPath))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(configPath), Type: protocol.FileChangeTypeDeleted},
 		})))
@@ -302,7 +301,7 @@ environments = [
 layers = []
 `), 0o600))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(chainPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -326,7 +325,7 @@ schema_sources {
 	before := srv.Workspaces().SnapshotFileConfig()
 
 	// Fire an event for some unrelated .pxf file.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(filepath.Join(workspaceDir, "random.pxf")), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -347,7 +346,7 @@ func TestWatchedFiles_ConfigReloadRefreshesLayerInfoOnOpenDocs(t *testing.T) {
 	srv, _ := initializeWithWatchSupport(t, workspaceDir)
 	// Open env/dev.pxf — should classify as standalone since no chain.
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig`+"\n")))
 	require.NotNil(t, srv.Documents().Get(devURI).LayerInfo)
 	assert.False(t, srv.Documents().Get(devURI).LayerInfo.IsLayer,
@@ -370,7 +369,7 @@ layers = [
 chameleon { chain_spec = "chain.pxf" }
 `), 0o600))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(configPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -388,10 +387,10 @@ func TestWatchedFiles_BadParamsDoesNotPanic(t *testing.T) {
 	srv, _ := initializeWithWatchSupport(t, t.TempDir())
 
 	// Malformed JSON in params — handler should log + continue.
-	notif, err := jsonrpc2.NewNotification(
+	notif, err := newTestNotification(
 		protocol.MethodWorkspaceDidChangeWatchedFiles, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif),
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif),
 		"nil params is tolerated (rare client bug); no panic, no error reply")
 }
 
@@ -404,7 +403,7 @@ schema_sources { registry { address = "x:443" } }
 	srv, _ := initializeWithWatchSupport(t, workspaceDir)
 	before := srv.Workspaces().SnapshotFileConfig()
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.URI("vscode-vfs://github/foo/.protolsp.pxf"), Type: protocol.FileChangeTypeChanged},
 		})))

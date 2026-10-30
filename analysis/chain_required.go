@@ -118,10 +118,10 @@ func (s *Workspace) chainRequiredDiagnostics(doc *Document) []protocol.Diagnosti
 		out = append(out, protocol.Diagnostic{
 			Range:    documentStartRange(),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/schema",
-			Message: fmt.Sprintf(
+			Source:   optString("protolsp/schema"),
+			Message: protocol.String(fmt.Sprintf(
 				"required field %q is not set in any layer of the %q chain (%s)",
-				name, doc.LayerInfo.Environment, strings.Join(chainPaths, ", ")),
+				name, doc.LayerInfo.Environment, strings.Join(chainPaths, ", "))),
 		})
 	}
 	return out

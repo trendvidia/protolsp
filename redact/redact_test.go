@@ -37,10 +37,10 @@ func TestIsSensitiveSection(t *testing.T) {
 
 func TestDiagnostic_RedactsSecretInMessage(t *testing.T) {
 	d := &protocol.Diagnostic{
-		Message: `invalid value "super-secret" for field "password"`,
+		Message: protocol.String(`invalid value "super-secret" for field "password"`),
 	}
 	Diagnostic(d, []string{"super-secret"})
-	if d.Message != `invalid value "<redacted>" for field "password"` {
+	if d.Message != protocol.String(`invalid value "<redacted>" for field "password"`) {
 		t.Errorf("redacted diagnostic = %q; secret bytes were not replaced", d.Message)
 	}
 }
@@ -50,10 +50,10 @@ func TestDiagnostic_NilSafe(t *testing.T) {
 	// publishDiagnostics path is shared; defensive checks here
 	// avoid panics from quirky call sites.
 	Diagnostic(nil, []string{"x"})
-	d := &protocol.Diagnostic{Message: "msg"}
+	d := &protocol.Diagnostic{Message: protocol.String("msg")}
 	Diagnostic(d, nil)
 	Diagnostic(d, []string{})
-	if d.Message != "msg" {
+	if d.Message != protocol.String("msg") {
 		t.Errorf("empty secrets must leave message untouched; got %q", d.Message)
 	}
 }

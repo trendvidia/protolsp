@@ -223,7 +223,7 @@ func TestRebuildLookupAsync_LiveReloadOnConfigEditDoesntBlockHandler(t *testing.
 	srv, _ := initializeWithWorkspace(t, t.TempDir(), nil)
 
 	configURI := uri.URI("file:///work/.protolsp.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(configURI), 1, `@type protolsp.v1.WorkspaceConfig
 registry { address = "stable.example:443" }
 chameleon { chain_spec = "v1.pxf" }
@@ -235,7 +235,7 @@ registry { address = "stable.example:443" }
 chameleon { chain_spec = "v2.pxf" }
 `
 	start := time.Now()
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(configURI), 2, edited)))
 	elapsed := time.Since(start)
 

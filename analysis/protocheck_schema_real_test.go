@@ -51,7 +51,7 @@ message Account {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 	require.Equal(t, protocol.DiagnosticSeverityError, diags[0].Severity)
 	// Range pins to the expression string literal (8th line, 1-based;
 	// LSP line is 7).
@@ -72,8 +72,8 @@ message Account {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "protocheck/expression", diags[0].Source)
-	require.Contains(t, strings.ToLower(diags[0].Message), "type")
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
+	require.Contains(t, strings.ToLower(MessageText(diags[0].Message)), "type")
 }
 
 func TestAnalyzeProtocheckExpressions_MessageLevel_Valid(t *testing.T) {
@@ -113,11 +113,11 @@ message Transfer {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 	// go/types diagnoses an undefined identifier — message may say
 	// "undeclared" or "undefined" depending on Go version. Both
 	// contain the typo'd name.
-	require.Contains(t, diags[0].Message, "from_acount")
+	require.Contains(t, MessageText(diags[0].Message), "from_acount")
 }
 
 func TestAnalyzeProtocheckExpressions_MessageLevel_TypeMismatch(t *testing.T) {
@@ -137,7 +137,7 @@ message Transfer {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 }
 
 func TestAnalyzeProtocheckExpressions_MultipleChecks(t *testing.T) {
@@ -153,7 +153,7 @@ message Account {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1, "only the broken expression should diagnose")
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 }
 
 func TestAnalyzeProtocheckExpressions_TraversalFormIgnored(t *testing.T) {
@@ -268,7 +268,7 @@ message Shipment {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Contains(t, diags[0].Message, "citty")
+	require.Contains(t, MessageText(diags[0].Message), "citty")
 }
 
 func TestAnalyzeProtocheckExpressions_NestedMessageAccess_DeepChain(t *testing.T) {
@@ -344,7 +344,7 @@ message Shipment {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Contains(t, diags[0].Message, "origin")
+	require.Contains(t, MessageText(diags[0].Message), "origin")
 }
 
 // ---------------------------------------------------------------------------
@@ -507,7 +507,7 @@ message Account {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 }
 
 func TestAnalyzeProtocheckExpressions_PerColumn_UndefinedIdent(t *testing.T) {
@@ -606,5 +606,5 @@ message Account {
 	diags := runProtocheckAnalyzer(t, mismatch)
 	require.Len(t, diags, 1,
 		"uint compared against a negative int literal is a type error under the eval.Uint binding")
-	require.Equal(t, "protocheck/expression", diags[0].Source)
+	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
 }

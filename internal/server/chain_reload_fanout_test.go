@@ -80,9 +80,9 @@ username = "alice"
 
 	// Open both layer docs. didOpen fires publishDiagnostics on
 	// each — that's the baseline.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, layerSrc)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, layerSrc)))
 
 	prePublishes := countPublishesByURI(fc.calls())
@@ -110,7 +110,7 @@ layers = [
   { id = "env" path = "env/${env}.pxf" for_each = PER_ENV }
 ]
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(chainPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -191,9 +191,9 @@ username = "alice"
 
 	prodURI := uri.File(filepath.Join(workspaceDir, "env", "prod.pxf"))
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, layerSrc)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, layerSrc)))
 
 	preBrokenPublishes := countPublishesByURI(fc.calls())
@@ -207,7 +207,7 @@ username = "alice"
 version = "1.0.0
 environments = [ { name = "prod" }
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(chainPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -245,7 +245,7 @@ layers = [
   { id = "env" path = "env/${env}.pxf" for_each = PER_ENV }
 ]
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(chainPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -265,8 +265,8 @@ layers = [
 // their target URI. Returns a map keyed by the DocumentURI so
 // callers can assert per-doc fan-out coverage without depending
 // on emission order.
-func countPublishesByURI(notes []notifyCall) map[protocol.DocumentURI]int {
-	out := map[protocol.DocumentURI]int{}
+func countPublishesByURI(notes []notifyCall) map[uri.URI]int {
+	out := map[uri.URI]int{}
 	for _, n := range notes {
 		if n.params == nil {
 			continue

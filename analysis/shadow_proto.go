@@ -12,7 +12,7 @@
 // It can't go through the normal analyze pipeline: that pipeline runs
 // protocompile (which resolves imports and emits diagnostics) keyed
 // off a filesystem path, and registry:// URIs have no filesystem path
-// — URI.Filename() panics on the scheme. So this is a parse-only
+// — URI.FsPath() panics on the scheme. So this is a parse-only
 // "shadow" path: it populates doc.protoAST and nothing else, publishes
 // no diagnostics, and never touches the disk. HoverFor / DefinitionFor
 // route registry:// .proto URIs here (see the IsRegistryProtoURI
@@ -34,7 +34,7 @@ import (
 //
 // These are deliberately NOT IsProtoURI: that predicate gates the
 // diagnostics-publishing analyze pipeline, which requires a file on
-// disk (protocompile + URI.Filename()). Registry previews have no
+// disk (protocompile + URI.FsPath()). Registry previews have no
 // disk path and never validate. Hover and go-to-definition, which
 // only need the parsed AST, do route on this predicate so a preview
 // is navigable (goed#26).
@@ -55,7 +55,7 @@ func IsRegistryProtoURI(u uri.URI) bool {
 // (its bytes change only when the schema lookup rebuilds, at which
 // point the embedder re-opens it), and its URI is not a
 // client-editable file. Parsing happens directly, with a filename
-// derived from the registry path — never URI.Filename(), which panics
+// derived from the registry path — never URI.FsPath(), which panics
 // on the registry:// scheme.
 //
 // Idempotent: re-opening the same URI refreshes the source + AST in
@@ -95,7 +95,7 @@ func (s *Workspace) OpenShadowProtoForWorkspace(docURI uri.URI, source, workspac
 	doc.Source = []byte(source)
 
 	// protocompile's filename is the registry path component
-	// (e.g. "acme/billing/v1/invoice.proto"), never URI.Filename().
+	// (e.g. "acme/billing/v1/invoice.proto"), never URI.FsPath().
 	// Fall back to the raw URI if the shape is unexpected — the
 	// parser only uses the filename for error positions, which this
 	// path discards.

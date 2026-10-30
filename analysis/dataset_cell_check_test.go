@@ -172,9 +172,9 @@ func TestCellCheck_DecoderErrorPlacement(t *testing.T) {
 	require.NoError(t, err)
 	diags := validateRows(&doc.Datasets[0], desc)
 	require.Len(t, diags, 2)
-	assert.Equal(t, `column "sub": unknown field "nope" in c.v1.Sub`, diags[0].Message)
+	assert.Equal(t, `column "sub": unknown field "nope" in c.v1.Sub`, MessageText(diags[0].Message))
 	assert.Equal(t, protocol.Position{Line: 1, Character: 7}, diags[0].Range.Start, "on the block cell, not the row")
-	assert.Equal(t, `column "s" expects string; got int`, diags[1].Message)
+	assert.Equal(t, `column "s" expects string; got int`, MessageText(diags[1].Message))
 }
 
 // The decoder names types by their full names; the synthetic name of

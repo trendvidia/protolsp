@@ -155,10 +155,10 @@ func TestSubWorkspace_Close_RaceWithConcurrentReads(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	docA := srv.Documents().Get(devURI)

@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ import (
 // observe the same shape a real client would.
 func documentSymbolsFromHandle(t *testing.T, srv *Server, u string) []protocol.DocumentSymbol {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentDocumentSymbol,
 		&protocol.DocumentSymbolParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
@@ -33,18 +32,18 @@ func documentSymbolsFromHandle(t *testing.T, srv *Server, u string) []protocol.D
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
 func TestDocumentSymbol_ReportsTypeAndTopLevelField(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/g.pxf")
@@ -65,7 +64,7 @@ func TestDocumentSymbol_ReportsTypeAndTopLevelField(t *testing.T) {
 	}
 	require.NotNil(t, nameField, "expected a `name` field symbol")
 	assert.Equal(t, protocol.SymbolKindField, nameField.Kind)
-	assert.Equal(t, "string", nameField.Detail, "field detail carries protobuf kind label")
+	assert.Equal(t, "string", detailText(nameField.Detail), "field detail carries protobuf kind label")
 }
 
 func TestDocumentSymbol_ReturnsNilWhenDocumentNotOpen(t *testing.T) {
@@ -82,7 +81,7 @@ outer {
 }
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/n.pxf", 1, nested)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/n.pxf")
@@ -105,7 +104,7 @@ func TestDocumentSymbol_TypeOnlyDocReturnsOnlyTypeSymbol(t *testing.T) {
 	const typeOnly = `@type acme.demo.v1.Greeting
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, typeOnly)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/t.pxf")
@@ -115,7 +114,7 @@ func TestDocumentSymbol_TypeOnlyDocReturnsOnlyTypeSymbol(t *testing.T) {
 
 func TestDocumentSymbol_NoTypeDirectiveStillReportsEntries(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/u.pxf", 1, greetingNoTypeDirective)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/u.pxf")
@@ -134,23 +133,23 @@ func TestDocumentSymbol_AdvertisesCapability(t *testing.T) {
 	// Drive an initialize call so we observe the capabilities the
 	// server returns. Empty params → no registry config; that's fine,
 	// the capability advertisement doesn't depend on a registry.
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodInitialize,
 		&protocol.InitializeParams{})
 	require.NoError(t, err)
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.NotNil(t, caps)
 	v, ok := caps["documentSymbolProvider"]
 	require.True(t, ok, "initialize result must advertise documentSymbolProvider")

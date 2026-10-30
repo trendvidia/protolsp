@@ -60,11 +60,11 @@ chameleon { chain_spec = "chain.pxf" }
 // markdown string (or "" when the server returned no hover).
 func hoverAt(t *testing.T, srv *Server, docURI uri.URI, line, char uint32) string {
 	t.Helper()
-	h := srv.HoverFor(protocol.DocumentURI(docURI), protocol.Position{Line: line, Character: char})
+	h := srv.HoverFor(uri.URI(docURI), protocol.Position{Line: line, Character: char})
 	if h == nil {
 		return ""
 	}
-	return h.Contents.Value
+	return hoverBody(h)
 }
 
 func TestChainHover_RendersResolutionTableAcrossLayers(t *testing.T) {
@@ -85,7 +85,7 @@ api_url = "https://dev.example"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "https://dev.example"
 `)))
@@ -135,7 +135,7 @@ api_url = "${api_url}-suffix"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "${api_url}-suffix"
 `)))
@@ -170,7 +170,7 @@ db {
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 db {
   host = "dev-host"
@@ -229,7 +229,7 @@ api_url = "from-dev"
 	srv.Lookups().Swap(lookup, nil)
 
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "from-dev"
 `)))
@@ -284,7 +284,7 @@ password = "dev-secret"
 	require.NotNil(t, srv.Workspaces().SnapshotChain())
 
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type acme.demo.v1.Credentials
 password = "dev-secret"
 `)))
@@ -306,7 +306,7 @@ func TestChainHover_StandaloneDocHasNoChainSection(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///work")
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/scratch.pxf", 1, `@type c4test.v1.AppConfig
 api_url = "x"
 `)))
@@ -329,7 +329,7 @@ api_url = "from-base"
 		"env/dev.pxf":     `@type c4test.v1.AppConfig` + "\n",
 	})
 	baseURI := uri.File(filepath.Join(ws, "base.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(baseURI), 1, `@type c4test.v1.AppConfig
 api_url = "from-base"
 `)))
@@ -351,13 +351,13 @@ func TestChainHover_UnsavedEditOnAncestorReflectsInTable(t *testing.T) {
 		"env/dev.pxf":     `@type c4test.v1.AppConfig` + "\n",
 	})
 	sandboxURI := uri.File(filepath.Join(ws, "env", "sandbox.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(sandboxURI), 1, `@type c4test.v1.AppConfig
 api_url = "unsaved-from-sandbox"
 `)))
 
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "dev-value"
 `)))

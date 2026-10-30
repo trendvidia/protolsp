@@ -35,8 +35,8 @@ import (
 // pipeline.
 //
 // Without the scheme check this routed registry:// .proto previews
-// into analyzeProto, which then called URI.Filename() and panicked
-// because go.lsp.dev/uri's Filename() only supports file://.
+// into analyzeProto, which then called URI.FsPath() and panicked
+// because a filesystem path only exists for file://.
 func IsProtoURI(u uri.URI) bool {
 	s := string(u)
 	return strings.HasPrefix(s, "file://") && strings.HasSuffix(s, ".proto")
@@ -82,7 +82,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 	doc.rfc001SourceMap = nil
 
 	src := doc.Source
-	filename := doc.URI.Filename()
+	filename := doc.URI.FsPath()
 	if filename == "" {
 		filename = string(doc.URI)
 	}
@@ -166,8 +166,8 @@ func (s *Workspace) analyzeProto(doc *Document) {
 		diag := protocol.Diagnostic{
 			Range:    rng,
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/proto",
-			Message:  d.Message(),
+			Source:   optString("protolsp/proto"),
+			Message:  protocol.String(d.Message()),
 		}
 		rfc001AttachQuickFix(&diag, visible)
 		diags = append(diags, diag)
@@ -179,8 +179,8 @@ func (s *Workspace) analyzeProto(doc *Document) {
 		diags = append(diags, protocol.Diagnostic{
 			Range:    protoErrorRange(1, 1),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/proto",
-			Message:  fatal.Error(),
+			Source:   optString("protolsp/proto"),
+			Message:  protocol.String(fatal.Error()),
 		})
 	}
 	doc.ProtoDiagnostics = diags
@@ -301,8 +301,8 @@ func (s *Workspace) appendBufLintDiagnostics(doc *Document) {
 		doc.ProtoDiagnostics = append(doc.ProtoDiagnostics, protocol.Diagnostic{
 			Range:    bufLintRange(f),
 			Severity: protocol.DiagnosticSeverityWarning,
-			Source:   "buf/lint",
-			Message:  f.Message + " (" + f.Type + ")",
+			Source:   optString("buf/lint"),
+			Message:  protocol.String(f.Message + " (" + f.Type + ")"),
 		})
 	}
 }
@@ -317,7 +317,7 @@ func (s *Workspace) lintRelPath(doc *Document) string {
 	if idx == nil {
 		return ""
 	}
-	filename := doc.URI.Filename()
+	filename := doc.URI.FsPath()
 	for _, inc := range idx.IncludePaths() {
 		rel, err := filepath.Rel(inc, filename)
 		if err != nil || rel == "." || !filepath.IsLocal(rel) {

@@ -80,8 +80,8 @@ func (s *Workspace) completeFieldReference(doc *Document, pos protocol.Position)
 		items = append(items, protocol.CompletionItem{
 			Label:      p,
 			Kind:       protocol.CompletionItemKindField,
-			Detail:     "${" + p + "}",
-			FilterText: p,
+			Detail:     optString("${" + p + "}"),
+			FilterText: optString(p),
 			TextEdit: &protocol.TextEdit{
 				Range:   editRange,
 				NewText: p,

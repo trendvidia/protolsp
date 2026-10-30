@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/trendvidia/protolsp/positions"
@@ -16,18 +17,7 @@ import (
 // MethodSemanticTokensFull is the LSP method for the full-document
 // semantic-tokens request. Re-exported from protocol so the dispatcher
 // matches against a single source of truth.
-const MethodSemanticTokensFull = protocol.MethodSemanticTokensFull
-
-// SemanticTokensProvider mirrors the LSP 3.16 ServerCapabilities.
-// SemanticTokensProvider shape. The upstream protocol library types
-// the field as `interface{}` with a TODO for a typed struct, so we
-// supply our own — matching the on-wire JSON the spec expects
-// (legend + full=true; range/delta deferred).
-type SemanticTokensProvider struct {
-	Legend protocol.SemanticTokensLegend `json:"legend"`
-	Range  bool                          `json:"range"`
-	Full   bool                          `json:"full"`
-}
+const MethodSemanticTokensFull = protocol.MethodTextDocumentSemanticTokensFull
 
 // SemanticTokens is the layered, schema-driven highlight surface
 // (LSP 3.16+). The legend below maps each token type / modifier name
@@ -39,23 +29,22 @@ type SemanticTokensProvider struct {
 // new type/modifier means appending to the slice, never reordering.
 var (
 	SemanticTokenTypes = []protocol.SemanticTokenTypes{
-		protocol.SemanticTokenMacro,      // 0  - @type, @dataset, @proto, @<name> directive heads
-		protocol.SemanticTokenNamespace,  // 1  - dotted type URLs (acme.demo.v1.Greeting)
-		protocol.SemanticTokenProperty,   // 2  - Assignment.Key, MapEntry.Key
-		protocol.SemanticTokenStruct,     // 3  - Block.Name (message-typed nested block)
-		protocol.SemanticTokenString,     // 4  - StringVal literals
-		protocol.SemanticTokenNumber,     // 5  - IntVal, FloatVal, DurationVal, TimestampVal
-		protocol.SemanticTokenKeyword,    // 6  - true / false / null
-		protocol.SemanticTokenEnumMember, // 7  - IdentVal that resolves to an enum value
+		protocol.SemanticTokenTypesMacro,      // 0  - @type, @dataset, @proto, @<name> directive heads
+		protocol.SemanticTokenTypesNamespace,  // 1  - dotted type URLs (acme.demo.v1.Greeting)
+		protocol.SemanticTokenTypesProperty,   // 2  - Assignment.Key, MapEntry.Key
+		protocol.SemanticTokenTypesStruct,     // 3  - Block.Name (message-typed nested block)
+		protocol.SemanticTokenTypesString,     // 4  - StringVal literals
+		protocol.SemanticTokenTypesNumber,     // 5  - IntVal, FloatVal, DurationVal, TimestampVal
+		protocol.SemanticTokenTypesKeyword,    // 6  - true / false / null
+		protocol.SemanticTokenTypesEnumMember, // 7  - IdentVal that resolves to an enum value
 		// .proto RFC-001 constructs. `decorator` is the LSP
-		// 3.17 standard type for @-annotations; go.lsp.dev/protocol
-		// (3.16 vintage) has no constant for it, hence the literal.
+		// 3.17 standard type for @-annotations.
 		protocol.SemanticTokenTypes("decorator"), // 8  - @name annotation-use sites in .proto
 	}
 
 	semanticTokenModifiers = []protocol.SemanticTokenModifiers{
-		protocol.SemanticTokenModifierDeprecated,     // bit 0 - field marked [deprecated=true]
-		protocol.SemanticTokenModifierDefaultLibrary, // bit 1 - field from a protolsp-internal descriptor
+		protocol.SemanticTokenModifiersDeprecated,     // bit 0 - field marked [deprecated=true]
+		protocol.SemanticTokenModifiersDefaultLibrary, // bit 1 - field from a protolsp-internal descriptor
 	}
 )
 
@@ -79,14 +68,22 @@ const (
 // aligned with the stMacro / stNamespace / ... constants above.
 func SemanticTokensLegend() protocol.SemanticTokensLegend {
 	return protocol.SemanticTokensLegend{
-		TokenTypes:     append([]protocol.SemanticTokenTypes(nil), SemanticTokenTypes...),
-		TokenModifiers: append([]protocol.SemanticTokenModifiers(nil), semanticTokenModifiers...),
+		TokenTypes:     tokenNames(SemanticTokenTypes),
+		TokenModifiers: tokenNames(semanticTokenModifiers),
 	}
+}
+
+func tokenNames[T ~string](in []T) []string {
+	out := make([]string, len(in))
+	for i, t := range in {
+		out[i] = string(t)
+	}
+	return out
 }
 
 // SemanticTokensFor builds the SemanticTokens response for a document
 // or returns nil for an unopened / unparseable file.
-func (s *Workspace) SemanticTokensFor(docURI protocol.DocumentURI) *protocol.SemanticTokens {
+func (s *Workspace) SemanticTokensFor(docURI uri.URI) *protocol.SemanticTokens {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil

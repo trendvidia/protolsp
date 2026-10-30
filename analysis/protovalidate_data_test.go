@@ -34,9 +34,9 @@ func TestProtovalidateDataDiagnostics_RendersFindings(t *testing.T) {
 	diags := protovalidateDataDiagnostics(doc)
 	require.Len(t, diags, 2)
 	for _, d := range diags {
-		require.Equal(t, "buf/validate", d.Source)
+		require.Equal(t, "buf/validate", optText(d.Source))
 		require.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
 	}
-	require.Equal(t, "int32.lte", diags[0].Code)
-	require.Equal(t, "string.email", diags[1].Code)
+	require.Equal(t, protocol.String("int32.lte"), diags[0].Code)
+	require.Equal(t, protocol.String("string.email"), diags[1].Code)
 }

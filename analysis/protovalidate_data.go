@@ -90,9 +90,9 @@ func protovalidateDataDiagnostics(doc *Document) []protocol.Diagnostic {
 		out = append(out, protocol.Diagnostic{
 			Range:    pxfPosToRange(f.Pos),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "buf/validate",
-			Code:     f.ConstraintID,
-			Message:  f.Message,
+			Source:   optString("buf/validate"),
+			Code:     protocol.String(f.ConstraintID),
+			Message:  protocol.String(f.Message),
 		})
 	}
 	return out

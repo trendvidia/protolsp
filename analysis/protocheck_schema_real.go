@@ -366,8 +366,8 @@ func validateSingleExpression(file *protoast.File, lit ast.ExprDict, env *eval.E
 		return []protocol.Diagnostic{{
 			Range:    expressionErrorRange(file, anchor, err, enc),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protocheck/expression",
-			Message:  err.Error(),
+			Source:   optString("protocheck/expression"),
+			Message:  protocol.String(err.Error()),
 		}}
 	}
 	return nil

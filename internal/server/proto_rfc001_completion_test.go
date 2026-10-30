@@ -23,7 +23,7 @@ import (
 func TestProtoCompletion_MessageScope_TypeAliases(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/alias-completion.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, typeFuncFixture)))
 
 	// Line 22 is `  PrimaryEmail address = 1;` inside message Contact.
@@ -65,7 +65,7 @@ func TestProtoCompletion_ImportedTypeAliases(t *testing.T) {
 func TestProtoCompletion_RFC001ParamTypes(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/param-completion.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, typeFuncFixture)))
 
 	positions := []struct {
@@ -96,7 +96,7 @@ func TestProtoCompletion_RFC001ParamTypes(t *testing.T) {
 func TestProtoCompletion_RFC001ParamTypes_EmptySlot(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/param-midedit.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, `syntax = "proto3";
 
 package test.rfc001.params;
@@ -121,7 +121,7 @@ function f(s: );
 func TestProtoCompletion_AnnotationArgs_InFileFunctions(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/arg-completion.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, typeFuncFixture)))
 
 	// Line 20 `@check(is_email)`, char 9 inside `is_email`.
@@ -139,7 +139,7 @@ func TestProtoCompletion_AnnotationArgs_InFileFunctions(t *testing.T) {
 func TestProtoCompletion_AnnotationArgs_EmptyParens(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/arg-empty.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, `syntax = "proto3";
 
 package test.rfc001.args;
@@ -171,7 +171,7 @@ func TestProtoCompletion_AnnotationArgs_ImportedFunctions(t *testing.T) {
 	dir := "file://" + filepath.ToSlash(filepath.Dir(fooPath))
 
 	unqualified := dir + "/scratch-arg-unqualified.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, unqualified, 1, `syntax = "proto3";
 
 package acme.app.v1;
@@ -188,7 +188,7 @@ message M {}
 		"bare argument positions offer imported functions package-qualified")
 
 	qualified := dir + "/scratch-arg-qualified.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, qualified, 1, `syntax = "proto3";
 
 package acme.app.v1;

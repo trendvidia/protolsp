@@ -3,8 +3,8 @@
 
 // Early-warning instrumentation for the LSP dispatcher.
 //
-// go.lsp.dev/jsonrpc2 dispatches every incoming message on a single
-// reader goroutine (conn.go: `go c.run(ctx, handler)`). When a
+// go.lsp.dev/jsonrpc2 runs each handler inline on the connection's
+// read loop unless it is wrapped with AsyncHandler. When a
 // handler blocks — say, by calling s.conn.Call inline and waiting on
 // a response only the same reader goroutine can route — every
 // subsequent client message queues in the OS pipe unprocessed. The
@@ -49,7 +49,7 @@ const DefaultSlowHandlerThreshold = 5 * time.Second
 // The wrap measures HANDLER RETURN TIME, not downstream goroutine
 // completion. That's deliberate: the failure mode we're catching is
 // "handler synchronously blocked the reader." Handlers that
-// correctly spawn goroutines and return reply() immediately (the
+// correctly spawn goroutines and return immediately (the
 // initialized + didChangeConfiguration pattern) don't trip this even
 // when their goroutines run for minutes — those goroutines aren't
 // blocking the dispatcher.
@@ -62,9 +62,9 @@ func WithSlowHandlerWarn(h jsonrpc2.Handler, log *slog.Logger, threshold time.Du
 	if threshold <= 0 || log == nil {
 		return h
 	}
-	return func(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+	return func(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 		start := time.Now()
-		err := h(ctx, reply, req)
+		result, err := h(ctx, req)
 		if d := time.Since(start); d > threshold {
 			log.Warn("LSP handler exceeded slow threshold — handler likely blocked the jsonrpc2 reader; see internal/transport/handler_warn.go",
 				slog.String("method", req.Method()),
@@ -72,6 +72,6 @@ func WithSlowHandlerWarn(h jsonrpc2.Handler, log *slog.Logger, threshold time.Du
 				slog.Duration("threshold", threshold),
 			)
 		}
-		return err
+		return result, err
 	}
 }

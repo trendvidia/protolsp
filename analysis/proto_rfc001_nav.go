@@ -254,7 +254,7 @@ func rfc001FunctionRefAt(path *protoPath) (string, bool) {
 // into the read-only browsing view. Type-slot references delegate to
 // renderProtoFieldTypeHover, which already carries the registry
 // discipline (and the sub-workspace scope via wsDir).
-func (s *Workspace) protoRFC001HoverFor(docURI protocol.DocumentURI, wsDir string, f *protoast.File, path *protoPath) *protocol.Hover {
+func (s *Workspace) protoRFC001HoverFor(docURI uri.URI, wsDir string, f *protoast.File, path *protoPath) *protocol.Hover {
 	if _, hover, ok := rfc001DeclNameAt(f, path); ok {
 		return hover()
 	}
@@ -276,7 +276,7 @@ func (s *Workspace) protoRFC001HoverFor(docURI protocol.DocumentURI, wsDir strin
 	}
 	if name, ok := rfc001TypeRefAt(path); ok {
 		if md := s.renderProtoFieldTypeHover(docURI, wsDir, f, name, protoRefScopeAt(f, path)); md != "" {
-			return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: md}}
+			return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: md}}
 		}
 	}
 	return nil
@@ -287,7 +287,7 @@ func (s *Workspace) protoRFC001HoverFor(docURI protocol.DocumentURI, wsDir strin
 // declaration; a declaration's own name jumps to itself (matching
 // the degenerate-but-harmless behavior of message/enum names).
 // Returns nil when the position isn't RFC-001-related.
-func (s *Workspace) protoRFC001DefinitionFor(docURI protocol.DocumentURI, wsDir string, f *protoast.File, path *protoPath) *protocol.Location {
+func (s *Workspace) protoRFC001DefinitionFor(docURI uri.URI, wsDir string, f *protoast.File, path *protoPath) *protocol.Location {
 	if name, _, ok := rfc001DeclNameAt(f, path); ok {
 		return &protocol.Location{URI: docURI, Range: nodeLSPRange(f, name, s.positionEncoding)}
 	}
@@ -323,7 +323,7 @@ func (s *Workspace) protoRFC001DefinitionFor(docURI protocol.DocumentURI, wsDir 
 // a URI from their relative parse path); cross-file targets use the
 // declaring file's own file:// URI — except from registry previews,
 // which never leak on-disk locations.
-func (s *Workspace) rfc001DeclLocation(docURI protocol.DocumentURI, currentFile, declFile *protoast.File, name token.Token) *protocol.Location {
+func (s *Workspace) rfc001DeclLocation(docURI uri.URI, currentFile, declFile *protoast.File, name token.Token) *protocol.Location {
 	if declFile == currentFile {
 		return &protocol.Location{URI: docURI, Range: nodeLSPRange(currentFile, name, s.positionEncoding)}
 	}
@@ -349,7 +349,7 @@ func renderProtoAnnotationHover(f *protoast.File, decl ast.DeclAnnotation) *prot
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // protoAnnotationSignature renders a declaration's name plus its
@@ -456,7 +456,7 @@ func renderProtoTypeAliasHover(f *protoast.File, decl ast.DeclType) *protocol.Ho
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // protoTypeAliasSignature renders `Name = <value as written>` — or
@@ -482,7 +482,7 @@ func renderProtoFunctionHover(f *protoast.File, decl ast.DeclFunction) *protocol
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // protoFunctionSignature renders a declaration's name plus its
@@ -577,8 +577,8 @@ func (s *Workspace) protoRFC001CompletionItems(currentFile *protoast.File, quali
 		items = append(items, protocol.CompletionItem{
 			Label:      label,
 			Kind:       kind,
-			Detail:     what + " (" + provenance + ")",
-			InsertText: label,
+			Detail:     optString(what + " (" + provenance + ")"),
+			InsertText: optString(label),
 		})
 	}
 	currentPkg := filePackage(currentFile)

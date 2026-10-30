@@ -43,6 +43,7 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -174,7 +175,7 @@ func (s *Workspace) resolveRFC001RemoteDecl(ctx context.Context, wsDir string, c
 		var loc *protocol.Location
 		if origin != "" {
 			loc = &protocol.Location{
-				URI:   protocol.DocumentURI(BuildRegistryURI(origin, imp)),
+				URI:   uri.URI(BuildRegistryURI(origin, imp)),
 				Range: rng,
 			}
 		}
@@ -190,7 +191,7 @@ func (s *Workspace) rfc001RemoteHover(wsDir string, currentFile *protoast.File, 
 	if !ok {
 		return nil
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: md}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: md}}
 }
 
 // rfc001RemoteLocation is the definition-shaped wrapper: a resolved
@@ -213,11 +214,11 @@ func rfc001DeclCard(f *protoast.File, kind rfc001DeclKind, leaf string) (string,
 	switch kind {
 	case rfc001KindAnnotation:
 		if d := findAnnotationByName(f, leaf); !d.IsZero() {
-			return renderProtoAnnotationHover(f, d).Contents.Value, d.Name(), true
+			return hoverText(renderProtoAnnotationHover(f, d)), d.Name(), true
 		}
 	case rfc001KindFunction:
 		if d := findFunctionByName(f, leaf); !d.IsZero() {
-			return renderProtoFunctionHover(f, d).Contents.Value, d.Name(), true
+			return hoverText(renderProtoFunctionHover(f, d)), d.Name(), true
 		}
 	}
 	return "", nil, false

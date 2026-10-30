@@ -24,7 +24,7 @@ import (
 func openInline(t *testing.T, src string) (*Document, []protocol.Diagnostic) {
 	t.Helper()
 	srv, fc := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/inline.pxf", 1, src)))
 	doc := srv.Documents().Get("file:///work/inline.pxf")
 	require.NotNil(t, doc)
@@ -38,8 +38,8 @@ func openInline(t *testing.T, src string) (*Document, []protocol.Diagnostic) {
 func messages(diags []protocol.Diagnostic, source string) []string {
 	var out []string
 	for _, d := range diags {
-		if d.Source == source {
-			out = append(out, d.Message)
+		if optValue(d.Source) == source {
+			out = append(out, messageText(d.Message))
 		}
 	}
 	return out
@@ -155,7 +155,7 @@ func TestInlineProto_EmbeddedSchemaWins(t *testing.T) {
 	lookup := newFakeLookup()
 	lookup.add(buildCredentialsWithSecretType(t)) // acme.demo.v1.Credentials: username, password
 	srv.Lookups().Swap(lookup, nil)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, "file:///work/inline.pxf", 1,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, "file:///work/inline.pxf", 1,
 		"@proto acme.demo.v1.Credentials { string login = 1; }\n@type acme.demo.v1.Credentials\nlogin = \"a\"\n")))
 	notes := fc.calls()
 	require.NotEmpty(t, notes)
@@ -202,12 +202,12 @@ func TestInlineProto_ErrorPositions(t *testing.T) {
 			_, diags := openInline(t, tc.src)
 			var got []protocol.Diagnostic
 			for _, d := range diags {
-				if d.Source == "protolsp/proto" {
+				if optValue(d.Source) == "protolsp/proto" {
 					got = append(got, d)
 				}
 			}
 			require.Len(t, got, 1, "diagnostics: %v", diags)
-			assert.Equal(t, tc.at, got[0].Range.Start, got[0].Message)
+			assert.Equal(t, tc.at, got[0].Range.Start, messageText(got[0].Message))
 		})
 	}
 }
@@ -247,9 +247,9 @@ func TestInlineProto_DescriptorForm(t *testing.T) {
 func changeInline(t *testing.T, src, next string) (*Document, []protocol.Diagnostic) {
 	t.Helper()
 	srv, fc := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/inline.pxf", 1, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/inline.pxf", 2, next)))
 	doc := srv.Documents().Get("file:///work/inline.pxf")
 	require.NotNil(t, doc)
@@ -269,11 +269,11 @@ func TestInlineProto_DatasetHover(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			srv, _ := newServerWithFakeConn(t)
-			require.NoError(t, srv.Handle(context.Background(), noopReply,
+			require.NoError(t, testHandle(srv, context.Background(), noopReply,
 				didOpenCall(t, "file:///work/inline.pxf", 1, tc.src)))
 			hover := srv.HoverFor("file:///work/inline.pxf", protocol.Position{Line: 1, Character: 3})
 			require.NotNil(t, hover)
-			md := hover.Contents.Value
+			md := hoverBody(hover)
 			assert.Contains(t, md, tc.want)
 			assert.Contains(t, md, "this document's `@proto`")
 			assert.NotContains(t, md, "not known")
@@ -303,9 +303,9 @@ func TestInlineProto_NoSecondUnknownRowType(t *testing.T) {
 	lookup := newFakeLookup()
 	lookup.add(buildCredentialsWithSecretType(t))
 	srv.Lookups().Swap(lookup, nil)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, "file:///work/inline.pxf", 1,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, "file:///work/inline.pxf", 1,
 		"@proto { strin x = 1; }\n@dataset (x)\n(\"a\")\n")))
-	require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, "file:///work/plain.pxf", 1,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, "file:///work/plain.pxf", 1,
 		"@dataset (x)\n(\"a\")\n")))
 	notes := fc.calls()
 	require.Len(t, notes, 2)
@@ -341,12 +341,12 @@ func TestInlineProto_IndentedSourceErrorPosition(t *testing.T) {
 	_, diags := openInline(t, "@proto \"\"\"\n  syntax = \"proto3\";\n  import \"acme/other.proto\";\n  message T {}\n  \"\"\"\n@type T\n")
 	var got []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protolsp/proto" {
+		if optValue(d.Source) == "protolsp/proto" {
 			got = append(got, d)
 		}
 	}
 	require.Len(t, got, 1, "diagnostics: %v", diags)
-	assert.Equal(t, protocol.Position{Line: 2, Character: 2}, got[0].Range.Start, got[0].Message)
+	assert.Equal(t, protocol.Position{Line: 2, Character: 2}, got[0].Range.Start, messageText(got[0].Message))
 }
 
 // One @proto that does not compile does not take the others' types
@@ -367,7 +367,7 @@ func TestInlineProto_ReuseAfterEdit(t *testing.T) {
 		"# a\n#b\n@proto t.v1.T { strin x = 1; }\n@type t.v1.T\n")
 	require.Len(t, messages(diags, "protolsp/proto"), 1, "%v", diags)
 	for _, d := range diags {
-		if d.Source == "protolsp/proto" {
+		if optValue(d.Source) == "protolsp/proto" {
 			assert.Equal(t, protocol.Position{Line: 2, Character: 16}, d.Range.Start)
 		}
 	}

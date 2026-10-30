@@ -242,7 +242,7 @@ func (s *Workspace) protoSensitiveClassItems(doc *Document, pos protocol.Positio
 		items = append(items, protocol.CompletionItem{
 			Label:  label,
 			Kind:   protocol.CompletionItemKindValue,
-			Detail: "sensitivity class (workspace)",
+			Detail: optString("sensitivity class (workspace)"),
 		})
 	}
 	return items

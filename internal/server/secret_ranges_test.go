@@ -107,7 +107,7 @@ func TestCollectSecretRanges_ScalarShorthand(t *testing.T) {
 username = "alice"
 password = "super-secret"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	doc := srv.Documents().Get("file:///work/c.pxf")
@@ -137,7 +137,7 @@ password {
   hint = "AWS key, US-East"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	doc := srv.Documents().Get("file:///work/c.pxf")
@@ -170,7 +170,7 @@ func TestCollectSecretRanges_OnSecretHookDropsValue(t *testing.T) {
 username = "alice"
 password = "secret-value"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	doc := srv.Documents().Get("file:///work/c.pxf")
@@ -203,7 +203,7 @@ func TestPublishDiagnostics_RedactsSecretValuesInMessage(t *testing.T) {
 username = "alice"
 password = "super-leaked"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	// Force-publish a synthetic diagnostic that includes the
@@ -216,8 +216,8 @@ password = "super-leaked"
 				End:   protocol.Position{Line: 3, Character: 24},
 			},
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/test",
-			Message:  `invalid value "super-leaked" for field "password"`,
+			Source:   protocol.NewOptional("protolsp/test"),
+			Message:  protocol.String(`invalid value "super-leaked" for field "password"`),
 		},
 	})
 
@@ -233,7 +233,7 @@ password = "super-leaked"
 	// occurrence of the raw secret in the rendered messages.
 	last := notes[len(notes)-1]
 	for _, d := range last.params.Diagnostics {
-		assert.NotContains(t, d.Message, "super-leaked",
+		assert.NotContains(t, messageText(d.Message), "super-leaked",
 			"redacted diagnostic message must not contain the secret bytes")
 	}
 }
@@ -247,13 +247,13 @@ func TestPublishDiagnostics_NoSecretsIsPassThrough(t *testing.T) {
 	lookup.add(buildGreetingMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingUnknownField)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	diags := notes[0].params.Diagnostics
 	require.Len(t, diags, 1)
-	assert.Contains(t, diags[0].Message, "stranger",
+	assert.Contains(t, messageText(diags[0].Message), "stranger",
 		"non-secret content passes through unchanged")
 }

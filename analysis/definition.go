@@ -18,7 +18,7 @@ import (
 
 // DefinitionFor computes the Location the cursor's target resolves to,
 // or returns nil for "no definition available."
-func (s *Workspace) DefinitionFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.Location {
+func (s *Workspace) DefinitionFor(docURI uri.URI, pos protocol.Position) *protocol.Location {
 	// Phase 2 of proto authoring: .proto documents have their own
 	// AST-based definition resolution (within-file only for now).
 	// Routing them through the dedicated handler keeps the pxf-

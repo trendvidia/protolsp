@@ -24,10 +24,10 @@ func TestRegistryCrossFileHover_MessageCard(t *testing.T) {
 
 	// Cursor on the "Greeting" type ref (line 6, char 4) — declared in
 	// another registry file.
-	h := w.HoverFor(protocol.DocumentURI(importerURI), protocol.Position{Line: 6, Character: 4})
+	h := w.HoverFor(uri.URI(importerURI), protocol.Position{Line: 6, Character: 4})
 	require.NotNil(t, h, "cross-file type ref hovers through the namespace lookup")
-	assert.Contains(t, h.Contents.Value, "message Greeting", "renders the imported message's card")
-	assert.Contains(t, h.Contents.Value, "greeting.proto", "card attributes the defining registry file")
+	assert.Contains(t, hoverText(h), "message Greeting", "renders the imported message's card")
+	assert.Contains(t, hoverText(h), "greeting.proto", "card attributes the defining registry file")
 }
 
 func TestRegistryCrossFileHover_EnumCard(t *testing.T) {
@@ -36,9 +36,9 @@ func TestRegistryCrossFileHover_EnumCard(t *testing.T) {
 	w.OpenShadowProto(uri.URI(importerURI), xfImporterProto)
 
 	// Cursor on the "Tone" enum ref (line 7, char 4).
-	h := w.HoverFor(protocol.DocumentURI(importerURI), protocol.Position{Line: 7, Character: 4})
+	h := w.HoverFor(uri.URI(importerURI), protocol.Position{Line: 7, Character: 4})
 	require.NotNil(t, h, "cross-file enum ref hovers too")
-	assert.Contains(t, h.Contents.Value, "enum Tone", "renders the imported enum's card")
+	assert.Contains(t, hoverText(h), "enum Tone", "renders the imported enum's card")
 }
 
 func TestRegistryCrossFileHover_InFileStillWorks(t *testing.T) {
@@ -61,9 +61,9 @@ message Inner {
 	w.OpenShadowProto(uri.URI(u), src)
 
 	// Cursor on "Inner" (line 4).
-	h := w.HoverFor(protocol.DocumentURI(u), protocol.Position{Line: 4, Character: 4})
+	h := w.HoverFor(uri.URI(u), protocol.Position{Line: 4, Character: 4})
 	require.NotNil(t, h, "in-file type ref still hovers")
-	assert.Contains(t, h.Contents.Value, "message Inner")
+	assert.Contains(t, hoverText(h), "message Inner")
 }
 
 func TestRegistryCrossFileHover_UnresolvedReturnsNil(t *testing.T) {
@@ -81,6 +81,6 @@ message Envelope {
 	w.OpenShadowProto(uri.URI(u), src)
 
 	// A type from an unresolvable import → no card.
-	h := w.HoverFor(protocol.DocumentURI(u), protocol.Position{Line: 6, Character: 2})
+	h := w.HoverFor(uri.URI(u), protocol.Position{Line: 6, Character: 2})
 	assert.Nil(t, h, "an unresolvable cross-file type has no hover card")
 }

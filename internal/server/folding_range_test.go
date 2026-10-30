@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,12 +19,10 @@ import (
 // the same shape a real client would.
 func foldingRangesFromHandle(t *testing.T, srv *Server, u string) []protocol.FoldingRange {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentFoldingRange,
 		&protocol.FoldingRangeParams{
-			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-				TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
-			},
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
 		})
 	require.NoError(t, err)
 
@@ -35,12 +32,12 @@ func foldingRangesFromHandle(t *testing.T, srv *Server, u string) []protocol.Fol
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -94,7 +91,7 @@ inline = { a = 1 }
 
 func TestFoldingRange_PxfBlocks(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/f.pxf", 1, pxfFolding)))
 
 	ranges := foldingRangesFromHandle(t, srv, "file:///work/f.pxf")
@@ -130,7 +127,7 @@ name = "world"
 
 func TestFoldingRange_PxfMultiLineDirective(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/d.pxf", 1, pxfDirectiveFolding)))
 
 	ranges := foldingRangesFromHandle(t, srv, "file:///work/d.pxf")
@@ -200,14 +197,14 @@ service Greeter {
 
 func TestFoldingRange_ProtoBlocks(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/greet.proto", 1, protoFolding)))
 
 	ranges := foldingRangesFromHandle(t, srv, "file:///work/greet.proto")
 	require.NotEmpty(t, ranges)
 
-	assert.True(t, hasFold(ranges, 4, 5, protocol.ImportsFoldingRange), "import group folds 4..5: %+v", ranges)
-	assert.True(t, hasFold(ranges, 7, 8, protocol.CommentFoldingRange), "doc comment block folds 7..8: %+v", ranges)
+	assert.True(t, hasFold(ranges, 4, 5, protocol.FoldingRangeKindImports), "import group folds 4..5: %+v", ranges)
+	assert.True(t, hasFold(ranges, 7, 8, protocol.FoldingRangeKindComment), "doc comment block folds 7..8: %+v", ranges)
 	assert.True(t, hasFold(ranges, 9, 15, ""), "message body folds 9..15: %+v", ranges)
 	assert.True(t, hasFold(ranges, 11, 14, ""), "oneof body folds 11..14: %+v", ranges)
 	assert.True(t, hasFold(ranges, 17, 20, ""), "enum body folds 17..20: %+v", ranges)
@@ -232,12 +229,12 @@ message M {
 }
 `
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/one.proto", 1, src)))
 
 	ranges := foldingRangesFromHandle(t, srv, "file:///work/one.proto")
 	for _, r := range ranges {
-		assert.NotEqual(t, protocol.ImportsFoldingRange, r.Kind,
+		assert.NotEqual(t, protocol.FoldingRangeKindImports, r.Kind,
 			"a lone import is not a foldable group: %+v", r)
 	}
 }

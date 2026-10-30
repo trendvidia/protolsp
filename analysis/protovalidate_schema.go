@@ -197,8 +197,8 @@ func validateSingleCelExpression(file *protoast.File, lit ast.ExprDict, env *cel
 		diags = append(diags, protocol.Diagnostic{
 			Range:    celErrorRange(file, anchor, e, enc),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "buf/validate/cel",
-			Message:  e.Message,
+			Source:   optString("buf/validate/cel"),
+			Message:  protocol.String(e.Message),
 		})
 	}
 	return diags

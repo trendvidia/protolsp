@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,7 @@ func TestWatchedFiles_RegistrationIncludesProtoAndBuf(t *testing.T) {
 	calls := fc.callsByMethod(protocol.MethodClientRegisterCapability)
 	require.Len(t, calls, 1)
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 
 	var watcherReg *protocol.Registration
 	for i := range reg.Registrations {
@@ -42,14 +41,14 @@ func TestWatchedFiles_RegistrationIncludesProtoAndBuf(t *testing.T) {
 	// Re-decode RegisterOptions from the raw registration. The
 	// LSP type uses interface{} so we round-trip through JSON to
 	// get back to the typed shape.
-	raw, err := json.Marshal(watcherReg.RegisterOptions)
+	raw, err := testCodec.Marshal(watcherReg.RegisterOptions)
 	require.NoError(t, err)
 	var opts protocol.DidChangeWatchedFilesRegistrationOptions
-	require.NoError(t, json.Unmarshal(raw, &opts))
+	require.NoError(t, testCodec.Unmarshal(raw, &opts))
 
 	globs := make([]string, 0, len(opts.Watchers))
 	for _, w := range opts.Watchers {
-		globs = append(globs, w.GlobPattern)
+		globs = append(globs, patternText(w.GlobPattern))
 	}
 
 	assert.Contains(t, globs, "**/*.proto",
@@ -84,7 +83,7 @@ message First { string a = 1; }
 package x.v1;
 message Second { string b = 1; }
 `)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(secondPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -123,7 +122,7 @@ message OldName { string a = 1; }
 package x.v1;
 message NewName { string a = 1; }
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(protoPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -161,7 +160,7 @@ package x.v1;
 modules:
   - path: api
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(yamlPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -198,7 +197,7 @@ deps:
   - name: buf.build/some/dep
     commit: abc
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(lockPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -225,7 +224,7 @@ func TestWatchedFiles_ProtoOutsideIndexIsIgnored(t *testing.T) {
 	// Create a .proto OUTSIDE the proto/ module dir.
 	outsidePath := filepath.Join(workspaceDir, "scratch", "playground.proto")
 	mustWrite(t, outsidePath, `syntax = "proto3";`)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(outsidePath), Type: protocol.FileChangeTypeCreated},
 		})))

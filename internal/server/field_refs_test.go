@@ -120,8 +120,8 @@ func newAppConfigServer(t *testing.T) (*Server, *fakeConn) {
 func fieldRefDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	var out []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protolsp/schema" &&
-			len(d.Message) >= len("reference ") && d.Message[:len("reference ")] == "reference " {
+		if optValue(d.Source) == "protolsp/schema" &&
+			len(messageText(d.Message)) >= len("reference ") && messageText(d.Message)[:len("reference ")] == "reference " {
 			out = append(out, d)
 		}
 	}
@@ -135,7 +135,7 @@ func TestFieldRefs_ResolvableReferenceProducesNoDiag(t *testing.T) {
 
 api_url = "https://${db.host}:${db.port}/v1"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -150,15 +150,15 @@ func TestFieldRefs_UnknownTopLevelFieldEmitsDiag(t *testing.T) {
 
 api_url = "https://${nonexistent}/v1"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1)
 	d := diags[0]
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Contains(t, d.Message, "nonexistent")
-	assert.Contains(t, d.Message, "c4test.v1.AppConfig",
+	assert.Contains(t, messageText(d.Message), "nonexistent")
+	assert.Contains(t, messageText(d.Message), "c4test.v1.AppConfig",
 		"diagnostic names the bound message FQN")
 }
 
@@ -169,13 +169,13 @@ func TestFieldRefs_UnknownNestedSegmentEmitsDiag(t *testing.T) {
 
 api_url = "${db.missing}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1,
 		"parent exists, child doesn't → one diagnostic")
-	assert.Contains(t, diags[0].Message, "db.missing")
+	assert.Contains(t, messageText(diags[0].Message), "db.missing")
 }
 
 func TestFieldRefs_DescendingPastScalarEmitsDiag(t *testing.T) {
@@ -185,13 +185,13 @@ func TestFieldRefs_DescendingPastScalarEmitsDiag(t *testing.T) {
 
 api_url = "${db.host.too.deep}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1,
 		"can't descend into a scalar field — diagnostic fires")
-	assert.Contains(t, diags[0].Message, "db.host.too.deep")
+	assert.Contains(t, messageText(diags[0].Message), "db.host.too.deep")
 }
 
 func TestFieldRefs_EnvAndCtxPrefixesAreSkipped(t *testing.T) {
@@ -201,7 +201,7 @@ func TestFieldRefs_EnvAndCtxPrefixesAreSkipped(t *testing.T) {
 
 api_url = "https://${env.HOST}:${ctx.region}/v1"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -220,7 +220,7 @@ func TestFieldRefs_NonStringValuesIgnored(t *testing.T) {
 debug = false
 api_url = "ok"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -234,7 +234,7 @@ func TestFieldRefs_MultipleReferencesEmitOnePerBadPath(t *testing.T) {
 
 api_url = "${one} ${two} ${db.host}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -248,7 +248,7 @@ func TestFieldRefs_NoTypeDirectiveSkipsCheck(t *testing.T) {
 	// No @type → no schema bound → no field-ref diagnostics.
 	const src = `api_url = "${anything}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -264,7 +264,7 @@ func TestFieldRefs_NoLookupSkipsCheck(t *testing.T) {
 
 api_url = "${anything}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)
@@ -283,7 +283,7 @@ func TestFieldRefs_UnresolvedTypeSkipsCheck(t *testing.T) {
 
 api_url = "${anything}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, src)))
 
 	diags := fieldRefDiags(fc.calls()[0].params.Diagnostics)

@@ -76,7 +76,7 @@ func TestProtoCompletion_SensitiveClassNames(t *testing.T) {
 	// Line 7: cursor inside the empty string literal, char 50
 	// (the `(` sits at char 48).
 	src := sensitiveUserHeader + `  string card = 1 @protowire.schema.v1.sensitive("");` + "\n}\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 
 	list := completionFromHandle(t, srv, u, 7, 50)
@@ -84,7 +84,7 @@ func TestProtoCompletion_SensitiveClassNames(t *testing.T) {
 	var labels []string
 	for _, it := range list.Items {
 		labels = append(labels, it.Label)
-		assert.Equal(t, "sensitivity class (workspace)", it.Detail)
+		assert.Equal(t, "sensitivity class (workspace)", detailText(it.Detail))
 	}
 	assert.Equal(t, []string{"pii", "secret"}, labels,
 		"harvested classes, bare inside the string, sorted")
@@ -92,7 +92,7 @@ func TestProtoCompletion_SensitiveClassNames(t *testing.T) {
 	// Cursor between the empty parens (char 49): quoted items,
 	// ready to insert as the whole argument.
 	src2 := sensitiveUserHeader + `  string card = 1 @protowire.schema.v1.sensitive();` + "\n}\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, u, 2, src2)))
 	list = completionFromHandle(t, srv, u, 7, 49)
 	require.NotNil(t, list)
@@ -121,14 +121,14 @@ message M {
   string x = 1 @sensitive("");
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 
 	// Line 7, inside the literal (char 27: `  string x = 1 @sensitive("` …).
 	list := completionFromHandle(t, srv, u, 7, 27)
 	if list != nil {
 		for _, it := range list.Items {
-			assert.NotEqual(t, "sensitivity class (workspace)", it.Detail,
+			assert.NotEqual(t, "sensitivity class (workspace)", detailText(it.Detail),
 				"acme.app.v1.sensitive is not the protowire marker")
 		}
 	}
@@ -153,7 +153,7 @@ func TestDidOpen_SensitiveReservedClassPrefix(t *testing.T) {
 			dir, srv, fc := setupSensitiveWorkspace(t)
 			u := dir + "/reserved.proto"
 			src := sensitiveUserHeader + "  string card = 1 " + c.use + ";\n}\n"
-			require.NoError(t, srv.Handle(context.Background(), noopReply,
+			require.NoError(t, testHandle(srv, context.Background(), noopReply,
 				didOpenCall(t, u, 1, src)))
 
 			var diags []protocol.Diagnostic
@@ -164,7 +164,7 @@ func TestDidOpen_SensitiveReservedClassPrefix(t *testing.T) {
 			}
 			var reserved *protocol.Diagnostic
 			for i := range diags {
-				if strings.Contains(diags[i].Message, "reserved") {
+				if strings.Contains(messageText(diags[i].Message), "reserved") {
 					reserved = &diags[i]
 					break
 				}
@@ -174,7 +174,7 @@ func TestDidOpen_SensitiveReservedClassPrefix(t *testing.T) {
 				return
 			}
 			require.NotNil(t, reserved, "expected a reserved-prefix diagnostic; got %+v", diags)
-			assert.Equal(t, "protolsp/proto", reserved.Source,
+			assert.Equal(t, "protolsp/proto", optValue(reserved.Source),
 				"the compiler's finding flows through the ordinary compile channel")
 			assert.Equal(t, protocol.DiagnosticSeverityError, reserved.Severity)
 		})

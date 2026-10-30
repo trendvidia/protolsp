@@ -5,13 +5,13 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 const secretsScalarSrc = `@type acme.demo.v1.Credentials
@@ -31,9 +31,9 @@ password {
 
 // secretRangesReply drives MethodSecretRanges and decodes the
 // result.
-func secretRangesReply(t *testing.T, srv *Server, docURI protocol.DocumentURI) SecretRangesResult {
+func secretRangesReply(t *testing.T, srv *Server, docURI uri.URI) SecretRangesResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSecretRanges, SecretRangesParams{
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSecretRanges, SecretRangesParams{
 		TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
 	})
 	require.NoError(t, err)
@@ -41,12 +41,12 @@ func secretRangesReply(t *testing.T, srv *Server, docURI protocol.DocumentURI) S
 	var got SecretRangesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -65,7 +65,7 @@ func newServerWithCredentialsType(t *testing.T) (*Server, *fakeConn, *fakeLookup
 
 func TestSecretRanges_ReturnsScalarFormEntry(t *testing.T) {
 	srv, _, _ := newServerWithCredentialsType(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	got := secretRangesReply(t, srv, "file:///work/c.pxf")
@@ -77,7 +77,7 @@ func TestSecretRanges_ReturnsScalarFormEntry(t *testing.T) {
 
 func TestSecretRanges_ReturnsBlockFormEntry(t *testing.T) {
 	srv, _, _ := newServerWithCredentialsType(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsBlockSrc)))
 
 	got := secretRangesReply(t, srv, "file:///work/c.pxf")
@@ -98,7 +98,7 @@ func TestSecretRanges_DocumentWithoutSecretsReturnsEmpty(t *testing.T) {
 	// Greeting fixture has no pxf.Secret fields; the document
 	// loads, has no secret ranges.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	got := secretRangesReply(t, srv, "file:///work/g.pxf")
@@ -114,7 +114,7 @@ func TestSecretRangesChanged_FiresOnDidOpenWithSecrets(t *testing.T) {
 	// asserting fired. Real clients flip this bit by calling the
 	// matching legacy request method; tests flip it directly.
 	srv.legacyLspClients.secretRanges.Store(true)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.secretRangesChangedNotifications()
@@ -129,7 +129,7 @@ func TestSecretRangesChanged_SilentForDocumentWithoutSecrets(t *testing.T) {
 	// Open a non-secret doc — no notification fires because
 	// previous (nil) and current (nil) snapshots match.
 	srv, fc, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	assert.Empty(t, fc.secretRangesChangedNotifications(),
@@ -151,7 +151,7 @@ func enableLegacySecretRanges(srv *Server) {
 // rpc_secrets_subscribe_test.go); this test pins the LSP-side gate.
 func TestSecretRangesChanged_GatedUntilLegacyDispatchCalled(t *testing.T) {
 	srv, fc, _ := newServerWithCredentialsType(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 	assert.Empty(t, fc.secretRangesChangedNotifications(),
 		"no notification fires until a legacy request is invoked — this is the legacy-client gate")
@@ -160,7 +160,7 @@ func TestSecretRangesChanged_GatedUntilLegacyDispatchCalled(t *testing.T) {
 	// emit the notification — the client has self-identified as
 	// legacy and the gate stays open for the rest of the session.
 	_ = secretRangesReply(t, srv, "file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2,
 			"@type acme.demo.v1.Credentials\n\nusername = \"bob\"\npassword = \"hunter2\"\n")))
 	assert.NotEmpty(t, fc.secretRangesChangedNotifications(),
@@ -176,12 +176,12 @@ func TestSecretRangesChanged_FiresOnDidChange_NewSecretAdded(t *testing.T) {
 
 username = "alice"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, beforeSrc)))
 	// No secret in the initial document → no notification yet.
 	require.Empty(t, fc.secretRangesChangedNotifications())
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2, secretsScalarSrc)))
 
 	notes := fc.secretRangesChangedNotifications()
@@ -199,12 +199,12 @@ func TestSecretRangesChanged_SilentOnIdenticalReopen(t *testing.T) {
 	srv, fc, _ := newServerWithCredentialsType(t)
 	enableLegacySecretRanges(srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 	require.Len(t, fc.secretRangesChangedNotifications(), 1,
 		"first open fires once")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2, secretsScalarSrc)))
 
 	assert.Len(t, fc.secretRangesChangedNotifications(), 1,
@@ -214,15 +214,15 @@ func TestSecretRangesChanged_SilentOnIdenticalReopen(t *testing.T) {
 func TestSecretRanges_NilParamsTolerated(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSecretRanges, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSecretRanges, nil)
 	require.NoError(t, err)
 	var got SecretRangesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, _ := json.Marshal(result)
-		_ = json.Unmarshal(b, &got)
+		b, _ := testCodec.Marshal(result)
+		_ = testCodec.Unmarshal(b, &got)
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.NotNil(t, got.Ranges, "null params → empty result, no error")
 }

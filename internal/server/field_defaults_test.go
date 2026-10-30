@@ -139,9 +139,9 @@ func newDefaultsServer(t *testing.T) (*Server, *fakeConn) {
 func defaultHints(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	var out []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protolsp/schema" &&
+		if optValue(d.Source) == "protolsp/schema" &&
 			d.Severity == protocol.DiagnosticSeverityHint &&
-			strings.Contains(d.Message, "matches default") {
+			strings.Contains(messageText(d.Message), "matches default") {
 			out = append(out, d)
 		}
 	}
@@ -154,14 +154,14 @@ func TestDefaultRedundancy_StringMatchEmitsHint(t *testing.T) {
 
 api_url = "https://example.com"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
 	require.Len(t, hints, 1)
 	assert.Equal(t, protocol.DiagnosticSeverityHint, hints[0].Severity)
-	assert.Contains(t, hints[0].Message, "api_url")
-	assert.Contains(t, hints[0].Message, `"https://example.com"`,
+	assert.Contains(t, messageText(hints[0].Message), "api_url")
+	assert.Contains(t, messageText(hints[0].Message), `"https://example.com"`,
 		"hint quotes the default literal so users see what the schema would provide")
 }
 
@@ -171,12 +171,12 @@ func TestDefaultRedundancy_IntMatchEmitsHint(t *testing.T) {
 
 port = 8080
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
 	require.Len(t, hints, 1)
-	assert.Contains(t, hints[0].Message, "port")
+	assert.Contains(t, messageText(hints[0].Message), "port")
 }
 
 func TestDefaultRedundancy_BoolMatchEmitsHint(t *testing.T) {
@@ -185,12 +185,12 @@ func TestDefaultRedundancy_BoolMatchEmitsHint(t *testing.T) {
 
 debug = true
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
 	require.Len(t, hints, 1)
-	assert.Contains(t, hints[0].Message, "debug")
+	assert.Contains(t, messageText(hints[0].Message), "debug")
 }
 
 func TestDefaultRedundancy_MismatchEmitsNothing(t *testing.T) {
@@ -201,7 +201,7 @@ api_url = "https://different.example"
 port = 9090
 debug = false
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
@@ -215,7 +215,7 @@ func TestDefaultRedundancy_FieldWithoutAnnotationIsSilent(t *testing.T) {
 
 nodef = "anything"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
@@ -231,12 +231,12 @@ inner {
   label = "default-label"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
 	require.Len(t, hints, 1)
-	assert.Contains(t, hints[0].Message, "label",
+	assert.Contains(t, messageText(hints[0].Message), "label",
 		"nested-block fields get the same redundancy treatment as top-level")
 }
 
@@ -248,7 +248,7 @@ api_url = "https://example.com"
 port = 8080
 debug = true
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
@@ -263,7 +263,7 @@ func TestDefaultRedundancy_NoSchemaSkipsCheck(t *testing.T) {
 
 api_url = "https://example.com"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
@@ -274,7 +274,7 @@ func TestDefaultRedundancy_NoTypeDirectiveSkipsCheck(t *testing.T) {
 	srv, fc := newDefaultsServer(t)
 	const src = `api_url = "https://example.com"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	hints := defaultHints(fc.calls()[0].params.Diagnostics)
@@ -292,7 +292,7 @@ func TestHover_SurfacesDefaultAnnotation(t *testing.T) {
 
 api_url = "anything"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	md := hoverAt(t, srv, "file:///work/c.pxf", 2, 0)
@@ -310,7 +310,7 @@ func TestHover_OmitsDefaultLineWhenAnnotationAbsent(t *testing.T) {
 
 nodef = "anything"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	md := hoverAt(t, srv, "file:///work/c.pxf", 2, 0)

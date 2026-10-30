@@ -80,7 +80,7 @@ type EngineConfigResult struct {
 func (s *Workspace) EngineConfig() EngineConfigResult {
 	var dir string
 	if root := s.ws.WorkspaceRoot(); root != "" && IsFileURI(root) {
-		dir = root.Filename()
+		dir = root.FsPath()
 	}
 	cfg, err := engineconfig.Load(engineconfig.Options{Dir: dir})
 	if err != nil {

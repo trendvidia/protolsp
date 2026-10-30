@@ -46,6 +46,7 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 // MethodSetRuntimeViolations is the custom client→server
@@ -109,13 +110,13 @@ type SetRuntimeViolationsParams struct {
 // diagnostics immediately so the editor reflects the new runtime
 // state without waiting for the next edit. Also the embedder-facing
 // programmatic entry point (the dispatch wrapper is protocol glue).
-func (s *Workspace) SetRuntimeViolations(ctx context.Context, docURI protocol.DocumentURI, violations []RuntimeViolation) {
+func (s *Workspace) SetRuntimeViolations(ctx context.Context, docURI uri.URI, violations []RuntimeViolation) {
 	s.runtimeViolationsMu.Lock()
 	if len(violations) == 0 {
 		delete(s.runtimeViolations, docURI)
 	} else {
 		if s.runtimeViolations == nil {
-			s.runtimeViolations = make(map[protocol.DocumentURI][]RuntimeViolation)
+			s.runtimeViolations = make(map[uri.URI][]RuntimeViolation)
 		}
 		// Defensive copy — the caller's slice may be reused (jsonrpc2
 		// unmarshals into it once, but embedders can pass anything).
@@ -161,8 +162,8 @@ func (s *Workspace) runtimeViolationDiagnosticsLocked(doc *Document) []protocol.
 		out = append(out, protocol.Diagnostic{
 			Range:    rng,
 			Severity: protocol.DiagnosticSeverityInformation,
-			Source:   "protolsp/runtime",
-			Message:  msg,
+			Source:   optString("protolsp/runtime"),
+			Message:  protocol.String(msg),
 		})
 	}
 	return out

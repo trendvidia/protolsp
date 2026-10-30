@@ -46,7 +46,7 @@ message M {
 func TestProtoDefinition_OpaqueFragmentFunctionCall(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-opaque.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 
 	// Line 9 is `@check(is_email(this))`; `is_email` spans
@@ -68,13 +68,13 @@ func TestProtoDefinition_OpaqueFragmentFunctionCall(t *testing.T) {
 func TestProtoHover_OpaqueFragmentFunctionCall(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-opaque-hover.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 
 	hover := hoverFromHandle(t, srv, u, 9, 7)
 	require.NotNil(t, hover, "callee name inside the fragment yields a hover")
-	assert.Contains(t, hover.Contents.Value, "**function is_email(s: string)**")
-	assert.Contains(t, hover.Contents.Value, "Validates RFC-5322 addresses.",
+	assert.Contains(t, hoverBody(hover), "**function is_email(s: string)**")
+	assert.Contains(t, hoverBody(hover), "Validates RFC-5322 addresses.",
 		"the declaration's leading doc comment flows into the card")
 }
 
@@ -118,7 +118,7 @@ message Foo {
 
 	fooURI = "file://" + filepath.ToSlash(fooPath)
 	barURI = "file://" + filepath.ToSlash(barPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 	return fooURI, barURI, srv
 }
@@ -140,7 +140,7 @@ func TestProtoNavigation_OpaqueFragmentFunctionCall_CrossFile(t *testing.T) {
 
 	hover := hoverFromHandle(t, srv, fooURI, 6, 35)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**function is_uuid(s: string)**")
+	assert.Contains(t, hoverBody(hover), "**function is_uuid(s: string)**")
 }
 
 // RFC001SourceRange maps the descriptor_path keys a protowire
@@ -149,10 +149,10 @@ func TestProtoNavigation_OpaqueFragmentFunctionCall_CrossFile(t *testing.T) {
 func TestRFC001SourceRange_DescriptorPathKeys(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-srcmap.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 
-	docURI := protocol.DocumentURI(u)
+	docURI := uri.URI(u)
 
 	// The annotation-use anchor: the `@` of the use on line 9.
 	r, ok := srv.RFC001SourceRange(docURI, "t.M[t.check#0]")
@@ -169,7 +169,7 @@ func TestRFC001SourceRange_DescriptorPathKeys(t *testing.T) {
 	assert.False(t, ok, "unknown ordinal misses")
 	_, ok = srv.RFC001SourceRange(docURI, "not a descriptor path [")
 	assert.False(t, ok, "malformed key misses")
-	_, ok = srv.RFC001SourceRange(protocol.DocumentURI("file:///work/absent.proto"), "t.M[t.check#0]")
+	_, ok = srv.RFC001SourceRange(uri.URI("file:///work/absent.proto"), "t.M[t.check#0]")
 	assert.False(t, ok, "unopened document misses")
 }
 
@@ -201,9 +201,9 @@ message M {
 func TestRFC001SourceRange_AliasChainOrdinalsBaseFirst(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-alias-chain.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001AliasMapProto)))
-	docURI := protocol.DocumentURI(u)
+	docURI := uri.URI(u)
 
 	// Line 6 declares `type B = string @check("base")` (@ at col 16),
 	// line 7 `type A = t.B @check("derived")` (@ at col 13), line 10
@@ -237,9 +237,9 @@ func TestRFC001SourceRange_AliasChainOrdinalsBaseFirst(t *testing.T) {
 func TestRFC001SourceRange_MapAliasKeys(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-map-alias.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001AliasMapProto)))
-	docURI := protocol.DocumentURI(u)
+	docURI := uri.URI(u)
 
 	// Value alias: chain rules on the map field itself, base first.
 	r, ok := srv.RFC001SourceRange(docURI, "t.M.vals[t.check#0]")
@@ -278,14 +278,14 @@ func TestRFC001SourceRange_MapAliasKeys(t *testing.T) {
 func TestRFC001SourceRange_ClassicProtoHasNoMap(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/classic.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, "syntax = \"proto3\";\n\npackage t;\n\nmessage M {\n  string value = 1;\n}\n")))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	assert.Empty(t, notes[0].params.Diagnostics, "classic file stays clean")
 
-	_, ok := srv.RFC001SourceRange(protocol.DocumentURI(u), "t.M[t.check#0]")
+	_, ok := srv.RFC001SourceRange(uri.URI(u), "t.M[t.check#0]")
 	assert.False(t, ok)
 }
 
@@ -353,7 +353,7 @@ import "acme/anns.proto";
 			dir, srv, fc := setupRFC001AnnotationImportWorkspace(t)
 			u := dir + "/user.proto"
 			src := header + c.use + "\nmessage User {\n  string email = 1;\n}\n"
-			require.NoError(t, srv.Handle(context.Background(), noopReply,
+			require.NoError(t, testHandle(srv, context.Background(), noopReply,
 				didOpenCall(t, u, 1, src)))
 
 			var diags []protocol.Diagnostic
@@ -370,14 +370,14 @@ import "acme/anns.proto";
 			}
 			var match *protocol.Diagnostic
 			for i := range diags {
-				if strings.Contains(diags[i].Message, c.wantMsg) {
+				if strings.Contains(messageText(diags[i].Message), c.wantMsg) {
 					match = &diags[i]
 					break
 				}
 			}
 			require.NotNil(t, match, "no diagnostic contains %q; got %+v", c.wantMsg, diags)
 			assert.Equal(t, c.wantRng, match.Range)
-			assert.Equal(t, "protolsp/proto", match.Source,
+			assert.Equal(t, "protolsp/proto", optValue(match.Source),
 				"annotation findings share the proto source so editors group them")
 		})
 	}

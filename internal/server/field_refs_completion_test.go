@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ import (
 // completions).
 func completionAt(t *testing.T, srv *Server, docURI uri.URI, line, char uint32) *protocol.CompletionList {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentCompletion,
 		&protocol.CompletionParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -35,13 +34,13 @@ func completionAt(t *testing.T, srv *Server, docURI uri.URI, line, char uint32) 
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		got = &protocol.CompletionList{}
-		require.NoError(t, json.Unmarshal(b, got))
+		require.NoError(t, testCodec.Unmarshal(b, got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -64,7 +63,7 @@ func TestFieldRefCompletion_OffersPathsAfterDollarBrace(t *testing.T) {
 api_url = "${}"
 `
 	docURI := uri.URI("file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	// Cursor: line 2, between `${` and `}` on `api_url = "${}"`.
@@ -87,7 +86,7 @@ func TestFieldRefCompletion_CursorOutsideDollarBraceReturnsNoFieldRefItems(t *te
 api_url = "hello world"
 `
 	docURI := uri.URI("file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	// Cursor inside the string literal but NOT inside a ${...}.
@@ -111,7 +110,7 @@ func TestFieldRefCompletion_AfterClosingBraceDoesNotTrigger(t *testing.T) {
 api_url = "${db.host}!"
 `
 	docURI := uri.URI("file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	// Cursor right after `}` — context is closed. Index map of
@@ -132,7 +131,7 @@ func TestFieldRefCompletion_TextEditReplacesPrefix(t *testing.T) {
 api_url = "${db.h"
 `
 	docURI := uri.URI("file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	// Cursor between `h` and the closing `"`. Index map of
@@ -149,13 +148,13 @@ api_url = "${db.h"
 	for _, it := range list.Items {
 		require.NotNil(t, it.TextEdit,
 			"each item must specify a TextEdit replacement range")
-		assert.Equal(t, uint32(2), it.TextEdit.Range.Start.Line)
-		assert.Equal(t, uint32(2), it.TextEdit.Range.End.Line)
-		assert.Equal(t, uint32(13), it.TextEdit.Range.Start.Character,
+		assert.Equal(t, uint32(2), it.TextEdit.(*protocol.TextEdit).Range.Start.Line)
+		assert.Equal(t, uint32(2), it.TextEdit.(*protocol.TextEdit).Range.End.Line)
+		assert.Equal(t, uint32(13), it.TextEdit.(*protocol.TextEdit).Range.Start.Character,
 			"replacement starts at the first byte after `${`")
-		assert.Equal(t, uint32(17), it.TextEdit.Range.End.Character,
+		assert.Equal(t, uint32(17), it.TextEdit.(*protocol.TextEdit).Range.End.Character,
 			"replacement ends at the cursor")
-		assert.Equal(t, it.Label, it.TextEdit.NewText,
+		assert.Equal(t, it.Label, it.TextEdit.(*protocol.TextEdit).NewText,
 			"NewText equals the path label; client filters by label")
 	}
 }
@@ -168,7 +167,7 @@ func TestFieldRefCompletion_NoLookupOrTypeSkips(t *testing.T) {
 api_url = "${"
 `
 	docURI := uri.URI("file:///work/c.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	list := completionAt(t, srv, docURI, 2, 13)

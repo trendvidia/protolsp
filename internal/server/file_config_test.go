@@ -38,19 +38,19 @@ func initializeWithWorkspace(t *testing.T, workspaceDir string, initOpts map[str
 	srv, fc := newServerWithFakeConn(t)
 
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
-		WorkspaceFolders: []protocol.WorkspaceFolder{
-			{URI: string(uri.File(workspaceDir)), Name: "root"},
-		},
-		InitializationOptions: initOpts,
+		ClientInfo: protocol.ClientInfo{Name: "test"},
+		WorkspaceFoldersInitializeParams: workspaceFolders(
+			protocol.WorkspaceFolder{URI: uri.File(workspaceDir), Name: "root"},
+		),
+		InitializationOptions: testAny(initOpts),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	return srv, fc
@@ -206,11 +206,11 @@ func TestFileConfig_NoWorkspaceRootIsSilent(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	assert.Nil(t, srv.Workspaces().SnapshotFileConfig())
 	assert.Empty(t, fc.shownMessages(), "no workspace root + no file → silent")

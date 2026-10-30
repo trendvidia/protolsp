@@ -24,7 +24,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 )
 
@@ -55,11 +54,11 @@ func TestExit_HandleReturnsImmediatelyAndCloseRunsAsync(t *testing.T) {
 	rec := &closeRecordingConn{closeDelay: 250 * time.Millisecond}
 	srv.AttachConn(rec)
 
-	notif, err := jsonrpc2.NewNotification(protocol.MethodExit, nil)
+	notif, err := newTestNotification(protocol.MethodExit, nil)
 	require.NoError(t, err)
 
 	start := time.Now()
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif))
 	elapsed := time.Since(start)
 
 	assert.Less(t, elapsed, 50*time.Millisecond,
@@ -88,10 +87,10 @@ func TestExit_NilReplyForNotification(t *testing.T) {
 	srv.AttachConn(&fakeConn{})
 	rep := &captureReplier{}
 
-	notif, err := jsonrpc2.NewNotification(protocol.MethodExit, nil)
+	notif, err := newTestNotification(protocol.MethodExit, nil)
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, notif))
 	assert.False(t, rep.called,
 		"exit is a notification — reply must NOT be invoked")
 }
@@ -108,11 +107,11 @@ func TestExit_TwoBackToBackExitsClosesTwice(t *testing.T) {
 	rec := &closeRecordingConn{}
 	srv.AttachConn(rec)
 
-	notif, err := jsonrpc2.NewNotification(protocol.MethodExit, nil)
+	notif, err := newTestNotification(protocol.MethodExit, nil)
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif))
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif))
 
 	// Both Close calls eventually run. The contract isn't "exactly
 	// once for the lifetime of the server" — it's "no panic + nil

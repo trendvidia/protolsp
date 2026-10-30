@@ -50,7 +50,6 @@ type (
 	SecretRangesChangedParams    = analysis.SecretRangesChangedParams
 	SecretRangesParams           = analysis.SecretRangesParams
 	SecretRangesResult           = analysis.SecretRangesResult
-	SemanticTokensProvider       = analysis.SemanticTokensProvider
 	SetOverridesApplied          = analysis.SetOverridesApplied
 	SetOverridesParams           = analysis.SetOverridesParams
 	SetOverridesResult           = analysis.SetOverridesResult

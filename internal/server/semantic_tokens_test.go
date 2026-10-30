@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,8 +19,8 @@ import (
 // through JSON so tests see the on-wire shape.
 func semanticTokensFromHandle(t *testing.T, srv *Server, u string) *protocol.SemanticTokens {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
-		protocol.MethodSemanticTokensFull,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
+		protocol.MethodTextDocumentSemanticTokensFull,
 		&protocol.SemanticTokensParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
 		})
@@ -33,14 +32,14 @@ func semanticTokensFromHandle(t *testing.T, srv *Server, u string) *protocol.Sem
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var st protocol.SemanticTokens
-		require.NoError(t, json.Unmarshal(b, &st))
+		require.NoError(t, testCodec.Unmarshal(b, &st))
 		captured = &st
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -82,7 +81,7 @@ func decodeSemanticTokens(t *testing.T, data []uint32) []decodedToken {
 
 func TestSemanticTokens_TypeDirectiveAndField(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/g.pxf")
@@ -91,21 +90,21 @@ func TestSemanticTokens_TypeDirectiveAndField(t *testing.T) {
 	require.NotEmpty(t, tokens, "expected tokens for @type + name field + string value")
 
 	// Token 0: `@type` macro on line 0, col 0, length 5.
-	assert.Equal(t, decodedToken{line: 0, char: 0, length: 5, tokenType: protocol.SemanticTokenMacro}, tokens[0])
+	assert.Equal(t, decodedToken{line: 0, char: 0, length: 5, tokenType: protocol.SemanticTokenTypesMacro}, tokens[0])
 	// Token 1: `acme.demo.v1.Greeting` namespace on line 0 col 6.
 	assert.Equal(t, decodedToken{
 		line: 0, char: 6, length: uint32(len("acme.demo.v1.Greeting")),
-		tokenType: protocol.SemanticTokenNamespace,
+		tokenType: protocol.SemanticTokenTypesNamespace,
 	}, tokens[1])
 
 	// Locate the `name` property + the "world" string. Both sit on
 	// line 2 (after the @type line + the blank line).
 	var nameTok, strTok *decodedToken
 	for i := range tokens {
-		if tokens[i].tokenType == protocol.SemanticTokenProperty {
+		if tokens[i].tokenType == protocol.SemanticTokenTypesProperty {
 			nameTok = &tokens[i]
 		}
-		if tokens[i].tokenType == protocol.SemanticTokenString {
+		if tokens[i].tokenType == protocol.SemanticTokenTypesString {
 			strTok = &tokens[i]
 		}
 	}
@@ -126,7 +125,7 @@ count = 42
 flag = true
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/n.pxf", 1, src)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/n.pxf")
@@ -135,10 +134,10 @@ flag = true
 
 	var sawNumber, sawKeyword bool
 	for _, tk := range tokens {
-		if tk.tokenType == protocol.SemanticTokenNumber {
+		if tk.tokenType == protocol.SemanticTokenTypesNumber {
 			sawNumber = true
 		}
-		if tk.tokenType == protocol.SemanticTokenKeyword {
+		if tk.tokenType == protocol.SemanticTokenTypesKeyword {
 			sawKeyword = true
 		}
 	}
@@ -151,7 +150,7 @@ func TestSemanticTokens_ReturnsEmptyWhenParseFails(t *testing.T) {
 	// `=` with nothing on the left side is a parse error in the
 	// grammar — we still return an empty (not nil) SemanticTokens
 	// so clients don't drop their cached state.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/bad.pxf", 1, "= 1\n")))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/bad.pxf")
@@ -173,7 +172,7 @@ outer {
 }
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/n.pxf", 1, nested)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/n.pxf")
@@ -182,10 +181,10 @@ outer {
 
 	var structTok, innerTok *decodedToken
 	for i := range tokens {
-		if tokens[i].tokenType == protocol.SemanticTokenStruct {
+		if tokens[i].tokenType == protocol.SemanticTokenTypesStruct {
 			structTok = &tokens[i]
 		}
-		if tokens[i].tokenType == protocol.SemanticTokenProperty &&
+		if tokens[i].tokenType == protocol.SemanticTokenTypesProperty &&
 			tokens[i].length == uint32(len("inner_field")) {
 			innerTok = &tokens[i]
 		}
@@ -197,21 +196,21 @@ outer {
 
 func TestSemanticTokens_AdvertisesCapabilityAndLegend(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodInitialize,
 		&protocol.InitializeParams{})
 	require.NoError(t, err)
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, _ error) error {
-		b, _ := json.Marshal(result)
+		b, _ := testCodec.Marshal(result)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 
 	provider, ok := caps["semanticTokensProvider"].(map[string]interface{})
 	require.True(t, ok, "initialize result must advertise SemanticTokensProvider")
@@ -225,5 +224,5 @@ func TestSemanticTokens_AdvertisesCapabilityAndLegend(t *testing.T) {
 	// Index 0 must remain `macro` — the stMacro constant is hard-
 	// coded to 0 and changing legend order is a wire-breaking edit.
 	require.NotEmpty(t, types)
-	assert.Equal(t, string(protocol.SemanticTokenMacro), types[0])
+	assert.Equal(t, string(protocol.SemanticTokenTypesMacro), types[0])
 }

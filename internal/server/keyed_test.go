@@ -146,7 +146,7 @@ children {
 
 func TestKeyed_DocumentSymbolsOutlineEntriesByName(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/ui.pxf")
@@ -158,7 +158,7 @@ func TestKeyed_DocumentSymbolsOutlineEntriesByName(t *testing.T) {
 	login := findSymbol(children.Children, "loginButton")
 	require.NotNil(t, login, "entry outlines by its key, not by a field name")
 	assert.Equal(t, protocol.SymbolKindObject, login.Kind)
-	assert.Equal(t, "ui.v1.Element", login.Detail, "entry detail is the element message type")
+	assert.Equal(t, "ui.v1.Element", detailText(login.Detail), "entry detail is the element message type")
 
 	// The entry nests recursively against the element message: its
 	// `label` field is a child symbol.
@@ -181,15 +181,15 @@ func findSymbol(syms []protocol.DocumentSymbol, name string) *protocol.DocumentS
 
 func TestKeyed_ValidDocHasNoKeyedDiagnostics(t *testing.T) {
 	srv, fc := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	diags := lastDiagnostics(t, fc)
 	for _, d := range diags {
-		assert.NotEqual(t, "protolsp/keyed", d.Source, "valid keyed doc: %q", d.Message)
+		assert.NotEqual(t, "protolsp/keyed", optValue(d.Source), "valid keyed doc: %q", messageText(d.Message))
 		// Entry names and their bodies must not be flagged as unknown
 		// fields on the parent.
-		assert.NotContains(t, d.Message, "unknown field", "unexpected: %q", d.Message)
+		assert.NotContains(t, messageText(d.Message), "unknown field", "unexpected: %q", messageText(d.Message))
 	}
 }
 
@@ -202,13 +202,13 @@ children {
 }
 `
 	srv, fc := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	d := findDiagnostic(lastDiagnostics(t, fc), "protolsp/keyed")
 	require.NotNil(t, d, "duplicate entry name should produce a keyed diagnostic")
-	assert.Contains(t, d.Message, "duplicate key")
-	assert.Contains(t, d.Message, "row")
+	assert.Contains(t, messageText(d.Message), "duplicate key")
+	assert.Contains(t, messageText(d.Message), "row")
 	// The squiggle lands on the second `row`, at line 4 (0-indexed).
 	assert.Equal(t, uint32(4), d.Range.Start.Line)
 }
@@ -221,12 +221,12 @@ children {
 }
 `
 	srv, fc := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	d := findDiagnostic(lastDiagnostics(t, fc), "protolsp/keyed")
 	require.NotNil(t, d, "explicit key disagreeing with the entry name should conflict")
-	assert.Contains(t, d.Message, "conflicts with entry name")
+	assert.Contains(t, messageText(d.Message), "conflicts with entry name")
 }
 
 func TestKeyed_RedundantKeyAssignmentIsNotAConflict(t *testing.T) {
@@ -237,7 +237,7 @@ children {
 }
 `
 	srv, fc := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	assert.Nil(t, findDiagnostic(lastDiagnostics(t, fc), "protolsp/keyed"),
@@ -257,7 +257,7 @@ children {
 }
 `
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	labels := labelsFromList(completionFromHandle(t, srv, "file:///work/ui.pxf", 4, 4))
@@ -276,7 +276,7 @@ children {
 }
 `
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	list := completionFromHandle(t, srv, "file:///work/ui.pxf", 3, 2)
@@ -289,7 +289,7 @@ children {
 
 func TestKeyed_HoverOnEntryNameShowsElementType(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	// `loginButton` is on line 4 (0-indexed 3).
@@ -302,7 +302,7 @@ func TestKeyed_HoverOnEntryNameShowsElementType(t *testing.T) {
 
 func TestKeyed_HoverInsideEntryResolvesElementField(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	// `label = "Log in"` is on line 5 (0-indexed 4).
@@ -317,7 +317,7 @@ func TestKeyed_HoverInsideEntryResolvesElementField(t *testing.T) {
 
 func TestKeyed_RenameEntryRewritesNameToken(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, "file:///work/ui.pxf", 3, 4, "logoutButton")
@@ -331,7 +331,7 @@ func TestKeyed_RenameEntryRewritesNameToken(t *testing.T) {
 
 func TestKeyed_RenameEntryToNonIdentifierKeyQuotes(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	// "log out" is not identifier-safe — the rewrite must quote it, and
@@ -355,7 +355,7 @@ children {
 }
 `
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, src)))
 
 	edit, rpcErr := renameFromHandle(t, srv, "file:///work/ui.pxf", 3, 2, "cell")
@@ -374,9 +374,9 @@ func TestKeyed_RenamePropagatesAcrossOpenDocs(t *testing.T) {
 	// the entry's identity is its collection path + key, shared across
 	// files, exactly like the path-based field rename.
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/base.pxf", 1, keyedDocValid)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/override.pxf", 1, keyedDocValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, "file:///work/base.pxf", 3, 4, "logoutButton")
@@ -406,7 +406,7 @@ func TestKeyed_RenamePropagatesToUnopenedFileOnDisk(t *testing.T) {
 	srv.Lookups().Swap(lookup, nil)
 
 	baseURI := uri.File(filepath.Join(workspaceDir, "base.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(baseURI), 1, keyedDocValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, string(baseURI), 3, 4, "logoutButton")
@@ -416,7 +416,7 @@ func TestKeyed_RenamePropagatesToUnopenedFileOnDisk(t *testing.T) {
 
 	overrideURI := uri.File(filepath.Join(workspaceDir, "override.pxf"))
 	for _, target := range []uri.URI{baseURI, overrideURI} {
-		edits, ok := edit.Changes[protocol.DocumentURI(target)]
+		edits, ok := edit.Changes[uri.URI(target)]
 		require.Truef(t, ok, "expected an edit entry for %s", target)
 		require.Len(t, edits, 1)
 		assert.Equal(t, "logoutButton", edits[0].NewText)
@@ -425,7 +425,7 @@ func TestKeyed_RenamePropagatesToUnopenedFileOnDisk(t *testing.T) {
 
 func TestKeyed_RenameOnKeyedFieldNameFallsBackToFieldRename(t *testing.T) {
 	srv, _ := newServerWithUISchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/ui.pxf", 1, keyedDocValid)))
 
 	// Cursor on `children` (the keyed field itself, line 3): a
@@ -437,14 +437,14 @@ func TestKeyed_RenameOnKeyedFieldNameFallsBackToFieldRename(t *testing.T) {
 
 // hoverText extracts the markdown body of a hover result.
 func hoverText(h *protocol.Hover) string {
-	return h.Contents.Value
+	return hoverBody(h)
 }
 
 // findDiagnostic returns the first diagnostic with the given source, or
 // nil when none matches.
 func findDiagnostic(diags []protocol.Diagnostic, source string) *protocol.Diagnostic {
 	for i := range diags {
-		if diags[i].Source == source {
+		if optValue(diags[i].Source) == source {
 			return &diags[i]
 		}
 	}

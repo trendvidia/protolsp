@@ -143,7 +143,7 @@ func schemaDiagsFor(t *testing.T, srv *Server, docURI uri.URI) []protocol.Diagno
 	require.NotNil(t, doc, "document must be open for diagnostic inspection")
 	out := []protocol.Diagnostic{}
 	for _, d := range srv.DiagnosticsFor(doc) {
-		if d.Source == "protolsp/schema" {
+		if optValue(d.Source) == "protolsp/schema" {
 			out = append(out, d)
 		}
 	}
@@ -162,7 +162,7 @@ api_url = "https://example.com"
 		"env/dev.pxf":     `@type myapp.v1.AppConfig` + "\n",
 	})
 	docURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)
@@ -170,11 +170,11 @@ api_url = "https://example.com"
 		"exactly one missing-required error (db_password); api_url is set in base")
 	d := diags[0]
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Contains(t, d.Message, "db_password",
+	assert.Contains(t, messageText(d.Message), "db_password",
 		"diagnostic names the missing required field")
-	assert.Contains(t, d.Message, "dev",
+	assert.Contains(t, messageText(d.Message), "dev",
 		"diagnostic cites the env's chain context")
-	assert.Contains(t, d.Message, "base.pxf",
+	assert.Contains(t, messageText(d.Message), "base.pxf",
 		"diagnostic lists chain files for grounding")
 }
 
@@ -191,7 +191,7 @@ db_password = "from-base"
 		"env/dev.pxf":     `@type myapp.v1.AppConfig` + "\n",
 	})
 	docURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)
@@ -210,7 +210,7 @@ db_password = "from-leaf"
 `,
 	})
 	docURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig
 db_password = "from-leaf"
 `)))
@@ -231,7 +231,7 @@ func TestChainRequired_OnceLayerSuppressesDiagnostics(t *testing.T) {
 		"env/dev.pxf":     `@type myapp.v1.AppConfig` + "\n",
 	})
 	docURI := uri.File(filepath.Join(ws, "base.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)
@@ -254,7 +254,7 @@ func TestChainRequired_StandaloneFileGetsNoRequiredDiagnostic(t *testing.T) {
 		"env/dev.pxf":     `@type myapp.v1.AppConfig` + "\n",
 	})
 	docURI := uri.File(filepath.Join(ws, "scratch.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)
@@ -307,7 +307,7 @@ db_password = "from-secrets"
 	srv.Lookups().Swap(lookup, nil)
 
 	docURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)
@@ -334,14 +334,14 @@ func TestChainRequired_UnsavedEditOnAncestorIsRespected(t *testing.T) {
 	// Open env/prod.pxf with a body that sets db_password — but
 	// the disk version still doesn't.
 	prodURI := uri.File(filepath.Join(ws, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, `@type myapp.v1.AppConfig
 db_password = "from-unsaved-edit"
 `)))
 
 	// Now analyze env/dev.pxf — it should NOT error on db_password.
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, devURI)
@@ -360,7 +360,7 @@ func TestChainRequired_NoTypeDirectiveYieldsNoDiagnostic(t *testing.T) {
 		"env/dev.pxf":     `name = "no type"` + "\n",
 	})
 	docURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, `name = "no type"`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, docURI)

@@ -25,21 +25,21 @@ import (
 // Mirrors the effectiveConfigReply pattern from effective_config_test.go.
 func configListReply(t *testing.T, srv *Server) ConfigListResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodConfigList, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodConfigList, nil)
 	require.NoError(t, err)
 	return decodeReply[ConfigListResult](t, srv, call)
 }
 
 func configGetReply(t *testing.T, srv *Server, params ConfigGetParams) ConfigGetResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodConfigGet, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodConfigGet, params)
 	require.NoError(t, err)
 	return decodeReply[ConfigGetResult](t, srv, call)
 }
 
 func configSetReply(t *testing.T, srv *Server, params ConfigSetParams) ConfigSetResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodConfigSet, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodConfigSet, params)
 	require.NoError(t, err)
 	return decodeReply[ConfigSetResult](t, srv, call)
 }
@@ -48,35 +48,35 @@ func configSetReply(t *testing.T, srv *Server, params ConfigSetParams) ConfigSet
 // reply to carry a JSON-RPC error. Returns the error for assertion.
 func configSetReplyExpectingError(t *testing.T, srv *Server, params ConfigSetParams) error {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodConfigSet, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodConfigSet, params)
 	require.NoError(t, err)
 	var got error
 	reply := func(_ context.Context, _ any, replyErr error) error {
 		got = replyErr
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
-func decodeReply[T any](t *testing.T, srv *Server, call jsonrpc2.Request) T {
+func decodeReply[T any](t *testing.T, srv *Server, call rpcRequest) T {
 	t.Helper()
 	var got T
 	reply := func(_ context.Context, result any, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
 // rawJSON is sugar for building ConfigSetParams.Value from a Go value.
 func rawJSON(t *testing.T, v any) json.RawMessage {
 	t.Helper()
-	b, err := json.Marshal(v)
+	b, err := testCodec.Marshal(v)
 	require.NoError(t, err)
 	return b
 }
@@ -171,7 +171,7 @@ func TestConfigGet_UnknownAttributeErrors(t *testing.T) {
 	workspaceDir := t.TempDir()
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodConfigGet,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodConfigGet,
 		ConfigGetParams{Name: "registry.bogus"})
 	require.NoError(t, err)
 
@@ -180,7 +180,7 @@ func TestConfigGet_UnknownAttributeErrors(t *testing.T) {
 		replyErr = e
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.Error(t, replyErr)
 	assert.Contains(t, replyErr.Error(), "unknown attribute")
 }

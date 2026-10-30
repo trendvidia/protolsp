@@ -23,6 +23,7 @@ import (
 	"github.com/trendvidia/protocompile/source"
 	"github.com/trendvidia/protocompile/token"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
@@ -34,7 +35,7 @@ import (
 // values) and per multi-line directive. Returns nil when the document
 // isn't open or hasn't parsed. Single-line blocks aren't foldable and
 // are dropped.
-func (s *Workspace) FoldingRangesFor(docURI protocol.DocumentURI) []protocol.FoldingRange {
+func (s *Workspace) FoldingRangesFor(docURI uri.URI) []protocol.FoldingRange {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -136,7 +137,7 @@ func (w *pxfFoldWalker) walkValue(v pxf.Value) {
 // including nested types), plus the import group (kind=imports) and
 // comment blocks (kind=comment). Returns nil when the document isn't
 // open or hasn't parsed.
-func (s *Workspace) ProtoFoldingRangesFor(docURI protocol.DocumentURI) []protocol.FoldingRange {
+func (s *Workspace) ProtoFoldingRangesFor(docURI uri.URI) []protocol.FoldingRange {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -215,7 +216,7 @@ func (w *protoFoldWalker) foldImports() {
 	if first.IsZero() {
 		return
 	}
-	w.addSpan(source.Join(first, last), protocol.ImportsFoldingRange)
+	w.addSpan(source.Join(first, last), protocol.FoldingRangeKindImports)
 }
 
 // foldComments folds comment blocks: a multi-line block comment
@@ -256,7 +257,7 @@ func (w *protoFoldWalker) foldComments() {
 			w.ranges = append(w.ranges, protocol.FoldingRange{
 				StartLine: start,
 				EndLine:   end,
-				Kind:      protocol.CommentFoldingRange,
+				Kind:      protocol.FoldingRangeKindComment,
 			})
 		}
 		i = j

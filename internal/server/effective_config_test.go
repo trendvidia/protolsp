@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,18 +18,18 @@ import (
 // the result.
 func effectiveConfigReply(t *testing.T, srv *Server, params GetEffectiveConfigParams) GetEffectiveConfigResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodGetEffectiveConfig, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodGetEffectiveConfig, params)
 	require.NoError(t, err)
 
 	var got GetEffectiveConfigResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -163,15 +162,15 @@ func TestEffectiveConfig_NilParamsTolerated(t *testing.T) {
 	// "default request" (all sections, no reveal).
 	srv, _ := newServerWithFakeConn(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodGetEffectiveConfig, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodGetEffectiveConfig, nil)
 	require.NoError(t, err)
 	var got GetEffectiveConfigResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, _ := json.Marshal(result)
-		_ = json.Unmarshal(b, &got)
+		b, _ := testCodec.Marshal(result)
+		_ = testCodec.Unmarshal(b, &got)
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.NotEmpty(t, got.Values, "null params returns all sections")
 }

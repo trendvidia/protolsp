@@ -58,25 +58,25 @@ func initializeWithLocale(t *testing.T, workspaceDir, locale string) (*Server, *
 	srv, fc := newServerWithFakeConn(t)
 	srv.SetWatchedFilesWindow(0)
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test"},
-		Locale:     locale,
-		WorkspaceFolders: []protocol.WorkspaceFolder{
-			{URI: string(uri.File(workspaceDir)), Name: "root"},
-		},
+		ClientInfo: protocol.ClientInfo{Name: "test"},
+		Locale:     &locale,
+		WorkspaceFoldersInitializeParams: workspaceFolders(
+			protocol.WorkspaceFolder{URI: uri.File(workspaceDir), Name: "root"},
+		),
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesWorkspaceClientCapabilities{
-					DynamicRegistration: true,
+				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesClientCapabilities{
+					DynamicRegistration: boolRef(true),
 				},
 			},
 		},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 	return srv, fc
 }
@@ -92,12 +92,12 @@ func TestProtocheckCatalogI18n_E2E_LocaleRendersCatalogMessage(t *testing.T) {
 	srv, fc := initializeWithLocale(t, workspaceDir, "de-DE")
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
 	require.Len(t, diags, 1)
-	assert.Equal(t, "Funktion nicht implementiert", diags[0].Message,
+	assert.Equal(t, "Funktion nicht implementiert", messageText(diags[0].Message),
 		"violation message renders through the de catalog")
 	assert.True(t, hasDiagWithCode(diags, "protowire.function.unimplemented"),
 		"the code stays the engine's — only the message localizes")
@@ -116,12 +116,12 @@ func TestProtocheckCatalogI18n_E2E_NoLocaleFallsBack(t *testing.T) {
 	srv, fc := initializeWithLocale(t, workspaceDir, "")
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
 	require.Len(t, diags, 1)
-	assert.Contains(t, diags[0].Message, "not implemented",
+	assert.Contains(t, messageText(diags[0].Message), "not implemented",
 		"without a client locale the spec fallback message renders")
 }
 
@@ -134,12 +134,12 @@ func TestProtocheckCatalogI18n_E2E_UnmatchedLocaleFallsBack(t *testing.T) {
 	srv, fc := initializeWithLocale(t, workspaceDir, "pt-BR")
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
 	require.Len(t, diags, 1)
-	assert.Contains(t, diags[0].Message, "not implemented",
+	assert.Contains(t, messageText(diags[0].Message), "not implemented",
 		"a locale with no catalog renders the spec fallback")
 }
 
@@ -152,24 +152,24 @@ func TestProtocheckCatalogI18n_E2E_CatalogEditTriggersRebuild(t *testing.T) {
 	srv, fc := initializeWithLocale(t, workspaceDir, "de")
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 	require.Equal(t, "Funktion nicht implementiert",
-		lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")[0].Message)
+		messageText(lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")[0].Message))
 
 	// Edit the catalog on disk and deliver the watched-file event.
 	// The classifier matches the file against the loaded catalog
 	// paths; the rebuild fingerprint folds catalog content, so the
 	// same config re-derives with the new template.
 	writeGermanCatalog(t, workspaceDir, "Bitte Implementierung registrieren")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(catalogPath), Type: protocol.FileChangeTypeChanged},
 		})))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
 	require.Len(t, diags, 1)
-	assert.Equal(t, "Bitte Implementierung registrieren", diags[0].Message,
+	assert.Equal(t, "Bitte Implementierung registrieren", messageText(diags[0].Message),
 		"catalog edit re-rendered the open document's diagnostics")
 }
 
@@ -184,13 +184,13 @@ func TestProtocheckCatalogI18n_E2E_UnrelatedTextprotoIgnored(t *testing.T) {
 
 	srv, _ := initializeWithLocale(t, workspaceDir, "de")
 	installFnlibLookup(t, srv)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 	baseline := srv.AnalyzeCount()
 
 	other := filepath.Join(workspaceDir, "unrelated.textproto")
 	require.NoError(t, os.WriteFile(other, []byte(`foo: "bar"`), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(other), Type: protocol.FileChangeTypeCreated},
 		})))

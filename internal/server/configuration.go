@@ -23,7 +23,6 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 )
 
@@ -110,28 +109,36 @@ func (s *Server) registerDynamicCapabilities(ctx context.Context) {
 // (Create | Change | Delete), which matches what we want here.
 func watchedFilesRegistration(chainSpecAbsPath string) protocol.Registration {
 	watchers := []protocol.FileSystemWatcher{
-		{GlobPattern: "**/.protolsp.pxf"},
-		{GlobPattern: "**/chain.pxf"},
-		{GlobPattern: "**/*.proto"},
-		{GlobPattern: "**/buf.yaml"},
-		{GlobPattern: "**/buf.lock"},
+		{GlobPattern: protocol.Pattern("**/.protolsp.pxf")},
+		{GlobPattern: protocol.Pattern("**/chain.pxf")},
+		{GlobPattern: protocol.Pattern("**/*.proto")},
+		{GlobPattern: protocol.Pattern("**/buf.yaml")},
+		{GlobPattern: protocol.Pattern("**/buf.lock")},
 		// Covers both the §9.4 engine config and §7 catalog library
 		// files; the classifier matches catalogs against the loaded
 		// set precisely, so unrelated textproto edits are dropped.
-		{GlobPattern: "**/*.textproto"},
+		{GlobPattern: protocol.Pattern("**/*.textproto")},
 	}
 	if chainSpecAbsPath != "" && filepath.Base(chainSpecAbsPath) != "chain.pxf" {
 		watchers = append(watchers, protocol.FileSystemWatcher{
-			GlobPattern: chainSpecAbsPath,
+			GlobPattern: protocol.Pattern(chainSpecAbsPath),
 		})
 	}
 	return protocol.Registration{
 		ID:     "protolsp.workspace.didChangeWatchedFiles",
 		Method: protocol.MethodWorkspaceDidChangeWatchedFiles,
-		RegisterOptions: protocol.DidChangeWatchedFilesRegistrationOptions{
+		RegisterOptions: registerOptions(protocol.DidChangeWatchedFilesRegistrationOptions{
 			Watchers: watchers,
-		},
+		}),
 	}
+}
+
+func registerOptions(v any) protocol.LSPAny {
+	b, err := protocol.Marshal(v)
+	if err != nil {
+		panic("server: encoding registration options: " + err.Error())
+	}
+	return b
 }
 
 // pullEditorConfig sends workspace/configuration to the client and
@@ -150,7 +157,7 @@ func (s *Server) pullEditorConfig(ctx context.Context) (map[string]any, error) {
 	}
 	items := make([]protocol.ConfigurationItem, 0, len(configurationSections))
 	for _, sec := range configurationSections {
-		items = append(items, protocol.ConfigurationItem{Section: sec})
+		items = append(items, protocol.ConfigurationItem{Section: &sec})
 	}
 	var raw json.RawMessage
 	if _, err := s.conn.Call(ctx, protocol.MethodWorkspaceConfiguration,
@@ -240,12 +247,10 @@ func updateString(dst *string, raw any) {
 // production servers do the same.
 //
 // The re-pull MUST happen on a goroutine, not inline on this handler.
-// go.lsp.dev/jsonrpc2's conn.Go dispatches every incoming message on
-// a single reader goroutine (conn.go: `go c.run(ctx, handler)` — no
-// AsyncHandler, no separate response router). conn.Call writes the
-// outbound request and then blocks on a channel that only the SAME
-// reader goroutine can fill (via the `case *Response` branch in
-// run()). Calling it inline would write the workspace/configuration
+// go.lsp.dev/jsonrpc2's conn.Go runs a handler inline on the read
+// loop unless it is wrapped with AsyncHandler, which this server
+// doesn't do. conn.Call writes the outbound request and then waits for
+// a response that only that same read loop can deliver. Calling it inline would write the workspace/configuration
 // request out, wait for the response forever, and freeze the
 // dispatcher — every subsequent textDocument/didOpen, hover,
 // definition, etc., queues in the OS pipe and never gets handled.
@@ -261,12 +266,12 @@ func updateString(dst *string, raw any) {
 // Mirrors the dispatchInitialize → initialized follow-up, which
 // already wraps its pullEditorConfig in a goroutine for the same
 // reason.
-func (s *Server) dispatchDidChangeConfiguration(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+func (s *Server) dispatchDidChangeConfiguration(ctx context.Context, req rpcRequest) (any, error) {
 	s.configChangeFollowup.Add(1)
 	go func() {
 		defer s.configChangeFollowup.Done()
 		// Background context — the request's ctx is gone the moment
-		// reply() returns to the dispatcher. pullEditorConfig +
+		// the handler returns to the dispatcher. pullEditorConfig +
 		// applyEditorConfig take seconds at most (one round-trip plus
 		// possibly an async lookup rebuild), so an indefinite ctx is
 		// fine; cancellation comes from server shutdown via
@@ -286,7 +291,7 @@ func (s *Server) dispatchDidChangeConfiguration(ctx context.Context, reply jsonr
 		}
 	}()
 	// Notification — reply with nil unconditionally per LSP spec.
-	return reply(ctx, nil, nil)
+	return nil, nil
 }
 
 // notifyInitOptionsDeprecation surfaces a one-time

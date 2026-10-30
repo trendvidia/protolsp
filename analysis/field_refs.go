@@ -263,10 +263,10 @@ func (s *Workspace) fieldReferenceDiagnostics(doc *Document) []protocol.Diagnost
 		out = append(out, protocol.Diagnostic{
 			Range:    ref.Range,
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/schema",
-			Message: fmt.Sprintf(
+			Source:   optString("protolsp/schema"),
+			Message: protocol.String(fmt.Sprintf(
 				"reference ${%s} does not name a field on %q",
-				ref.Path, desc.FullName()),
+				ref.Path, desc.FullName())),
 		})
 	}
 	return out

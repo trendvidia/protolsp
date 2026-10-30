@@ -183,7 +183,7 @@ const greetingNoTypeDirective = `name = "world"
 func TestSchema_ValidPxfPublishesEmptyDiagnostics(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	notes := fc.calls()
@@ -198,7 +198,7 @@ func TestSchema_ValidPxfPublishesEmptyDiagnostics(t *testing.T) {
 func TestSchema_UnknownFieldEmitsDiagnostic(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingUnknownField)))
 
 	notes := fc.calls()
@@ -206,9 +206,9 @@ func TestSchema_UnknownFieldEmitsDiagnostic(t *testing.T) {
 	diags := notes[0].params.Diagnostics
 	require.Len(t, diags, 1)
 	d := diags[0]
-	assert.Equal(t, "protolsp/schema", d.Source, "schema diagnostics carry the schema source tag")
+	assert.Equal(t, "protolsp/schema", optValue(d.Source), "schema diagnostics carry the schema source tag")
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Contains(t, d.Message, "stranger", "unknown-field diagnostic should name the offending field")
+	assert.Contains(t, messageText(d.Message), "stranger", "unknown-field diagnostic should name the offending field")
 
 	doc := srv.Documents().Get("file:///work/g.pxf")
 	require.NotNil(t, doc)
@@ -223,13 +223,13 @@ func TestSchema_UnknownFieldEmitsDiagnostic(t *testing.T) {
 func TestSchema_TypeMismatchEmitsDiagnostic(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingTypeMismatch)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	require.Len(t, notes[0].params.Diagnostics, 1)
-	assert.Equal(t, "protolsp/schema", notes[0].params.Diagnostics[0].Source)
+	assert.Equal(t, "protolsp/schema", optValue(notes[0].params.Diagnostics[0].Source))
 }
 
 func TestSchema_UnknownTypeEmitsDiagnostic(t *testing.T) {
@@ -238,22 +238,22 @@ func TestSchema_UnknownTypeEmitsDiagnostic(t *testing.T) {
 	// resolves to NotFound now.
 	lookup.types = map[protoreflect.FullName]protoreflect.MessageType{}
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	require.Len(t, notes[0].params.Diagnostics, 1)
 	d := notes[0].params.Diagnostics[0]
-	assert.Equal(t, "protolsp/schema", d.Source)
-	assert.Contains(t, d.Message, "unknown type", "diagnostic should call out that the @type FQN didn't resolve")
-	assert.Contains(t, d.Message, "acme.demo.v1.Greeting")
+	assert.Equal(t, "protolsp/schema", optValue(d.Source))
+	assert.Contains(t, messageText(d.Message), "unknown type", "diagnostic should call out that the @type FQN didn't resolve")
+	assert.Contains(t, messageText(d.Message), "acme.demo.v1.Greeting")
 }
 
 func TestSchema_NoTypeDirectiveSkipsValidation(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingNoTypeDirective)))
 
 	notes := fc.calls()
@@ -271,14 +271,14 @@ func TestSchema_ParseErrorSuppressesSchemaValidation(t *testing.T) {
 	// produce a duplicate or misleading error.
 	srv, fc, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, invalidPxf)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	diags := notes[0].params.Diagnostics
 	require.Len(t, diags, 1)
-	assert.Equal(t, "protolsp/parse", diags[0].Source, "parse failure must surface as parse diagnostic, not schema")
+	assert.Equal(t, "protolsp/parse", optValue(diags[0].Source), "parse failure must surface as parse diagnostic, not schema")
 }
 
 func TestSchema_NoLookupConfiguredSkipsValidation(t *testing.T) {
@@ -287,7 +287,7 @@ func TestSchema_NoLookupConfiguredSkipsValidation(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	// No s.lookup assignment.
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingUnknownField)))
 
 	notes := fc.calls()

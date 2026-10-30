@@ -56,7 +56,7 @@ func (s *Workspace) referencesFilesCap() int {
 // Locations for every matching assignment / block in the open-doc
 // set sharing the same WorkspaceDir. Returns nil when the cursor
 // doesn't sit on a recognisable path target.
-func (s *Workspace) ReferencesFor(ctx context.Context, docURI protocol.DocumentURI, pos protocol.Position, includeDecl bool) []protocol.Location {
+func (s *Workspace) ReferencesFor(ctx context.Context, docURI uri.URI, pos protocol.Position, includeDecl bool) []protocol.Location {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -88,7 +88,7 @@ func (s *Workspace) ReferencesFor(ctx context.Context, docURI protocol.DocumentU
 			continue
 		}
 		out = append(out, protocol.Location{
-			URI:   protocol.DocumentURI(h.uri),
+			URI:   uri.URI(h.uri),
 			Range: h.rang,
 		})
 	}

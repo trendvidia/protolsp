@@ -119,7 +119,7 @@ func openRemoteRFC001Doc(t *testing.T, withSource bool) (*Server, string) {
 	srv.Lookups().Swap(lookup, nil)
 
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, remoteRFC001Doc)))
 	return srv, u
 }
@@ -144,8 +144,8 @@ func TestProtoNavigation_RFC001DescriptorOnlyFallback(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			hover := hoverFromHandle(t, srv, u, c.line, c.char)
 			require.NotNil(t, hover, "descriptor-only reference yields a hover")
-			assert.Contains(t, hover.Contents.Value, c.wantMD)
-			assert.Contains(t, hover.Contents.Value, "Defined in `acme/remote.proto`")
+			assert.Contains(t, hoverBody(hover), c.wantMD)
+			assert.Contains(t, hoverBody(hover), "Defined in `acme/remote.proto`")
 
 			locs := definitionFromHandle(t, srv, u, c.line, c.char)
 			require.Len(t, locs, 1, "definition resolves via the carrier")
@@ -162,8 +162,8 @@ func TestProtoNavigation_RFC001ServedSourceFallback(t *testing.T) {
 
 	hover := hoverFromHandle(t, srv, u, 6, 18)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**annotation audited(by: string)**")
-	assert.Contains(t, hover.Contents.Value, "Compliance audit marker.",
+	assert.Contains(t, hoverBody(hover), "**annotation audited(by: string)**")
+	assert.Contains(t, hoverBody(hover), "Compliance audit marker.",
 		"served source carries the doc comment the carrier can't")
 
 	locs := definitionFromHandle(t, srv, u, 6, 18)
@@ -176,7 +176,7 @@ func TestProtoNavigation_RFC001ServedSourceFallback(t *testing.T) {
 	// Alias reference resolves through the parsed source too.
 	hover = hoverFromHandle(t, srv, u, 8, 19)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "Opaque access token.")
+	assert.Contains(t, hoverBody(hover), "Opaque access token.")
 	locs = definitionFromHandle(t, srv, u, 8, 19)
 	require.Len(t, locs, 1)
 	assert.Equal(t, rng(8, 5, 8, 10), locs[0].Range)
@@ -200,7 +200,7 @@ func TestProtoNavigation_RFC001RemoteFallback_PreV12Degrades(t *testing.T) {
 	srv.Lookups().Swap(lookup, nil)
 
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, remoteRFC001Doc)))
 
 	assert.Nil(t, hoverFromHandle(t, srv, u, 6, 18),
@@ -236,7 +236,7 @@ message M {}
 		t.Run(c.name, func(t *testing.T) {
 			srv, _, _ := initializeWithPositionEncodings(t, c.encodings)
 			const u = "file:///work/enc.proto"
-			require.NoError(t, srv.Handle(context.Background(), noopReply,
+			require.NoError(t, testHandle(srv, context.Background(), noopReply,
 				didOpenCall(t, u, 1, doc)))
 
 			locs := definitionFromHandle(t, srv, u, 6, 3)

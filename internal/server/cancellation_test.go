@@ -94,13 +94,13 @@ func TestClose_StopsPerDocAnalyzeTimers(t *testing.T) {
 	srv.SetDebounceWindow(50 * time.Millisecond)
 
 	const src = "@type acme.demo.v1.Greeting\n\nname = \"a\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 	// didOpen runs synchronously → count=1.
 	require.Equal(t, int64(1), srv.AnalyzeCount())
 
 	// Schedule a deferred analyze; do NOT wait for it to fire.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, src)))
 
 	countBeforeClose := srv.AnalyzeCount()

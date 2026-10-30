@@ -70,7 +70,7 @@ api_url = "https://placeholder"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "https://placeholder"
 `)))
@@ -95,7 +95,7 @@ db {
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 db {
   host = "placeholder"
@@ -118,7 +118,7 @@ api_url = "x"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "x"
 `)))
@@ -137,7 +137,7 @@ api_url = "from-dev"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "from-dev"
 `)))
@@ -178,7 +178,7 @@ chameleon { chain_spec = "chain.pxf" }
 	require.NotNil(t, srv.Workspaces().SnapshotChain())
 
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, devURI)
@@ -196,7 +196,7 @@ func TestEnvSource_RequiredFieldStillFiresWhenNoEnvSourcePresent(t *testing.T) {
 		"env/dev.pxf":     `@type myapp.v1.AppConfig` + "\n",
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type myapp.v1.AppConfig`+"\n")))
 
 	diags := schemaDiagsFor(t, srv, devURI)
@@ -242,7 +242,7 @@ api_url = "x"
 	srv.Lookups().Swap(lookup, nil)
 
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "x"
 `)))
@@ -259,7 +259,7 @@ func TestEnvSource_StandaloneDocGetsNoEnvHint(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///work")
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/scratch.pxf", 1, `@type c4test.v1.AppConfig
 api_url = "x"
 `)))

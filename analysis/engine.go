@@ -68,6 +68,7 @@ import (
 
 	"github.com/trendvidia/protolsp/protoast"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"google.golang.org/protobuf/proto"
 
@@ -292,7 +293,7 @@ type Workspace struct {
 	// the document-lock window), so never take a document lock while
 	// holding runtimeViolationsMu.
 	runtimeViolationsMu sync.RWMutex
-	runtimeViolations   map[protocol.DocumentURI][]RuntimeViolation
+	runtimeViolations   map[uri.URI][]RuntimeViolation
 
 	// bufLintEnabled gates the buf-lint pass in analyzeProto.
 	// Production callers via New() get true; test helpers default

@@ -54,7 +54,7 @@ func (s *Workspace) ConfigDiagnostics(doc *Document) []protocol.Diagnostic {
 		diags := s.workspaceConfigDiagnostics(doc.Source)
 		return append(diags, s.protoFilesCompileDiagnostics(doc)...)
 	case chain.ExpectedType:
-		return chainSpecDiagnostics(doc.URI.Filename(), doc.Source)
+		return chainSpecDiagnostics(doc.URI.FsPath(), doc.Source)
 	}
 	return nil
 }
@@ -105,8 +105,8 @@ func (s *Workspace) protoFilesCompileDiagnostics(doc *Document) []protocol.Diagn
 		out = append(out, protocol.Diagnostic{
 			Range:    anchor,
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/proto_files",
-			Message:  e.String(),
+			Source:   optString("protolsp/proto_files"),
+			Message:  protocol.String(e.String()),
 		})
 	}
 	return out
@@ -142,8 +142,8 @@ func (s *Workspace) workspaceConfigDiagnostics(source []byte) []protocol.Diagnos
 		out = append(out, protocol.Diagnostic{
 			Range:    rangeFromLineCol(w.Line, w.Column),
 			Severity: protocol.DiagnosticSeverityWarning,
-			Source:   "protolsp/workspaceconfig",
-			Message:  w.Message,
+			Source:   optString("protolsp/workspaceconfig"),
+			Message:  protocol.String(w.Message),
 		})
 	}
 	return out
@@ -174,8 +174,8 @@ func chainSpecDiagnostics(path string, source []byte) []protocol.Diagnostic {
 		out = append(out, protocol.Diagnostic{
 			Range:    rangeFromLineCol(d.Line, d.Column),
 			Severity: protocol.DiagnosticSeverityWarning,
-			Source:   "protolsp/chainspec",
-			Message:  d.Message,
+			Source:   optString("protolsp/chainspec"),
+			Message:  protocol.String(d.Message),
 		})
 	}
 	out = append(out, missingLayerFileHints(path, ac)...)
@@ -271,8 +271,8 @@ func missingLayerFileHints(chainPath string, ac *chain.ActiveChain) []protocol.D
 		out = append(out, protocol.Diagnostic{
 			Range:    rangeFromLineCol(le.PathPos.Line, le.PathPos.Column),
 			Severity: protocol.DiagnosticSeverityHint,
-			Source:   "protolsp/chainspec",
-			Message:  msg,
+			Source:   optString("protolsp/chainspec"),
+			Message:  protocol.String(msg),
 		})
 	}
 	return out

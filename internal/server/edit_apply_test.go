@@ -172,7 +172,7 @@ func TestUnmarshalIncrementalChanges_PresentRangeMeansIncremental(t *testing.T) 
 func TestDidChange_IncrementalEditUpdatesDocumentSource(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	const initialSrc = "@type acme.demo.v1.Greeting\n\nname = \"world\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, initialSrc)))
 
 	// Replace "world" (line 2, chars 8-13) with "Earth".
@@ -182,7 +182,7 @@ func TestDidChange_IncrementalEditUpdatesDocumentSource(t *testing.T) {
 			End:   protocol.Position{Line: 2, Character: 13},
 		},
 		"Earth")
-	require.NoError(t, srv.Handle(context.Background(), noopReply, change))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, change))
 
 	doc := srv.Documents().Get("file:///work/g.pxf")
 	require.NotNil(t, doc)
@@ -197,11 +197,11 @@ func TestDidChange_FullDocumentFallback(t *testing.T) {
 	// them via Range == nil.
 	srv, _, _ := newServerWithLookup(t)
 	const initialSrc = "@type acme.demo.v1.Greeting\n\nname = \"world\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, initialSrc)))
 
 	const newSrc = "@type acme.demo.v1.Greeting\n\nname = \"replacement\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, newSrc)))
 
 	doc := srv.Documents().Get("file:///work/g.pxf")
@@ -215,7 +215,7 @@ func TestDidChange_OutOfBoundsRangeIsBestEffort(t *testing.T) {
 	// and leave the document in its pre-apply state for that change.
 	srv, _, _ := newServerWithLookup(t)
 	const initialSrc = "@type acme.demo.v1.Greeting\n\nname = \"world\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, initialSrc)))
 
 	// Range with start > end on the same line → invalid.
@@ -225,7 +225,7 @@ func TestDidChange_OutOfBoundsRangeIsBestEffort(t *testing.T) {
 			End:   protocol.Position{Line: 2, Character: 5},
 		},
 		"oops")
-	require.NoError(t, srv.Handle(context.Background(), noopReply, change),
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, change),
 		"out-of-bounds range is logged + skipped; dispatcher still returns nil")
 
 	doc := srv.Documents().Get("file:///work/g.pxf")

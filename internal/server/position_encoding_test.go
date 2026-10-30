@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,14 @@ import (
 // client advertising the given positionEncodings list (LSP 3.17
 // shape). Returns the server, the fake conn, and the decoded
 // initialize result so tests can inspect the negotiated value.
-func initializeWithPositionEncodings(t *testing.T, clientEncodings []string) (*Server, *fakeConn, *initializeResult) {
+// initializeWire is the initialize result as a client decodes it.
+type initializeWire struct {
+	Capabilities struct {
+		PositionEncoding string `json:"positionEncoding"`
+	} `json:"capabilities"`
+}
+
+func initializeWithPositionEncodings(t *testing.T, clientEncodings []string) (*Server, *fakeConn, *initializeWire) {
 	t.Helper()
 	srv, fc := newServerWithFakeConn(t)
 	// Build raw initialize params with the LSP 3.17 field at
@@ -34,21 +40,21 @@ func initializeWithPositionEncodings(t *testing.T, clientEncodings []string) (*S
 			},
 		},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, rawParams)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, rawParams)
 	require.NoError(t, err)
 
-	var captured *initializeResult
+	var captured *initializeWire
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
 		if result != nil {
-			b, err := json.Marshal(result)
+			b, err := testCodec.Marshal(result)
 			require.NoError(t, err)
-			captured = &initializeResult{}
-			require.NoError(t, json.Unmarshal(b, captured))
+			captured = &initializeWire{}
+			require.NoError(t, testCodec.Unmarshal(b, captured))
 		}
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return srv, fc, captured
 }
 
@@ -72,10 +78,10 @@ func TestPositionEncoding_FallsBackToUTF16WhenUTF8NotOffered(t *testing.T) {
 func TestPositionEncoding_FallsBackToUTF16WhenListAbsent(t *testing.T) {
 	// Pre-3.17 client: no positionEncodings field at all.
 	srv, fc := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
-		&protocol.InitializeParams{ClientInfo: &protocol.ClientInfo{Name: "old-client"}})
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+		&protocol.InitializeParams{ClientInfo: protocol.ClientInfo{Name: "old-client"}})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 	_ = fc
 	assert.Equal(t, positions.UTF16, srv.PositionEncoding(),
 		"pre-LSP-3.17 client (no positionEncodings field) → utf-16 default")
@@ -92,7 +98,7 @@ func TestPositionEncoding_DidChangeUsesNegotiatedEncoding(t *testing.T) {
 	// Open with content that has a 4-byte emoji + ASCII suffix.
 	// "😀ab" — emoji is bytes 0-3, 'a' is byte 4, 'b' is byte 5.
 	const initial = "😀ab"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/u.pxf", 1, initial)))
 
 	// Replace 'a' (byte 4 in UTF-8) with 'X'. With UTF-8
@@ -104,7 +110,7 @@ func TestPositionEncoding_DidChangeUsesNegotiatedEncoding(t *testing.T) {
 			},
 			Version: 2,
 		},
-		ContentChanges: []protocol.TextDocumentContentChangeEvent{{
+		ContentChanges: []protocol.TextDocumentContentChangeEvent{&protocol.TextDocumentContentChangePartial{
 			Range: protocol.Range{
 				Start: protocol.Position{Line: 0, Character: 4},
 				End:   protocol.Position{Line: 0, Character: 5},
@@ -112,9 +118,9 @@ func TestPositionEncoding_DidChangeUsesNegotiatedEncoding(t *testing.T) {
 			Text: "X",
 		}},
 	}
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidChange, change)
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidChange, change)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif))
 
 	doc := srv.Documents().Get("file:///work/u.pxf")
 	require.NotNil(t, doc)
@@ -131,7 +137,7 @@ func TestPositionEncoding_DidChangeWithUTF16InterpretsNonBMPCorrectly(t *testing
 		"no initialize → defaults to UTF-16")
 
 	const initial = "😀ab"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/u.pxf", 1, initial)))
 
 	// Replace 'a' — character=2 in UTF-16 (after the 2 surrogate
@@ -143,7 +149,7 @@ func TestPositionEncoding_DidChangeWithUTF16InterpretsNonBMPCorrectly(t *testing
 			},
 			Version: 2,
 		},
-		ContentChanges: []protocol.TextDocumentContentChangeEvent{{
+		ContentChanges: []protocol.TextDocumentContentChangeEvent{&protocol.TextDocumentContentChangePartial{
 			Range: protocol.Range{
 				Start: protocol.Position{Line: 0, Character: 2},
 				End:   protocol.Position{Line: 0, Character: 3},
@@ -151,9 +157,9 @@ func TestPositionEncoding_DidChangeWithUTF16InterpretsNonBMPCorrectly(t *testing
 			Text: "X",
 		}},
 	}
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidChange, change)
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidChange, change)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, notif))
 
 	doc := srv.Documents().Get("file:///work/u.pxf")
 	require.NotNil(t, doc)

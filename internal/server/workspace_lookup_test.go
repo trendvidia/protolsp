@@ -83,10 +83,10 @@ func TestSubWorkspace_DialsItsOwnRegistry(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	swA := subWS(t, srv, svcA)
@@ -106,10 +106,10 @@ func TestSubWorkspace_LookupForDocRoutesByWorkspace(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	// Install distinct lookups on each sub-workspace.
@@ -151,7 +151,7 @@ layers = []
 	srv.Lookups().Swap(rootLookup, nil)
 
 	devURI := uri.File(filepath.Join(svc, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	devDoc := srv.Documents().Get(devURI)
@@ -171,10 +171,10 @@ func TestSubWorkspace_RebuildIndependentFromRoot(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	swBBefore := subWS(t, srv, svcB)
@@ -184,7 +184,7 @@ func TestSubWorkspace_RebuildIndependentFromRoot(t *testing.T) {
 	// Edit svc-a's .protolsp.pxf via didChange — switching to
 	// yet another registry.
 	configA := uri.File(filepath.Join(svcA, ".protolsp.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(configA), 1, `@type protolsp.v1.WorkspaceConfig
 schema_sources {
   registry { address = "registry-a.invalid:443" namespace = "team-a" }
@@ -195,7 +195,7 @@ schema_sources {
   registry { address = "registry-a-v2.invalid:443" namespace = "team-a-v2" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(configA), 2, edited)))
 
 	swA := subWS(t, srv, svcA)
@@ -223,7 +223,7 @@ func TestWatchedFiles_SubWorkspaceConfigChangeReloads(t *testing.T) {
 
 	// Trigger sub-workspace discovery first.
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	subWS(t, srv, svcA)
 
@@ -235,7 +235,7 @@ schema_sources {
 }
 `), 0o600))
 	configURI := uri.File(filepath.Join(svcA, ".protolsp.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: configURI, Type: protocol.FileChangeTypeChanged},
 		})))
@@ -279,7 +279,7 @@ environments = [ { name = "dev" } ]
 
 	// didOpen on a doc inside svc-a triggers sub-workspace discovery.
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	swA := subWS(t, srv, svcA)
 	require.NotNil(t, swA, "preconditions: sub-workspace loaded")
@@ -294,7 +294,7 @@ version = "1.0.0"
 default_environment = "prod"
 environments = [ { name = "prod" }, { name = "dev" } ]
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(chainPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -319,7 +319,7 @@ func TestWatchedFiles_SubWorkspaceConfigDeleteClearsFileConfig(t *testing.T) {
 
 	// Discover the sub-workspace.
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	swA := subWS(t, srv, svcA)
 	require.NotNil(t, swA)
@@ -328,7 +328,7 @@ func TestWatchedFiles_SubWorkspaceConfigDeleteClearsFileConfig(t *testing.T) {
 	// Delete + fire the watcher.
 	configPath := filepath.Join(svcA, ".protolsp.pxf")
 	require.NoError(t, os.Remove(configPath))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(configPath), Type: protocol.FileChangeTypeDeleted},
 		})))
@@ -352,10 +352,10 @@ func TestSubWorkspace_Close_TearsDownAllLookups(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	// Install stub closers on each sub-workspace so we can detect
@@ -379,7 +379,7 @@ func TestSubWorkspace_Close_IsIdempotent(t *testing.T) {
 	root, svcA, _ := writeMonorepoWithDifferentRegistries(t)
 	srv, _ := initializeWithWorkspace(t, root, nil)
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	stub := &trackedCloser{}
@@ -399,7 +399,7 @@ func TestSubWorkspace_Close_CancelsInFlightRebuild(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	// loadSubWorkspaceState fired rebuildLookupAsyncForWorkspace,

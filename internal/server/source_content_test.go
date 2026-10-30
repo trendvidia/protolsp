@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +57,7 @@ func TestParseRegistryURI_RejectsMalformed(t *testing.T) {
 // returns either the decoded result or the JSON-RPC error.
 func sourceContentReply(t *testing.T, srv *Server, u string) (*SourceContentResult, *jsonrpc2.Error) {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSourceContent,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSourceContent,
 		&SourceContentParams{URI: uri.URI(u)})
 	require.NoError(t, err)
 
@@ -74,14 +73,14 @@ func sourceContentReply(t *testing.T, srv *Server, u string) (*SourceContentResu
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var r SourceContentResult
-		require.NoError(t, json.Unmarshal(b, &r))
+		require.NoError(t, testCodec.Unmarshal(b, &r))
 		got = &r
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got, gotErr
 }
 

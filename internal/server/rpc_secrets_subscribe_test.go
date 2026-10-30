@@ -29,7 +29,7 @@ func TestSecretsSubscribe_SnapshotPlusChanges(t *testing.T) {
 	t.Cleanup(srv.stopRPC)
 
 	// Open a doc that has the secret field set from the start.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	client := rpcpbconnect.NewSecretsServiceClient(
@@ -61,7 +61,7 @@ func TestSecretsSubscribe_SnapshotPlusChanges(t *testing.T) {
 	// short-circuits when the secret table is byte-equal, so we'd
 	// expect NO push for this edit. Instead, change the doc to
 	// remove the secret entirely.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2,
 			"@type acme.demo.v1.Credentials\n\nusername = \"alice\"\n")))
 
@@ -82,7 +82,7 @@ func TestSecretsSubscribe_NoChurnOnByteEqualEdits(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(srv.stopRPC)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	client := rpcpbconnect.NewSecretsServiceClient(
@@ -106,7 +106,7 @@ func TestSecretsSubscribe_NoChurnOnByteEqualEdits(t *testing.T) {
 
 	// Edit username (non-secret). Secret table stays the same →
 	// no event.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2,
 			"@type acme.demo.v1.Credentials\n\nusername = \"bob\"\npassword = \"super-secret\"\n")))
 

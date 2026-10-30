@@ -87,7 +87,7 @@ func (s *Workspace) IsWorkspaceConfigDoc(doc *Document) bool {
 	// URI fallback: basename match. The W4 multi-root walk will
 	// refine this with workspace-relative path checks; for now
 	// any `.protolsp.pxf` that's open counts.
-	return doc.URI.Filename() != "" &&
+	return doc.URI.FsPath() != "" &&
 		filenameMatches(doc.URI, workspaceconfig.ConfigFileName)
 }
 
@@ -107,17 +107,17 @@ func (s *Workspace) IsChainSpecDoc(doc *Document) bool {
 	if parsed := doc.snapshotParsed(); parsed != nil && parsed.TypeURL == chain.ExpectedType {
 		return true
 	}
-	if c := s.SnapshotChain(); c != nil && c.Path != "" && doc.URI.Filename() == c.Path {
+	if c := s.SnapshotChain(); c != nil && c.Path != "" && doc.URI.FsPath() == c.Path {
 		return true
 	}
 	return false
 }
 
 // filenameMatches reports whether the basename of uri.URI matches
-// `name`. Uses uri.URI.Filename() which already strips the
+// `name`. Uses uri.URI.FsPath() which already strips the
 // scheme + path-to-basename conversion.
 func filenameMatches(u uri.URI, name string) bool {
-	fn := u.Filename()
+	fn := u.FsPath()
 	// Filename returns the full path; strip to basename for compare.
 	for i := len(fn) - 1; i >= 0; i-- {
 		if fn[i] == '/' {

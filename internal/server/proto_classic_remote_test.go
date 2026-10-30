@@ -115,7 +115,7 @@ func openRemoteClassicDoc(t *testing.T, withSource, withSourceInfo bool) (*Serve
 	srv.Lookups().Swap(lookup, nil)
 
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, remoteClassicDoc)))
 	return srv, u
 }
@@ -139,8 +139,8 @@ func TestProtoNavigation_ClassicDescriptorOnlyFallback(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			hover := hoverFromHandle(t, srv, u, c.line, c.char)
 			require.NotNil(t, hover, "descriptor-only reference yields a hover")
-			assert.Contains(t, hover.Contents.Value, c.wantMD)
-			assert.Contains(t, hover.Contents.Value, "Defined in `acme/classic.proto`")
+			assert.Contains(t, hoverBody(hover), c.wantMD)
+			assert.Contains(t, hoverBody(hover), "Defined in `acme/classic.proto`")
 
 			locs := definitionFromHandle(t, srv, u, c.line, c.char)
 			require.Len(t, locs, 1, "definition resolves via the descriptor")
@@ -157,8 +157,8 @@ func TestProtoNavigation_ClassicServedSourceFallback(t *testing.T) {
 
 	hover := hoverFromHandle(t, srv, u, 7, 20)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**message Anchor**")
-	assert.Contains(t, hover.Contents.Value, "Remote anchor message.",
+	assert.Contains(t, hoverBody(hover), "**message Anchor**")
+	assert.Contains(t, hoverBody(hover), "Remote anchor message.",
 		"served source carries the doc comment the descriptor can't")
 
 	locs := definitionFromHandle(t, srv, u, 7, 20)
@@ -170,8 +170,8 @@ func TestProtoNavigation_ClassicServedSourceFallback(t *testing.T) {
 	// Enum reference resolves through the parsed source too.
 	hover = hoverFromHandle(t, srv, u, 8, 20)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**enum Color**")
-	assert.Contains(t, hover.Contents.Value, "Remote color enum.")
+	assert.Contains(t, hoverBody(hover), "**enum Color**")
+	assert.Contains(t, hoverBody(hover), "Remote color enum.")
 	locs = definitionFromHandle(t, srv, u, 8, 20)
 	require.Len(t, locs, 1)
 	// `Color` in `enum Color {`.
@@ -269,7 +269,7 @@ func openRemoteNestedDoc(t *testing.T, withSource bool) (*Server, string) {
 	srv.Lookups().Swap(lookup, nil)
 
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, remoteNestedDoc)))
 	return srv, u
 }
@@ -292,8 +292,8 @@ func TestProtoNavigation_NestedDescriptorOnlyFallback(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			hover := hoverFromHandle(t, srv, u, c.line, c.char)
 			require.NotNil(t, hover, "descriptor-only nested reference yields a hover")
-			assert.Contains(t, hover.Contents.Value, c.wantMD)
-			assert.Contains(t, hover.Contents.Value, "Defined in `acme/nested.proto`")
+			assert.Contains(t, hoverBody(hover), c.wantMD)
+			assert.Contains(t, hoverBody(hover), "Defined in `acme/nested.proto`")
 
 			locs := definitionFromHandle(t, srv, u, c.line, c.char)
 			require.Len(t, locs, 1, "definition resolves via the descriptor")
@@ -311,8 +311,8 @@ func TestProtoNavigation_NestedServedSourceFallback(t *testing.T) {
 
 	hover := hoverFromHandle(t, srv, u, 7, 24)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**message Inner**")
-	assert.Contains(t, hover.Contents.Value, "Nested anchor message.",
+	assert.Contains(t, hoverBody(hover), "**message Inner**")
+	assert.Contains(t, hoverBody(hover), "Nested anchor message.",
 		"served source carries the doc comment the descriptor can't")
 
 	locs := definitionFromHandle(t, srv, u, 7, 24)
@@ -324,8 +324,8 @@ func TestProtoNavigation_NestedServedSourceFallback(t *testing.T) {
 	// The nested enum resolves through the parsed source too.
 	hover = hoverFromHandle(t, srv, u, 8, 24)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**enum Mode**")
-	assert.Contains(t, hover.Contents.Value, "Nested mode enum.")
+	assert.Contains(t, hoverBody(hover), "**enum Mode**")
+	assert.Contains(t, hoverBody(hover), "Nested mode enum.")
 	locs = definitionFromHandle(t, srv, u, 8, 24)
 	require.Len(t, locs, 1)
 	// `Mode` in `  enum Mode {`.
@@ -351,7 +351,7 @@ message Profile {
 }
 `
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, doc)))
 
 	assert.Nil(t, hoverFromHandle(t, srv, u, 7, 24),
@@ -379,7 +379,7 @@ message Profile {
 }
 `
 	const u = "file:///work/app.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, doc)))
 
 	assert.Nil(t, hoverFromHandle(t, srv, u, 7, 20),

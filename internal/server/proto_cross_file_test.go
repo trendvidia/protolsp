@@ -63,7 +63,7 @@ message Foo {
 
 	// Open foo.proto so the LSP has a document to dispatch against.
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	return root, fooPath, barPath, srv
@@ -79,9 +79,9 @@ func TestProtoHover_CrossFile_TypeReferenceResolvesViaImport(t *testing.T) {
 	// Character 3 lands in "Bar".
 	hover := hoverFromHandle(t, srv, fooURI, 7, 3)
 	require.NotNil(t, hover, "type ref resolves cross-file via import")
-	assert.Contains(t, hover.Contents.Value, "**message Bar**",
+	assert.Contains(t, hoverBody(hover), "**message Bar**",
 		"cross-file hover renders the message card from bar.proto")
-	assert.Contains(t, hover.Contents.Value, "Render priority for greetings",
+	assert.Contains(t, hoverBody(hover), "Render priority for greetings",
 		"the imported file's leading comment flows through")
 }
 
@@ -154,13 +154,13 @@ message Foo {
 }
 `
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, fooURI, 2, updated)))
 
 	// Line 7 char 3 → "Quux".
 	hover := hoverFromHandle(t, srv, fooURI, 7, 3)
 	if hover != nil {
-		assert.NotContains(t, hover.Contents.Value, "message Quux",
+		assert.NotContains(t, hoverBody(hover), "message Quux",
 			"unimported types must NOT resolve cross-file even when they exist in the workspace")
 	}
 }
@@ -196,7 +196,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	expectedBarURI := uri.URI("file://" + filepath.ToSlash(filepath.Join(root, "bar.proto")))
@@ -240,7 +240,7 @@ message Wrapper {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 9 (0-indexed): `  Bar field = 1;`. Character 3 → "Bar".
@@ -292,7 +292,7 @@ package acme.demo.v1;
 import "acme/missing.proto";
 `)
 	bazURI := "file://" + filepath.ToSlash(bazPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, bazURI, 1, mustRead(t, bazPath))))
 
 	doc := srv.Documents().Get(uri.URI(bazURI))
@@ -300,6 +300,6 @@ import "acme/missing.proto";
 	require.NotEmpty(t, doc.ProtoDiagnostics,
 		"an import outside the index must still error")
 	for _, d := range doc.ProtoDiagnostics {
-		assert.Equal(t, "protolsp/proto", d.Source)
+		assert.Equal(t, "protolsp/proto", optValue(d.Source))
 	}
 }

@@ -80,12 +80,12 @@ func ReadClientCapabilities(p *protocol.InitializeParams) ClientCapabilities {
 	if w == nil {
 		return caps
 	}
-	caps.WorkspaceConfiguration = w.Configuration
+	caps.WorkspaceConfiguration = isTrue(w.Configuration)
 	if dc := w.DidChangeConfiguration; dc != nil {
-		caps.DidChangeConfigurationDynamic = dc.DynamicRegistration
+		caps.DidChangeConfigurationDynamic = isTrue(dc.DynamicRegistration)
 	}
 	if dw := w.DidChangeWatchedFiles; dw != nil {
-		caps.DidChangeWatchedFilesDynamic = dw.DynamicRegistration
+		caps.DidChangeWatchedFilesDynamic = isTrue(dw.DynamicRegistration)
 	}
 	return caps
 }

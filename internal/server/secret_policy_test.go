@@ -19,7 +19,7 @@ import (
 // "protolsp/security", or nil if none was emitted.
 func findSecuritySource(diags []protocol.Diagnostic) *protocol.Diagnostic {
 	for i := range diags {
-		if diags[i].Source == "protolsp/security" {
+		if optValue(diags[i].Source) == "protolsp/security" {
 			return &diags[i]
 		}
 	}
@@ -28,7 +28,7 @@ func findSecuritySource(diags []protocol.Diagnostic) *protocol.Diagnostic {
 
 func TestPolicy_DefaultIsWarn(t *testing.T) {
 	srv, fc, _ := newServerWithCredentialsType(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
@@ -50,7 +50,7 @@ func TestPolicy_OverrideToAllowSuppressesDiagnostic(t *testing.T) {
 		},
 	})
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
@@ -68,7 +68,7 @@ func TestPolicy_OverrideToRefuseUpgradeSeverity(t *testing.T) {
 		},
 	})
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
@@ -114,7 +114,7 @@ security {
 	lookup.add(buildCredentialsWithSecretType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
@@ -143,7 +143,7 @@ security { inline_secrets = "refuse" }
 	lookup.add(buildCredentialsWithSecretType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
@@ -176,7 +176,7 @@ security { inline_secrets = "warn" }
 		},
 	})
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	notes := fc.calls()
