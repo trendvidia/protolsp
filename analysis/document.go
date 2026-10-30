@@ -11,7 +11,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 	"github.com/trendvidia/protowire-go/encoding/pxf"
 
 	"github.com/trendvidia/protolsp/protoast"

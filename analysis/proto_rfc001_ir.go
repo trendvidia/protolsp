@@ -28,10 +28,10 @@ import (
 	"strings"
 
 	"github.com/trendvidia/protocompile/fdp"
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
 	"github.com/trendvidia/protocompile/ir"
 	"github.com/trendvidia/protocompile/seq"
 	"github.com/trendvidia/protocompile/source/length"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 	"go.lsp.dev/protocol"
 	"google.golang.org/protobuf/proto"
 

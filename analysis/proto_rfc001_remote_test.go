@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 )
 
 // The carrier extractor must surface every RFC-001 FileOptions

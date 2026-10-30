@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 )
 
 // dnDeclsProto declares one of everything the export covers, under a

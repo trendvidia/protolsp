@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 )
 
 // remoteRFC001Doc references three RFC-001 declarations from
