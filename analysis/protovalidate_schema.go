@@ -43,8 +43,8 @@ import (
 	"sync"
 
 	pvcel "buf.build/go/protovalidate/cel"
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common"
+	"cel.dev/cel-go/cel"
+	"cel.dev/cel-go/common"
 	"github.com/trendvidia/protocompile/ast"
 	"github.com/trendvidia/protocompile/seq"
 	"github.com/trendvidia/protocompile/token"

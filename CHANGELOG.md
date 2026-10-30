@@ -28,6 +28,10 @@ without a major bump.
 
 ### Changed
 
+- Dependencies moved to their latest releases, except the three
+  `go.lsp.dev` modules. Those need a separate migration. `cel-go` now
+  comes from its new module path, `cel.dev/cel-go` (v0.33.1), which
+  protovalidate v1.4.0 requires.
 - **protocompile v0.35.1 → v0.36.0**, for the printer fixes above
   (trendvidia/protocompile#258, #273, #274). It also brings the parser's
   new diagnostic for a run of tokens that start no declaration.
