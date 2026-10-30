@@ -11,7 +11,7 @@ require (
 	github.com/trendvidia/protocheck-govm v0.2.0
 	github.com/trendvidia/protocheck/v2 v2.8.0
 	github.com/trendvidia/protocompile v0.36.1
-	github.com/trendvidia/protoregistry v0.73.0
+	github.com/trendvidia/protoregistry v0.74.0
 	github.com/trendvidia/protowire-go v1.12.1
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
@@ -26,7 +26,7 @@ require github.com/trendvidia/protowire v1.14.0
 
 require (
 	cel.dev/cel-go v0.33.1
-	github.com/trendvidia/protos v0.1.2
+	github.com/trendvidia/protos v0.1.3
 )
 
 require (
@@ -48,9 +48,3 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
 )
-
-// protoregistry/client depends on namespace-aware registry types
-// (NamespacedFiles/NamespacedTypes) that live in the TrendVidia fork
-// of protobuf-go, not upstream. Replace directives don't transit, so
-// this module declares the same pin.
-replace google.golang.org/protobuf => github.com/trendvidia/protobuf-go v1.36.12

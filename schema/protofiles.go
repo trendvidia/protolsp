@@ -27,6 +27,7 @@ import (
 
 	"github.com/trendvidia/protocompile"
 	"github.com/trendvidia/protocompile/reporter"
+	"github.com/trendvidia/protoregistry/nsregistry"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/dynamicpb"
@@ -221,8 +222,8 @@ func OpenProtoFiles(ctx context.Context, cfg ProtoFilesConfig, logger *slog.Logg
 		})
 	}
 
-	files := protoregistry.NewNamespacedFiles(nil)
-	types := protoregistry.NewNamespacedTypes(nil)
+	files := nsregistry.NewNamespacedFiles(nil)
+	types := nsregistry.NewNamespacedTypes(nil)
 	for _, lf := range linked {
 		if lf == nil {
 			continue
@@ -256,7 +257,7 @@ func OpenProtoFiles(ctx context.Context, cfg ProtoFilesConfig, logger *slog.Logg
 // in fd and registers a dynamic MessageType for it into types.
 // Duplicate registration logs at Debug and continues; W3's
 // WithFallback path expects every name reachable once.
-func registerFileMessages(types *protoregistry.NamespacedTypes, fd protoreflect.FileDescriptor, logger *slog.Logger) {
+func registerFileMessages(types *nsregistry.NamespacedTypes, fd protoreflect.FileDescriptor, logger *slog.Logger) {
 	visit(fd.Messages(), func(md protoreflect.MessageDescriptor) {
 		if err := types.RegisterMessage(dynamicpb.NewMessageType(md)); err != nil {
 			logger.Debug("proto_files: skipping duplicate message registration",
@@ -292,8 +293,8 @@ func isStandardImport(path string) bool {
 // can compose proto_files behind a user registry without an
 // adapter layer.
 type protoFilesLookup struct {
-	files      *protoregistry.NamespacedFiles
-	types      *protoregistry.NamespacedTypes
+	files      *nsregistry.NamespacedFiles
+	types      *nsregistry.NamespacedTypes
 	fileSource map[string]string // proto path → absolute disk path
 }
 
@@ -301,7 +302,7 @@ type protoFilesLookup struct {
 // behind a proto_files lookup so W3 can plug them in as
 // WithFallback parents on a sibling protoregistry/client.Resolver.
 // Returns (nil, nil) for anything that isn't a proto_files lookup.
-func ProtoFilesParents(l Lookup) (*protoregistry.NamespacedFiles, *protoregistry.NamespacedTypes) {
+func ProtoFilesParents(l Lookup) (*nsregistry.NamespacedFiles, *nsregistry.NamespacedTypes) {
 	pf, ok := l.(*protoFilesLookup)
 	if !ok || pf == nil {
 		return nil, nil

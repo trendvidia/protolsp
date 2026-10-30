@@ -15,9 +15,9 @@ import (
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/trendvidia/protoregistry/client"
+	"github.com/trendvidia/protoregistry/nsregistry"
 )
 
 // DialTimeout caps how long schema.Open will wait for client.Dial
@@ -136,8 +136,8 @@ func (c Config) Validate() error {
 type OpenOption func(*openOptions)
 
 type openOptions struct {
-	fallbackFiles *protoregistry.NamespacedFiles
-	fallbackTypes *protoregistry.NamespacedTypes
+	fallbackFiles *nsregistry.NamespacedFiles
+	fallbackTypes *nsregistry.NamespacedTypes
 }
 
 // WithFallback wires the registry Resolver to fall through to the
@@ -149,7 +149,7 @@ type openOptions struct {
 // The caller owns the lifecycle of the fallback registries —
 // schema.Open neither closes them on the resulting Resolver's
 // Close nor copies them.
-func WithFallback(files *protoregistry.NamespacedFiles, types *protoregistry.NamespacedTypes) OpenOption {
+func WithFallback(files *nsregistry.NamespacedFiles, types *nsregistry.NamespacedTypes) OpenOption {
 	return func(o *openOptions) {
 		o.fallbackFiles = files
 		o.fallbackTypes = types
