@@ -47,8 +47,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	schemav1 "github.com/trendvidia/protocompile/gen/protowire/schema/v1"
 	"github.com/trendvidia/protocompile/source"
+	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 
 	"github.com/trendvidia/protolsp/protoast"
 )
