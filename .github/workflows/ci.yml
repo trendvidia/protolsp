@@ -10,10 +10,13 @@ permissions:
 
 jobs:
   ci:
-    # Stock Go on a GitHub-hosted runner with no private-module access:
-    # the untagged build every contributor gets, so it is safe to run for
-    # fork PRs. The -tags protocheck build links the private govm and
-    # protocheck-govm modules, so CI does not run it.
+    # Stock Go on a GitHub-hosted runner, so the untagged steps need no
+    # credentials and run for every PR. The -tags protocheck steps link
+    # govm and protocheck-govm, which are private and not on the public
+    # Go proxy. They need PRIVATE_MODULES_TOKEN, a read-only token for
+    # those two repositories. Fork PRs don't get secrets, so they skip
+    # those steps. The token is only used to download modules and is
+    # removed before any of the PR's code runs.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -32,3 +35,22 @@ jobs:
       - run: go vet ./...
       - run: go build ./...
       - run: go test -race ./...
+      - name: Download private modules
+        id: private
+        env:
+          PRIVATE_MODULES_TOKEN: ${{ secrets.PRIVATE_MODULES_TOKEN }}
+          GOPRIVATE: github.com/trendvidia/govm,github.com/trendvidia/protocheck-govm
+        run: |
+          if [ -z "$PRIVATE_MODULES_TOKEN" ]; then
+            echo "::notice::PRIVATE_MODULES_TOKEN unavailable; skipping the protocheck build."
+            exit 0
+          fi
+          url="https://x-access-token:${PRIVATE_MODULES_TOKEN}@github.com/trendvidia/"
+          git config --global url."$url".insteadOf "https://github.com/trendvidia/"
+          trap 'git config --global --remove-section url."$url"' EXIT
+          go mod download
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - if: steps.private.outputs.ready == 'true'
+        run: go vet -tags protocheck ./...
+      - if: steps.private.outputs.ready == 'true'
+        run: go test -race -tags protocheck ./...
