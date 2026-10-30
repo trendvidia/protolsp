@@ -155,7 +155,7 @@ func TestProtocheckCatalogI18n_E2E_CatalogEditTriggersRebuild(t *testing.T) {
 	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 	require.Equal(t, "Funktion nicht implementiert",
-		lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")[0].Message)
+		messageText(lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")[0].Message))
 
 	// Edit the catalog on disk and deliver the watched-file event.
 	// The classifier matches the file against the loaded catalog
