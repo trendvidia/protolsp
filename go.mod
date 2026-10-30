@@ -3,41 +3,39 @@ module github.com/trendvidia/protolsp
 go 1.26.2
 
 require (
-	buf.build/go/protovalidate v1.2.0
-	connectrpc.com/connect v1.20.0
-	github.com/coder/websocket v1.8.14
-	github.com/google/cel-go v0.28.0
+	buf.build/go/protovalidate v1.4.0
+	connectrpc.com/connect v1.21.1
+	github.com/coder/websocket v1.8.15
 	github.com/stretchr/testify v1.12.1
-	github.com/trendvidia/govm/v2 v2.11.0
+	github.com/trendvidia/govm/v2 v2.15.0
 	github.com/trendvidia/protocheck-govm v0.2.0
-	github.com/trendvidia/protocheck/v2 v2.7.0
-	github.com/trendvidia/protocompile v0.36.0
-	github.com/trendvidia/protoregistry v0.72.0
-	github.com/trendvidia/protowire-go v1.12.0
+	github.com/trendvidia/protocheck/v2 v2.8.0
+	github.com/trendvidia/protocompile v0.36.1
+	github.com/trendvidia/protoregistry v0.73.0
+	github.com/trendvidia/protowire-go v1.12.1
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0
-	golang.org/x/net v0.58.0
-	google.golang.org/grpc v1.84.0
+	golang.org/x/net v0.62.0
+	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/trendvidia/protowire v1.13.0
-
-require github.com/trendvidia/protos v0.1.1
+require github.com/trendvidia/protowire v1.14.0
 
 require (
-	// Pinned above what MVS would pick: these generated-SDK versions sort
-	// by protobuf-go prefix first, so protocompile's older
-	// v1.36.12-20240920… would win over v1.36.11-20260415… and drop the
-	// types protovalidate v1.2.0 needs (FieldPath, Rule, FieldRules).
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260415201107-50325440f8f2.1 // indirect
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/cel-go v0.33.1
+	github.com/trendvidia/protos v0.1.2
+)
+
+require (
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 // indirect
+	cel.dev/expr v0.25.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/awnumar/memcall v0.4.0 // indirect
+	github.com/awnumar/memcall v0.5.0 // indirect
 	github.com/awnumar/memguard v0.23.0 // indirect
-	github.com/petermattis/goid v0.0.0-20260113132338-7c7de50cc741 // indirect
+	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.3.4 // indirect
@@ -47,13 +45,13 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260807164820-c8921c73eeea // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260729162451-8efbd57d26e0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
 )
 
 // protoregistry/client depends on namespace-aware registry types
