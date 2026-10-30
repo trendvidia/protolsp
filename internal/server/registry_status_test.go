@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,9 +21,9 @@ func registryStatusReply(t *testing.T, srv *Server) RegistryStatusResult {
 	var got RegistryStatusResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))

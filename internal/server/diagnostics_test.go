@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/trendvidia/protolsp/internal/lspcodec"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
@@ -53,38 +55,38 @@ func (f *fakeConn) Notify(_ context.Context, method string, params interface{}) 
 	defer f.mu.Unlock()
 	// Round-trip through JSON so the captured params reflect what a real
 	// peer would see (no shared-pointer aliasing with the caller).
-	b, err := json.Marshal(params)
+	b, err := testCodec.Marshal(params)
 	if err != nil {
 		return err
 	}
 	switch method {
 	case protocol.MethodTextDocumentPublishDiagnostics:
 		var p protocol.PublishDiagnosticsParams
-		if err := json.Unmarshal(b, &p); err != nil {
+		if err := testCodec.Unmarshal(b, &p); err != nil {
 			return err
 		}
 		f.notify = append(f.notify, notifyCall{method: method, params: &p})
 	case protocol.MethodWindowShowMessage:
 		var p protocol.ShowMessageParams
-		if err := json.Unmarshal(b, &p); err != nil {
+		if err := testCodec.Unmarshal(b, &p); err != nil {
 			return err
 		}
 		f.showMessages = append(f.showMessages, p)
 	case MethodEffectiveConfigChanged:
 		var p EffectiveConfigChangedParams
-		if err := json.Unmarshal(b, &p); err != nil {
+		if err := testCodec.Unmarshal(b, &p); err != nil {
 			return err
 		}
 		f.configChanged = append(f.configChanged, p)
 	case MethodSecretRangesChanged:
 		var p SecretRangesChangedParams
-		if err := json.Unmarshal(b, &p); err != nil {
+		if err := testCodec.Unmarshal(b, &p); err != nil {
 			return err
 		}
 		f.secretChanges = append(f.secretChanges, p)
 	case MethodDatasetRegionsChanged:
 		var p DatasetRegionsChangedParams
-		if err := json.Unmarshal(b, &p); err != nil {
+		if err := testCodec.Unmarshal(b, &p); err != nil {
 			return err
 		}
 		f.datasetChanges = append(f.datasetChanges, p)
@@ -103,7 +105,7 @@ func (f *fakeConn) Notify(_ context.Context, method string, params interface{}) 
 func (f *fakeConn) Call(_ context.Context, method string, params, result interface{}) (jsonrpc2.ID, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	pb, err := json.Marshal(params)
+	pb, err := testCodec.Marshal(params)
 	if err != nil {
 		return jsonrpc2.ID{}, err
 	}
@@ -115,7 +117,7 @@ func (f *fakeConn) Call(_ context.Context, method string, params, result interfa
 	if !ok {
 		return jsonrpc2.ID{}, nil // no canned response → leave result zero-valued
 	}
-	if err := json.Unmarshal(resp, result); err != nil {
+	if err := testCodec.Unmarshal(resp, result); err != nil {
 		return jsonrpc2.ID{}, err
 	}
 	return jsonrpc2.ID{}, nil
@@ -145,7 +147,7 @@ func (f *fakeConn) setCallResponse(method string, payload interface{}) {
 	if f.callResponses == nil {
 		f.callResponses = map[string]json.RawMessage{}
 	}
-	b, _ := json.Marshal(payload)
+	b, _ := testCodec.Marshal(payload)
 	f.callResponses[method] = b
 }
 func (f *fakeConn) Go(context.Context, jsonrpc2.Handler) {}
@@ -418,3 +420,5 @@ type pxfPosition = struct {
 	Column int
 	Offset int
 }
+
+var testCodec lspcodec.Codec

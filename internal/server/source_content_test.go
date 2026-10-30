@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,10 +73,10 @@ func sourceContentReply(t *testing.T, srv *Server, u string) (*SourceContentResu
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var r SourceContentResult
-		require.NoError(t, json.Unmarshal(b, &r))
+		require.NoError(t, testCodec.Unmarshal(b, &r))
 		got = &r
 		return nil
 	}

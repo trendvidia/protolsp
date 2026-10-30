@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,9 +32,9 @@ func documentSymbolsFromHandle(t *testing.T, srv *Server, u string) []protocol.D
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
@@ -141,12 +140,12 @@ func TestDocumentSymbol_AdvertisesCapability(t *testing.T) {
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}

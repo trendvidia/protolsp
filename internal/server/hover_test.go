@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,10 +36,10 @@ func hoverFromHandle(t *testing.T, srv *Server, u string, line, char uint32) *pr
 			return nil
 		}
 		// Round-trip through JSON so we see the over-the-wire shape.
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var h protocol.Hover
-		require.NoError(t, json.Unmarshal(b, &h))
+		require.NoError(t, testCodec.Unmarshal(b, &h))
 		captured = &h
 		return nil
 	}

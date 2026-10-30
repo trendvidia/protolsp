@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,7 @@ func TestWatchedFiles_RegistrationIncludesProtoAndBuf(t *testing.T) {
 	calls := fc.callsByMethod(protocol.MethodClientRegisterCapability)
 	require.Len(t, calls, 1)
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 
 	var watcherReg *protocol.Registration
 	for i := range reg.Registrations {
@@ -42,10 +41,10 @@ func TestWatchedFiles_RegistrationIncludesProtoAndBuf(t *testing.T) {
 	// Re-decode RegisterOptions from the raw registration. The
 	// LSP type uses interface{} so we round-trip through JSON to
 	// get back to the typed shape.
-	raw, err := json.Marshal(watcherReg.RegisterOptions)
+	raw, err := testCodec.Marshal(watcherReg.RegisterOptions)
 	require.NoError(t, err)
 	var opts protocol.DidChangeWatchedFilesRegistrationOptions
-	require.NoError(t, json.Unmarshal(raw, &opts))
+	require.NoError(t, testCodec.Unmarshal(raw, &opts))
 
 	globs := make([]string, 0, len(opts.Watchers))
 	for _, w := range opts.Watchers {

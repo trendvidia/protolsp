@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -61,7 +60,7 @@ func TestWatchedFiles_RegistrationIncludesConfigAndChainWatchers(t *testing.T) {
 	require.Len(t, calls, 1, "exactly one registerCapability batch on initialized")
 
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 
 	// Find the workspace/didChangeWatchedFiles registration.
 	var found *protocol.Registration
@@ -74,10 +73,10 @@ func TestWatchedFiles_RegistrationIncludesConfigAndChainWatchers(t *testing.T) {
 	require.NotNil(t, found, "watcher registration must be included")
 
 	// Decode RegisterOptions back into the struct to inspect watchers.
-	optsBytes, err := json.Marshal(found.RegisterOptions)
+	optsBytes, err := testCodec.Marshal(found.RegisterOptions)
 	require.NoError(t, err)
 	var opts protocol.DidChangeWatchedFilesRegistrationOptions
-	require.NoError(t, json.Unmarshal(optsBytes, &opts))
+	require.NoError(t, testCodec.Unmarshal(optsBytes, &opts))
 
 	patterns := make([]string, 0, len(opts.Watchers))
 	for _, w := range opts.Watchers {
@@ -98,7 +97,7 @@ func TestWatchedFiles_NoRegistrationWhenClientDoesntSupportIt(t *testing.T) {
 	calls := fc.callsByMethod(protocol.MethodClientRegisterCapability)
 	for _, c := range calls {
 		var reg protocol.RegistrationParams
-		require.NoError(t, json.Unmarshal(c.params, &reg))
+		require.NoError(t, testCodec.Unmarshal(c.params, &reg))
 		for _, r := range reg.Registrations {
 			assert.NotEqual(t, protocol.MethodWorkspaceDidChangeWatchedFiles, r.Method,
 				"no watcher registration when client capability is absent")

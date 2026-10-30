@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -46,9 +45,9 @@ func layerInfoReply(t *testing.T, srv *Server, docURI uri.URI) LayerInfoResult {
 	var got LayerInfoResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
@@ -257,9 +256,9 @@ func TestLayerInfo_NullParamsTolerated(t *testing.T) {
 	var got LayerInfoResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))

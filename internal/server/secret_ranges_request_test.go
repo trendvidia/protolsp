@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,9 +41,9 @@ func secretRangesReply(t *testing.T, srv *Server, docURI uri.URI) SecretRangesRe
 	var got SecretRangesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
@@ -220,8 +219,8 @@ func TestSecretRanges_NilParamsTolerated(t *testing.T) {
 	var got SecretRangesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, _ := json.Marshal(result)
-		_ = json.Unmarshal(b, &got)
+		b, _ := testCodec.Marshal(result)
+		_ = testCodec.Unmarshal(b, &got)
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))

@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,10 +30,10 @@ func setOverridesReply(t *testing.T, srv *Server, params SetOverridesParams) (*S
 			gotErr = jsErr
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var r SetOverridesResult
-		require.NoError(t, json.Unmarshal(b, &r))
+		require.NoError(t, testCodec.Unmarshal(b, &r))
 		got = &r
 		return nil
 	}
@@ -192,9 +191,9 @@ func TestSetOverrides_NilParamsTolerated(t *testing.T) {
 	var got *SetOverridesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, _ := json.Marshal(result)
+		b, _ := testCodec.Marshal(result)
 		var r SetOverridesResult
-		_ = json.Unmarshal(b, &r)
+		_ = testCodec.Unmarshal(b, &r)
 		got = &r
 		return nil
 	}

@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,9 +37,9 @@ func definitionFromHandle(t *testing.T, srv *Server, u string, line, char uint32
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))

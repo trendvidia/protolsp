@@ -64,9 +64,9 @@ func decodeReply[T any](t *testing.T, srv *Server, call rpcRequest) T {
 	var got T
 	reply := func(_ context.Context, result any, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &got))
+		require.NoError(t, testCodec.Unmarshal(b, &got))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
@@ -76,7 +76,7 @@ func decodeReply[T any](t *testing.T, srv *Server, call rpcRequest) T {
 // rawJSON is sugar for building ConfigSetParams.Value from a Go value.
 func rawJSON(t *testing.T, v any) json.RawMessage {
 	t.Helper()
-	b, err := json.Marshal(v)
+	b, err := testCodec.Marshal(v)
 	require.NoError(t, err)
 	return b
 }

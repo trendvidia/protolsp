@@ -40,7 +40,7 @@ When adding a handler, a new transport, a new schema source, or a new use of `co
 
 **Rule.** Connections use `lspcodec.Codec`. LSP types go through `protocol.Marshal` and `protocol.Unmarshal`; everything else stays on `encoding/json`. Don't embed a protocol type in a struct to add a field.
 
-**Why.** Sealed-interface unions need the protocol codec to decode. Its fallback for other types is json/v2, which treats `omitempty` and nil slices differently, so `protolsp/*` results would change shape. And an embedded protocol type brings its own encoder, which hides the outer struct's extra fields.
+**Why.** Sealed-interface unions need the protocol codec to decode. Its fallback for other types is json/v2, which treats `omitempty` and nil slices differently, so `protolsp/*` results would change shape. And `encoding/json` on a protocol type depends on the Go version: from Go 1.27 it honors the type's json/v2 hooks, so an embedded protocol type hides the outer struct's extra fields, while on Go 1.26 it ignores them and can't decode unions. Tests go through `testCodec` for the same reason. CI builds with the Go version in `go.mod`, so run the suite on that version too, not only on a newer local one.
 
 **Tripwires.** `internal/lspcodec/codec_test.go` and `TestPositionEncoding_AdvertisedInInitializeResult`.
 

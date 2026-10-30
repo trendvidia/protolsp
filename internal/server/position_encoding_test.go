@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,10 +47,10 @@ func initializeWithPositionEncodings(t *testing.T, clientEncodings []string) (*S
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
 		if result != nil {
-			b, err := json.Marshal(result)
+			b, err := testCodec.Marshal(result)
 			require.NoError(t, err)
 			captured = &initializeWire{}
-			require.NoError(t, json.Unmarshal(b, captured))
+			require.NoError(t, testCodec.Unmarshal(b, captured))
 		}
 		return nil
 	}

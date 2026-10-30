@@ -32,10 +32,10 @@ func listMessagesReply(t *testing.T, srv *Server, params interface{}) (*ListMess
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var r ListMessagesResult
-		require.NoError(t, json.Unmarshal(b, &r))
+		require.NoError(t, testCodec.Unmarshal(b, &r))
 		got = &r
 		return nil
 	}
@@ -96,7 +96,7 @@ func TestListMessages_EmptyOriginOmittedFromJSON(t *testing.T) {
 
 	var rawResult json.RawMessage
 	reply := func(_ context.Context, result interface{}, _ error) error {
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		rawResult = b
 		return nil
@@ -142,10 +142,10 @@ func TestListMessages_NilParamsTolerated(t *testing.T) {
 	var got *ListMessagesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
 		require.NoError(t, replyErr)
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var r ListMessagesResult
-		require.NoError(t, json.Unmarshal(b, &r))
+		require.NoError(t, testCodec.Unmarshal(b, &r))
 		got = &r
 		return nil
 	}

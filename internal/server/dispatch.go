@@ -681,8 +681,8 @@ func (s *Server) dispatchDidOpen(ctx context.Context, req rpcRequest) (any, erro
 	// change, and protolsp's analysis pipeline doesn't apply.
 	// Skipping them outright also avoids a meaningless path: URI.FsPath()
 	// (called from analyzeProto, isWorkspaceConfigDoc,
-	// isChainSpecDoc, and others on this path) panics on non-file
-	// schemes.
+	// isChainSpecDoc, and others on this path) has no real location
+	// for non-file schemes.
 	if !IsFileURI(params.TextDocument.URI) {
 		s.Logger().Debug("didOpen: ignoring non-file URI",
 			slog.String("uri", string(params.TextDocument.URI)))

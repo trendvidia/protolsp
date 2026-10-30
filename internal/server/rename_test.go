@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,10 +44,10 @@ func renameFromHandle(t *testing.T, srv *Server, u string, line, char uint32, ne
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var we protocol.WorkspaceEdit
-		require.NoError(t, json.Unmarshal(b, &we))
+		require.NoError(t, testCodec.Unmarshal(b, &we))
 		captured = &we
 		return nil
 	}
@@ -279,11 +278,11 @@ func TestRename_AdvertisesCapability(t *testing.T) {
 	require.NoError(t, err)
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, _ error) error {
-		b, _ := json.Marshal(result)
+		b, _ := testCodec.Marshal(result)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}

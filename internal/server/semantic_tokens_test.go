@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,10 +32,10 @@ func semanticTokensFromHandle(t *testing.T, srv *Server, u string) *protocol.Sem
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var st protocol.SemanticTokens
-		require.NoError(t, json.Unmarshal(b, &st))
+		require.NoError(t, testCodec.Unmarshal(b, &st))
 		captured = &st
 		return nil
 	}
@@ -203,11 +202,11 @@ func TestSemanticTokens_AdvertisesCapabilityAndLegend(t *testing.T) {
 	require.NoError(t, err)
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, _ error) error {
-		b, _ := json.Marshal(result)
+		b, _ := testCodec.Marshal(result)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}

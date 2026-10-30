@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,10 +39,10 @@ func completionFromHandle(t *testing.T, srv *Server, u string, line, char uint32
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
 		var list protocol.CompletionList
-		require.NoError(t, json.Unmarshal(b, &list))
+		require.NoError(t, testCodec.Unmarshal(b, &list))
 		captured = &list
 		return nil
 	}

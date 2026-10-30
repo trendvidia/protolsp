@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -34,9 +33,9 @@ func formattingFromHandle(t *testing.T, srv *Server, u string) []protocol.TextEd
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
@@ -286,11 +285,11 @@ func TestFormatting_AdvertisesCapability(t *testing.T) {
 	require.NoError(t, err)
 	var caps map[string]interface{}
 	reply := func(_ context.Context, result interface{}, _ error) error {
-		b, _ := json.Marshal(result)
+		b, _ := testCodec.Marshal(result)
 		var probe struct {
 			Capabilities map[string]interface{} `json:"capabilities"`
 		}
-		require.NoError(t, json.Unmarshal(b, &probe))
+		require.NoError(t, testCodec.Unmarshal(b, &probe))
 		caps = probe.Capabilities
 		return nil
 	}

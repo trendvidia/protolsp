@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -110,7 +109,7 @@ func TestConfiguration_RegistersDynamicWhenSupported(t *testing.T) {
 	require.Len(t, calls, 1, "dynamicRegistration=true → server registers")
 
 	var reg protocol.RegistrationParams
-	require.NoError(t, json.Unmarshal(calls[0].params, &reg))
+	require.NoError(t, testCodec.Unmarshal(calls[0].params, &reg))
 	require.Len(t, reg.Registrations, 1)
 	assert.Equal(t, protocol.MethodWorkspaceDidChangeConfiguration, reg.Registrations[0].Method,
 		"registration is for workspace/didChangeConfiguration")

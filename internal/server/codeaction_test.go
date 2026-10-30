@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -165,9 +164,9 @@ unknown_a = 1
 		if result == nil {
 			return nil
 		}
-		b, err := json.Marshal(result)
+		b, err := testCodec.Marshal(result)
 		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(b, &captured))
+		require.NoError(t, testCodec.Unmarshal(b, &captured))
 		return nil
 	}
 	require.NoError(t, testHandle(srv, context.Background(), reply, call))
