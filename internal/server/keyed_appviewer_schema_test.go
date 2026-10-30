@@ -137,7 +137,7 @@ func TestAppViewerSchema_NodeChildrenResolvesAsKeyed(t *testing.T) {
 // collection.
 func TestAppViewerSchema_ChildrenOutlineByNodeID(t *testing.T) {
 	srv, _, _ := newServerWithAppViewerSchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/main.pxf", 1, appviewerScreenValid)))
 
 	symbols := documentSymbolsFromHandle(t, srv, "file:///work/main.pxf")
@@ -152,7 +152,7 @@ func TestAppViewerSchema_ChildrenOutlineByNodeID(t *testing.T) {
 	greeting := findSymbol(children.Children, "greeting")
 	require.NotNil(t, greeting, "entry outlines by its node id, not by a field name")
 	assert.Equal(t, protocol.SymbolKindObject, greeting.Kind)
-	assert.Equal(t, "appviewer.ui.v1.Node", greeting.Detail,
+	assert.Equal(t, "appviewer.ui.v1.Node", detailText(greeting.Detail),
 		"entry detail is the element message type")
 	// The entry body outlines against the Node message: its `type` field
 	// is a child symbol.
@@ -175,13 +175,13 @@ func TestAppViewerSchema_ChildrenOutlineByNodeID(t *testing.T) {
 // noise from the keyed entries.
 func TestAppViewerSchema_ValidDocumentHasNoKeyedDiagnostics(t *testing.T) {
 	srv, fc, _ := newServerWithAppViewerSchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/main.pxf", 1, appviewerScreenValid)))
 
 	for _, d := range lastDiagnostics(t, fc) {
-		assert.NotEqual(t, "protolsp/keyed", d.Source,
+		assert.NotEqual(t, "protolsp/keyed", optValue(d.Source),
 			"valid keyed doc must not raise keyed diagnostics: %q", d.Message)
-		assert.NotContains(t, d.Message, "unknown field",
+		assert.NotContains(t, messageText(d.Message), "unknown field",
 			"keyed entry names must not be flagged as unknown fields: %q", d.Message)
 	}
 }
@@ -206,13 +206,13 @@ root {
 }
 `
 	srv, fc, _ := newServerWithAppViewerSchema(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/main.pxf", 1, src)))
 
 	d := findDiagnostic(lastDiagnostics(t, fc), "protolsp/keyed")
 	require.NotNil(t, d, "two children with the same node id must produce a keyed diagnostic")
-	assert.Contains(t, d.Message, "duplicate key")
-	assert.Contains(t, d.Message, "greeting", "the diagnostic names the conflicting node id")
+	assert.Contains(t, messageText(d.Message), "duplicate key")
+	assert.Contains(t, messageText(d.Message), "greeting", "the diagnostic names the conflicting node id")
 	// The squiggle lands on the second `greeting` (0-indexed line 9).
 	assert.Equal(t, uint32(9), d.Range.Start.Line)
 }

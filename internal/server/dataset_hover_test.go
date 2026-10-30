@@ -76,13 +76,13 @@ func TestHover_DatasetDirectiveLineReturnsTypeInfo(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	hover := srv.HoverFor("file:///work/t.pxf", protocol.Position{Line: 0, Character: 10})
 	require.NotNil(t, hover, "hover on the @dataset directive line returns content")
 
-	md := hover.Contents.Value
+	md := hoverBody(hover)
 	assert.Contains(t, md, "@dataset")
 	assert.Contains(t, md, "acme.demo.v1.Trade")
 	assert.Contains(t, md, "3 rows", "AST-enriched row count surfaces in hover")
@@ -95,12 +95,12 @@ func TestHover_DatasetWithUnknownTypeSurfacesIt(t *testing.T) {
 	lookup := newFakeLookup() // type intentionally not added
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetUnknownSrc)))
 
 	hover := srv.HoverFor("file:///work/t.pxf", protocol.Position{Line: 0, Character: 10})
 	require.NotNil(t, hover)
-	md := hover.Contents.Value
+	md := hoverBody(hover)
 	assert.Contains(t, md, "acme.totally.Unknown")
 	assert.Contains(t, md, "not known to the bound schema resolver",
 		"unknown type → hover names the misconfiguration plainly")
@@ -116,7 +116,7 @@ func TestHover_OnRowLineFallsThrough(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	// Line 1 is a row tuple `("T-1", 10)`.
@@ -129,12 +129,12 @@ func TestHover_StandaloneDocumentStillWorks(t *testing.T) {
 	// A regular @type document with no @dataset → hover behavior
 	// is unchanged from before R3.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	hover := srv.HoverFor("file:///work/g.pxf", protocol.Position{Line: 2, Character: 2})
 	require.NotNil(t, hover, "field hover on a regular @type doc still works")
-	md := hover.Contents.Value
+	md := hoverBody(hover)
 	assert.Contains(t, md, "name")
 }
 
@@ -145,7 +145,7 @@ func TestHover_NoLookupBailsCleanly(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	// Don't set lookup. didOpen still runs; analyze detects
 	// regions via the line-based scan regardless.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	hover := srv.HoverFor("file:///work/t.pxf", protocol.Position{Line: 0, Character: 10})
@@ -161,12 +161,12 @@ func TestHover_DatasetSingleRowSayRow(t *testing.T) {
 	const src = `@dataset acme.demo.v1.Trade(id, qty)
 ("T-1", 10)
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	hover := srv.HoverFor("file:///work/t.pxf", protocol.Position{Line: 0, Character: 10})
 	require.NotNil(t, hover)
-	md := hover.Contents.Value
+	md := hoverBody(hover)
 	assert.Contains(t, md, "1 row",
 		"singular 'row' (no plural s) for a one-row dataset")
 	assert.NotContains(t, md, "1 rows")

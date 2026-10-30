@@ -35,12 +35,12 @@ message M {
 func TestBigFloatSuffix_SemanticToken(t *testing.T) {
 	src := suffixSchema + "@type s.v1.M\nbf = 0.10000000000000001p53\n"
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, "file:///work/s.pxf", 1, src)))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, "file:///work/s.pxf", 1, src)))
 	tokens := decodeSemanticTokens(t, semanticTokensFromHandle(t, srv, "file:///work/s.pxf").Data)
 	line := uint32(strings.Count(suffixSchema, "\n") + 1)
 	var nums []decodedToken
 	for _, tk := range tokens {
-		if tk.tokenType == protocol.SemanticTokenNumber && tk.line == line {
+		if tk.tokenType == protocol.SemanticTokenTypesNumber && tk.line == line {
 			nums = append(nums, tk)
 		}
 	}
@@ -53,7 +53,7 @@ func TestBigFloatSuffix_SemanticToken(t *testing.T) {
 func TestBigFloatSuffix_Formatting(t *testing.T) {
 	src := suffixSchema + "@type s.v1.M\nbf    =   0.10000000000000001p53\n"
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, "file:///work/f.pxf", 1, src)))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, "file:///work/f.pxf", 1, src)))
 	edits := formattingFromHandle(t, srv, "file:///work/f.pxf")
 	require.Len(t, edits, 1)
 	assert.Contains(t, edits[0].NewText, "bf = 0.10000000000000001p53\n")

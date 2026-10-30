@@ -21,7 +21,7 @@ import (
 
 func renameFromHandle(t *testing.T, srv *Server, u string, line, char uint32, newName string) (*protocol.WorkspaceEdit, *jsonrpc2.Error) {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentRename,
 		&protocol.RenameParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -52,15 +52,15 @@ func renameFromHandle(t *testing.T, srv *Server, u string, line, char uint32, ne
 		captured = &we
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured, rpcErr
 }
 
 func TestRename_ProducesEditsAcrossOpenDocs(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/b.pxf", 1, greetingValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, "file:///work/a.pxf", 2, 0, "label")
@@ -80,7 +80,7 @@ func TestRename_ProducesEditsAcrossOpenDocs(t *testing.T) {
 
 func TestRename_RejectsInvalidIdentifier(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
 
 	for _, badName := range []string{"", "1name", "with space", "true", "false", "null", "has-dash"} {
@@ -93,7 +93,7 @@ func TestRename_RejectsInvalidIdentifier(t *testing.T) {
 
 func TestRename_ReturnsNilWhenCursorOffPath(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, "file:///work/a.pxf", 1, 0, "ok")
@@ -119,7 +119,7 @@ func TestRename_FindsHitsInUnopenedFileOnDisk(t *testing.T) {
 
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 
 	edit, rpcErr := renameFromHandle(t, srv, string(aURI), 2, 0, "label")
@@ -129,7 +129,7 @@ func TestRename_FindsHitsInUnopenedFileOnDisk(t *testing.T) {
 
 	bURI := uri.File(filepath.Join(workspaceDir, "b.pxf"))
 	for _, target := range []uri.URI{aURI, bURI} {
-		edits, ok := edit.Changes[protocol.DocumentURI(target)]
+		edits, ok := edit.Changes[uri.URI(target)]
 		require.True(t, ok, "expected an edit entry for %s", target)
 		require.Len(t, edits, 1)
 		assert.Equal(t, "label", edits[0].NewText)
@@ -169,9 +169,9 @@ other = "stale"
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
 	bURI := uri.File(filepath.Join(workspaceDir, "b.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(bURI), 1, editedSource)))
 
 	edit, rpcErr := renameFromHandle(t, srv, string(aURI), 2, 0, "label")
@@ -184,7 +184,7 @@ other = "stale"
 	// and have NewText="label". An unsoundly disk-reading
 	// implementation would either skip b.pxf (no `name` on disk)
 	// or anchor on the stale `other` row.
-	bEdits, ok := edit.Changes[protocol.DocumentURI(bURI)]
+	bEdits, ok := edit.Changes[uri.URI(bURI)]
 	require.True(t, ok, "rename must include the buffer-state of b.pxf")
 	require.Len(t, bEdits, 1)
 	assert.Equal(t, "label", bEdits[0].NewText)
@@ -218,7 +218,7 @@ func TestRename_ScopeMatchesReferences(t *testing.T) {
 
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	openURI := uri.File(filepath.Join(workspaceDir, "open.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(openURI), 1, greetingValid)))
 
 	// References: collect (uri, start) tuples for stable comparison.
@@ -238,10 +238,10 @@ func TestRename_ScopeMatchesReferences(t *testing.T) {
 	ondiskURI := uri.File(filepath.Join(workspaceDir, "ondisk.pxf"))
 	isolatedURI := uri.File(filepath.Join(subDir, "isolated.pxf"))
 	for _, want := range []uri.URI{openURI, ondiskURI} {
-		_, ok := edit.Changes[protocol.DocumentURI(want)]
+		_, ok := edit.Changes[uri.URI(want)]
 		assert.True(t, ok, "expected rename to include %s", want)
 	}
-	_, isolatedIn := edit.Changes[protocol.DocumentURI(isolatedURI)]
+	_, isolatedIn := edit.Changes[uri.URI(isolatedURI)]
 	assert.False(t, isolatedIn, "sub-workspace's isolated.pxf must not leak into rename")
 }
 
@@ -273,7 +273,7 @@ func formatTuple(u string, p protocol.Position) string {
 
 func TestRename_AdvertisesCapability(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodInitialize,
 		&protocol.InitializeParams{})
 	require.NoError(t, err)
@@ -287,6 +287,6 @@ func TestRename_AdvertisesCapability(t *testing.T) {
 		caps = probe.Capabilities
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.Equal(t, true, caps["renameProvider"])
 }

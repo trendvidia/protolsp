@@ -6,6 +6,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"github.com/trendvidia/protolsp/internal/lspcodec"
 	"io"
 	"log/slog"
 	"os"
@@ -60,7 +61,7 @@ func serve(ctx context.Context, log *slog.Logger, rwc io.ReadWriteCloser) error 
 	}()
 
 	stream := jsonrpc2.NewStream(rwc)
-	conn := jsonrpc2.NewConn(stream)
+	conn := jsonrpc2.NewConn(stream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 
 	// The Server emits publishDiagnostics notifications back to the
 	// client; AttachConn gives it the channel for those. Must happen

@@ -18,14 +18,11 @@ package transport
 import (
 	"context"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 
 	"github.com/trendvidia/protolsp/internal/server"
 )
@@ -51,34 +48,17 @@ func TestSlowHandlerTripwire_FiresAcrossRealDispatcher(t *testing.T) {
 	const sleepFor = 150 * time.Millisecond
 	const threshold = 50 * time.Millisecond
 
-	slowing := func(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+	slowing := func(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 		if req.Method() == slowMethod {
 			time.Sleep(sleepFor)
 		}
-		return srv.Handle(ctx, reply, req)
+		return srv.Handle(ctx, req)
 	}
 	wrapped := WithSlowHandlerWarn(slowing, logger, threshold)
 
-	req, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), slowMethod,
-		&protocol.DocumentSymbolParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///fake.pxf"},
-		})
-	require.NoError(t, err)
-
-	// Confirm the inner handler ran — wrapper must not swallow
-	// the call. WaitGroup ensures we synchronize on reply() rather
-	// than relying on the wrapped invocation returning.
-	var innerReturned sync.WaitGroup
-	innerReturned.Add(1)
-	reply := func(_ context.Context, _ any, _ error) error {
-		innerReturned.Done()
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	require.NoError(t, wrapped(ctx, reply, req))
-	innerReturned.Wait()
+	// dispatchOnce returns once the call is answered, so the wrapper
+	// has not swallowed it.
+	dispatchOnce(t, wrapped, slowMethod)
 
 	logs := buf.String()
 	assert.Contains(t, logs, "LSP handler exceeded slow threshold",
@@ -104,14 +84,7 @@ func TestSlowHandlerTripwire_FastDispatchIsSilent_RealServer(t *testing.T) {
 
 	// documentSymbol on an unopened URI returns nil immediately —
 	// well under the threshold.
-	req, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), "textDocument/documentSymbol",
-		&protocol.DocumentSymbolParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///fake.pxf"},
-		})
-	require.NoError(t, err)
-
-	reply := func(_ context.Context, _ any, _ error) error { return nil }
-	require.NoError(t, wrapped(context.Background(), reply, req))
+	dispatchOnce(t, wrapped, "textDocument/documentSymbol")
 
 	assert.False(t,
 		strings.Contains(buf.String(), "LSP handler exceeded slow threshold"),

@@ -50,9 +50,9 @@ func TestRPC_BindFailure_LSPKeepsServing(t *testing.T) {
 
 	// initialize must succeed even though startRPC will fail.
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "bind-fail-test"},
+		ClientInfo: protocol.ClientInfo{Name: "bind-fail-test"},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
 
 	var initResult any
@@ -64,7 +64,7 @@ func TestRPC_BindFailure_LSPKeepsServing(t *testing.T) {
 		gotResult = result != nil
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.True(t, gotResult, "initialize must reply with a result even when the sidecar can't bind")
 
 	// The RPC sidecar must NOT be running — startRPC returned
@@ -82,12 +82,12 @@ func TestRPC_BindFailure_LSPKeepsServing(t *testing.T) {
 
 	// Follow-up LSP method must work — symbol on an unopened doc
 	// is the cheapest no-side-effect probe.
-	probeCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2),
+	probeCall, err := newTestCall(jsonrpc2.NewNumberID(2),
 		protocol.MethodTextDocumentDocumentSymbol,
 		&protocol.DocumentSymbolParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///nope.pxf"},
 		})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, probeCall),
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, probeCall),
 		"LSP requests must still route after the sidecar failed to bind")
 }

@@ -63,7 +63,7 @@ func openLoginDoc(t *testing.T, src string) (*Server, *Document) {
 	lookup := newFakeLookup()
 	lookup.add(buildLoginWithSecretsType(t))
 	srv.Lookups().Swap(lookup, nil)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/login.pxf", 1, src)))
 	doc := srv.Documents().Get("file:///work/login.pxf")
 	require.NotNil(t, doc)
@@ -158,24 +158,24 @@ func TestPublishDiagnostics_DatasetSecret(t *testing.T) {
 	lookup := newFakeLookup()
 	lookup.add(buildLoginWithSecretsType(t))
 	srv.Lookups().Swap(lookup, nil)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/login.pxf", 1, "@dataset acme.demo.v1.Login (user, pw.value)\n(\"a\", \"leaky-cell\")\n")))
 
 	notes := fc.calls()
 	require.NotEmpty(t, notes)
 	var warned *protocol.Diagnostic
 	for i, d := range notes[len(notes)-1].params.Diagnostics {
-		assert.NotContains(t, d.Message, "leaky-cell")
-		if d.Source == "protolsp/security" {
+		assert.NotContains(t, messageText(d.Message), "leaky-cell")
+		if optValue(d.Source) == "protolsp/security" {
 			warned = &notes[len(notes)-1].params.Diagnostics[i]
 		}
 	}
 	require.NotNil(t, warned, "a literal-secret warning is published for the cell")
 	assert.Equal(t, uint32(1), warned.Range.Start.Line)
-	assert.Contains(t, warned.Message, `"row1.pw"`)
+	assert.Contains(t, messageText(warned.Message), `"row1.pw"`)
 
 	doc := srv.Documents().Get("file:///work/login.pxf")
-	d := protocol.Diagnostic{Message: `column "pw.value": bad value "leaky-cell"`}
+	d := protocol.Diagnostic{Message: protocol.String(`column "pw.value": bad value "leaky-cell"`)}
 	redact.Diagnostic(&d, doc.SecretValues())
-	assert.Equal(t, `column "pw.value": bad value "<redacted>"`, d.Message)
+	assert.Equal(t, `column "pw.value": bad value "<redacted>"`, messageText(d.Message))
 }

@@ -101,7 +101,7 @@ func TestRegistrySubWorkspace_CrossFileResolvesAgainstSubRegistry(t *testing.T) 
 	w.OpenShadowProtoForWorkspace(uri.URI(importerRegistryURI), xfImporterProto, subDir)
 
 	// Cursor on the "Greeting" type ref (line 6, char 4).
-	loc := w.DefinitionFor(protocol.DocumentURI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
+	loc := w.DefinitionFor(uri.URI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
 	require.NotNil(t, loc, "Greeting resolves through the sub-workspace registry, not the root's")
 	assert.Equal(t, uri.URI(greetingRegistryURI), uri.URI(loc.URI),
 		"cross-file target is the sub-workspace registry's greeting.proto")
@@ -115,9 +115,9 @@ func TestRegistrySubWorkspace_HoverResolvesAgainstSubRegistry(t *testing.T) {
 
 	// Hover on the same cross-file "Greeting" ref must render its card,
 	// which needs the imported file's AST from the sub's registry.
-	hov := w.HoverFor(protocol.DocumentURI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
+	hov := w.HoverFor(uri.URI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
 	require.NotNil(t, hov, "cross-file hover resolves through the sub-workspace registry")
-	assert.Contains(t, hov.Contents.Value, "Greeting",
+	assert.Contains(t, hoverText(hov), "Greeting",
 		"the hover card renders the imported message declared in the sub's registry")
 }
 
@@ -129,7 +129,7 @@ func TestRegistrySubWorkspace_RootScopedPreviewMissesSubOnlyType(t *testing.T) {
 	// finds nothing, which is correct at root scope.
 	w.OpenShadowProto(uri.URI(importerRegistryURI), xfImporterProto)
 
-	loc := w.DefinitionFor(protocol.DocumentURI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
+	loc := w.DefinitionFor(uri.URI(importerRegistryURI), protocol.Position{Line: 6, Character: 4})
 	assert.Nil(t, loc, "the root registry can't satisfy a sub-workspace-only cross-file ref")
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/trendvidia/protocompile/ast"
 	"github.com/trendvidia/protocompile/seq"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
@@ -30,7 +31,7 @@ import (
 // ProtoCompletionFor handles textDocument/completion for .proto
 // files. Returns nil for "no completions" (treated as a null
 // CompletionList by the dispatcher; see dispatchCompletion's notes).
-func (s *Workspace) ProtoCompletionFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.CompletionList {
+func (s *Workspace) ProtoCompletionFor(docURI uri.URI, pos protocol.Position) *protocol.CompletionList {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -218,8 +219,8 @@ func protoKeywordItem(label, detail string) protocol.CompletionItem {
 	return protocol.CompletionItem{
 		Label:      label,
 		Kind:       protocol.CompletionItemKindKeyword,
-		Detail:     detail,
-		InsertText: label,
+		Detail:     optString(detail),
+		InsertText: optString(label),
 	}
 }
 
@@ -306,8 +307,8 @@ func protoBuiltinTypeItems() []protocol.CompletionItem {
 		items = append(items, protocol.CompletionItem{
 			Label:      t,
 			Kind:       protocol.CompletionItemKindClass,
-			Detail:     "scalar type",
-			InsertText: t,
+			Detail:     optString("scalar type"),
+			InsertText: optString(t),
 		})
 	}
 	return items
@@ -505,8 +506,8 @@ func protoScopedTypeItem(def ast.DeclDef, label, provenance string) protocol.Com
 	return protocol.CompletionItem{
 		Label:      label,
 		Kind:       kind,
-		Detail:     what + " (" + provenance + ")",
-		InsertText: label,
+		Detail:     optString(what + " (" + provenance + ")"),
+		InsertText: optString(label),
 	}
 }
 
@@ -519,8 +520,8 @@ func protoTypeAliasItem(label, detail string) protocol.CompletionItem {
 		// closest — a named type standing in for another — and keeps
 		// aliases visually distinct from messages (Class) and enums.
 		Kind:       protocol.CompletionItemKindInterface,
-		Detail:     detail,
-		InsertText: label,
+		Detail:     optString(detail),
+		InsertText: optString(label),
 	}
 }
 
@@ -670,8 +671,8 @@ func (s *Workspace) protoPackageSegmentItems(currentFile *protoast.File, qualifi
 		items = append(items, protocol.CompletionItem{
 			Label:      seg,
 			Kind:       protocol.CompletionItemKindModule,
-			Detail:     "package",
-			InsertText: seg,
+			Detail:     optString("package"),
+			InsertText: optString(seg),
 		})
 	}
 	add(filePackage(currentFile))
@@ -814,15 +815,15 @@ func messageChildTypeItems(msg ast.DeclDef, detail string) []protocol.Completion
 			items = append(items, protocol.CompletionItem{
 				Label:      name,
 				Kind:       protocol.CompletionItemKindClass,
-				Detail:     "message (" + detail + ")",
-				InsertText: name,
+				Detail:     optString("message (" + detail + ")"),
+				InsertText: optString(name),
 			})
 		case ast.DefKindEnum:
 			items = append(items, protocol.CompletionItem{
 				Label:      name,
 				Kind:       protocol.CompletionItemKindEnum,
-				Detail:     "enum (" + detail + ")",
-				InsertText: name,
+				Detail:     optString("enum (" + detail + ")"),
+				InsertText: optString(name),
 			})
 		}
 	}
@@ -850,15 +851,15 @@ func fileTopLevelTypeItems(file *protoast.File, importPath string) []protocol.Co
 			items = append(items, protocol.CompletionItem{
 				Label:      name,
 				Kind:       protocol.CompletionItemKindClass,
-				Detail:     "message (" + importPath + ")",
-				InsertText: name,
+				Detail:     optString("message (" + importPath + ")"),
+				InsertText: optString(name),
 			})
 		case ast.DefKindEnum:
 			items = append(items, protocol.CompletionItem{
 				Label:      name,
 				Kind:       protocol.CompletionItemKindEnum,
-				Detail:     "enum (" + importPath + ")",
-				InsertText: name,
+				Detail:     optString("enum (" + importPath + ")"),
+				InsertText: optString(name),
 			})
 		}
 	}

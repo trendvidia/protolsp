@@ -16,7 +16,7 @@ import (
 
 func registryStatusReply(t *testing.T, srv *Server) RegistryStatusResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodRegistryStatus, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodRegistryStatus, nil)
 	require.NoError(t, err)
 
 	var got RegistryStatusResult
@@ -27,7 +27,7 @@ func registryStatusReply(t *testing.T, srv *Server) RegistryStatusResult {
 		require.NoError(t, json.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -68,9 +68,9 @@ func TestInitialized_StaleSchemaSurfacesShowMessage(t *testing.T) {
 	lookup.staleFlag = true
 	srv.Lookups().Swap(lookup, nil)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 	srv.WaitInitialized()
 
 	msgs := fc.shownMessages()
@@ -82,9 +82,9 @@ func TestInitialized_StaleSchemaSurfacesShowMessage(t *testing.T) {
 func TestInitialized_LiveSchemaIsSilent(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 	srv.WaitInitialized()
 
 	assert.Empty(t, fc.shownMessages(),
@@ -95,9 +95,9 @@ func TestInitialized_NoLookupIsSilent(t *testing.T) {
 	// Editor running without a registry config — no notification.
 	srv, fc := newServerWithFakeConn(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 	srv.WaitInitialized()
 
 	assert.Empty(t, fc.shownMessages())

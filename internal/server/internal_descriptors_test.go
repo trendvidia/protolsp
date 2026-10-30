@@ -31,13 +31,13 @@ func TestInternalDescriptors_NoRegistryNoSpuriousUnknownType(t *testing.T) {
 
 registry { address = "x:443" }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	for _, d := range notes[0].params.Diagnostics {
-		assert.NotContains(t, d.Message, "unknown type",
+		assert.NotContains(t, messageText(d.Message), "unknown type",
 			"internal lookup resolves protolsp.v1.WorkspaceConfig — no spurious unknown-type diagnostic")
 	}
 }
@@ -53,13 +53,13 @@ default_environment = "dev"
 environments = [ { name = "dev" } ]
 layers = []
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/chain.pxf", 1, src)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	for _, d := range notes[0].params.Diagnostics {
-		assert.NotContains(t, d.Message, "unknown type",
+		assert.NotContains(t, messageText(d.Message), "unknown type",
 			"internal lookup resolves chameleon.v1.ChainSpec without a registry")
 	}
 }
@@ -77,7 +77,7 @@ func TestInternalDescriptors_UnknownFieldOnWorkspaceConfigFiresWithoutRegistry(t
 
 mystery_typo = "value"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -85,14 +85,14 @@ mystery_typo = "value"
 	var unknownField *protocol.Diagnostic
 	for i := range notes[0].params.Diagnostics {
 		d := &notes[0].params.Diagnostics[i]
-		if strings.Contains(d.Message, "mystery_typo") {
+		if strings.Contains(messageText(d.Message), "mystery_typo") {
 			unknownField = d
 			break
 		}
 	}
 	require.NotNil(t, unknownField,
 		"unknown field on internal type still emits a diagnostic")
-	assert.Equal(t, "protolsp/schema", unknownField.Source)
+	assert.Equal(t, "protolsp/schema", optValue(unknownField.Source))
 }
 
 func TestInternalDescriptors_PreservesNoLookupSilenceForUserDomainTypes(t *testing.T) {
@@ -107,7 +107,7 @@ func TestInternalDescriptors_PreservesNoLookupSilenceForUserDomainTypes(t *testi
 
 name = "world"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -127,14 +127,14 @@ func TestInternalDescriptors_UnknownTypeStillFiresWhenUserRegistryConfigured(t *
 
 x = 1
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	found := false
 	for _, d := range notes[0].params.Diagnostics {
-		if strings.Contains(d.Message, "unknown type") {
+		if strings.Contains(messageText(d.Message), "unknown type") {
 			found = true
 		}
 	}
@@ -155,7 +155,7 @@ chameleon {
   chain_spec = "config/chain.pxf"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	// Cursor on `chain_spec` (line 3 of the doc — 0-indexed line 3
@@ -175,7 +175,7 @@ func TestInternalDescriptors_CompletionOffersInternalTypesOnAtType(t *testing.T)
 	srv, _ := newServerWithFakeConn(t)
 	// No srv.lookup.
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, "@type \n")))
 
 	list := completionFromHandle(t, srv, "file:///work/.protolsp.pxf", 0, 6)

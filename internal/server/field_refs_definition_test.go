@@ -79,7 +79,7 @@ api_url = "https://${db.host}/v1"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "https://${db.host}/v1"
 `)))
@@ -110,7 +110,7 @@ api_url = "${debug}"
 `,
 	})
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "${debug}"
 `)))
@@ -132,7 +132,7 @@ func TestFieldRefDef_StandaloneDocFallsBackToSchema(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///work")
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/scratch.pxf", 1, `@type c4test.v1.AppConfig
 api_url = "${debug}"
 `)))
@@ -146,7 +146,7 @@ func TestFieldRefDef_EnvAndCtxPrefixesReturnNil(t *testing.T) {
 	srv, _ := newAppConfigServer(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/s.pxf", 1, `@type c4test.v1.AppConfig
 api_url = "${env.HOST}-${ctx.region}"
 `)))
@@ -173,7 +173,7 @@ api_url = "${db.host}"
 `,
 	})
 	sandboxURI := uri.File(filepath.Join(ws, "env", "sandbox.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(sandboxURI), 1, `@type c4test.v1.AppConfig
 db {
   host = "unsaved-edit"
@@ -182,7 +182,7 @@ db {
 `)))
 
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 api_url = "${db.host}"
 `)))
@@ -201,7 +201,7 @@ func TestFieldRefDef_CursorOutsideRefFallsThroughToFieldAtCursor(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///work")
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/s.pxf", 1, `@type c4test.v1.AppConfig
 api_url = "${db.host}"
 `)))
@@ -255,7 +255,7 @@ api_url = "from-encrypted"
 	srv.Lookups().Swap(lookup, nil)
 
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig
 greeting = "${api_url}"
 `)))

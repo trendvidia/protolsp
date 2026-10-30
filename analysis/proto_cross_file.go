@@ -411,7 +411,7 @@ func protoLocation(f *protoast.File, n source.Spanner, enc positions.Encoding) *
 		return nil
 	}
 	return &protocol.Location{
-		URI:   protocol.DocumentURI(u),
+		URI:   uri.URI(u),
 		Range: nodeLSPRange(f, n, enc),
 	}
 }
@@ -431,7 +431,7 @@ func protoLocationAtFileStart(f *protoast.File) *protocol.Location {
 		return nil
 	}
 	return &protocol.Location{
-		URI: protocol.DocumentURI(u),
+		URI: uri.URI(u),
 		Range: protocol.Range{
 			Start: protocol.Position{Line: 0, Character: 0},
 			End:   protocol.Position{Line: 0, Character: 0},

@@ -20,7 +20,7 @@ import (
 // returns nil to signal "no hover info." nil is the LSP-correct way to
 // say "I have nothing to add here" — clients render nothing in that
 // case.
-func (s *Workspace) HoverFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.Hover {
+func (s *Workspace) HoverFor(docURI uri.URI, pos protocol.Position) *protocol.Hover {
 	// Phase 2 of proto authoring: .proto documents have their own
 	// AST-based hover path. The .pxf flow below assumes a pxf.Parse
 	// result on doc.Parsed and a bound MessageDescriptor; neither
@@ -63,8 +63,8 @@ func (s *Workspace) HoverFor(docURI protocol.DocumentURI, pos protocol.Position)
 	if region := s.RegionAtPosition(doc, pos); region != nil {
 		if md := s.renderDatasetHover(doc, region, pos); md != "" {
 			return &protocol.Hover{
-				Contents: protocol.MarkupContent{
-					Kind:  protocol.Markdown,
+				Contents: &protocol.MarkupContent{
+					Kind:  protocol.MarkupKindMarkdown,
 					Value: md,
 				},
 			}
@@ -114,8 +114,8 @@ func (s *Workspace) HoverFor(docURI protocol.DocumentURI, pos protocol.Position)
 		markdown = redact.String(markdown, secrets)
 	}
 	return &protocol.Hover{
-		Contents: protocol.MarkupContent{
-			Kind:  protocol.Markdown,
+		Contents: &protocol.MarkupContent{
+			Kind:  protocol.MarkupKindMarkdown,
 			Value: markdown,
 		},
 	}

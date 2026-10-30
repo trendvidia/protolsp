@@ -106,7 +106,7 @@ type Server struct {
 	// configChangeFollowup tracks the goroutine kicked off from each
 	// `workspace/didChangeConfiguration` notification. Same rationale
 	// as initializedFollowup: dispatchDidChangeConfiguration MUST
-	// return reply() before its nested workspace/configuration
+	// return before its nested workspace/configuration
 	// conn.Call so the single-goroutine jsonrpc2 reader is free to
 	// route the response. Without that, the dispatcher deadlocks and
 	// every subsequent LSP message (textDocument/didOpen, hover,
@@ -189,16 +189,16 @@ func New(log *slog.Logger) *Server {
 // goroutine. Errors during reload log + drop; pxfed gets no
 // completion signal but the next textDocument operation
 // surfaces any persistent issue.
-func (s *Server) dispatchSetBwSession(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+func (s *Server) dispatchSetBwSession(ctx context.Context, req rpcRequest) (any, error) {
 	var params struct {
 		Token string `json:"token"`
 	}
-	if err := json.Unmarshal(req.Params(), &params); err != nil {
+	if err := protocol.Unmarshal(req.Params(), &params); err != nil {
 		s.Logger().Warn("pxfed/setBwSession: bad params", slog.String("err", err.Error()))
-		return reply(ctx, nil, nil)
+		return nil, nil
 	}
 	go s.SetBwSession(context.Background(), params.Token)
-	return reply(ctx, nil, nil)
+	return nil, nil
 }
 
 // WaitInitialized blocks until the goroutine kicked off from
@@ -218,10 +218,35 @@ func (s *Server) WaitConfigChange() { s.configChangeFollowup.Wait() }
 // Handle is the entry point used by jsonrpc2 to dispatch a single
 // request or notification. The signature matches jsonrpc2.Handler so the
 // stdio loop can install it directly.
-func (s *Server) Handle(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+func (s *Server) Handle(ctx context.Context, req *jsonrpc2.Request) (any, error) {
+	return s.serve(ctx, req)
+}
+
+// rpcRequest is the part of *jsonrpc2.Request the handlers use.
+type rpcRequest interface {
+	Method() string
+	Params() jsonrpc2.RawMessage
+	IsCall() bool
+}
+
+func (s *Server) serve(ctx context.Context, req rpcRequest) (any, error) {
+	// The request's own ctx is pooled and dies with this call, but
+	// follow-up goroutines and debounced work keep ctx. Use the
+	// connection's.
+	result, err := s.handle(jsonrpc2.DetachContext(ctx), req)
+	if err != nil && !req.IsCall() {
+		// An error from a notification closes the jsonrpc2 connection.
+		// One bad message must not disconnect the editor.
+		s.Logger().Warn("notification failed", slog.String("method", req.Method()), slog.String("err", err.Error()))
+		return nil, nil
+	}
+	return result, err
+}
+
+func (s *Server) handle(ctx context.Context, req rpcRequest) (any, error) {
 	switch req.Method() {
 	case protocol.MethodInitialize:
-		return s.dispatchInitialize(ctx, reply, req)
+		return s.dispatchInitialize(ctx, req)
 	case protocol.MethodInitialized:
 		s.Logger().Info("client initialized")
 		// `initialized` is a notification — clients do not wait for the
@@ -251,71 +276,71 @@ func (s *Server) Handle(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc
 			s.NotifyStaleSchemaIfApplicable(ctx)
 			s.notifyInitOptionsDeprecation(ctx)
 		}()
-		return reply(ctx, nil, nil)
+		return nil, nil
 	case protocol.MethodWorkspaceDidChangeConfiguration:
-		return s.dispatchDidChangeConfiguration(ctx, reply, req)
+		return s.dispatchDidChangeConfiguration(ctx, req)
 	case protocol.MethodWorkspaceDidChangeWatchedFiles:
-		return s.dispatchDidChangeWatchedFiles(ctx, reply, req)
+		return s.dispatchDidChangeWatchedFiles(ctx, req)
 	case protocol.MethodTextDocumentDidOpen:
-		return s.dispatchDidOpen(ctx, reply, req)
+		return s.dispatchDidOpen(ctx, req)
 	case protocol.MethodTextDocumentDidChange:
-		return s.dispatchDidChange(ctx, reply, req)
+		return s.dispatchDidChange(ctx, req)
 	case protocol.MethodTextDocumentDidClose:
-		return s.dispatchDidClose(ctx, reply, req)
+		return s.dispatchDidClose(ctx, req)
 	case "pxfed/setBwSession":
-		return s.dispatchSetBwSession(ctx, reply, req)
+		return s.dispatchSetBwSession(ctx, req)
 	case protocol.MethodTextDocumentHover:
-		return s.dispatchHover(ctx, reply, req)
+		return s.dispatchHover(ctx, req)
 	case protocol.MethodTextDocumentCompletion:
-		return s.dispatchCompletion(ctx, reply, req)
+		return s.dispatchCompletion(ctx, req)
 	case protocol.MethodTextDocumentCodeAction:
-		return s.dispatchCodeAction(ctx, reply, req)
+		return s.dispatchCodeAction(ctx, req)
 	case protocol.MethodTextDocumentDefinition:
-		return s.dispatchDefinition(ctx, reply, req)
+		return s.dispatchDefinition(ctx, req)
 	case protocol.MethodTextDocumentDocumentSymbol:
-		return s.dispatchDocumentSymbol(ctx, reply, req)
+		return s.dispatchDocumentSymbol(ctx, req)
 	case protocol.MethodTextDocumentFoldingRange:
-		return s.dispatchFoldingRange(ctx, reply, req)
+		return s.dispatchFoldingRange(ctx, req)
 	case MethodSemanticTokensFull:
-		return s.dispatchSemanticTokensFull(ctx, reply, req)
+		return s.dispatchSemanticTokensFull(ctx, req)
 	case protocol.MethodTextDocumentFormatting:
-		return s.dispatchFormatting(ctx, reply, req)
+		return s.dispatchFormatting(ctx, req)
 	case protocol.MethodTextDocumentReferences:
-		return s.dispatchReferences(ctx, reply, req)
+		return s.dispatchReferences(ctx, req)
 	case protocol.MethodTextDocumentRename:
-		return s.dispatchRename(ctx, reply, req)
+		return s.dispatchRename(ctx, req)
 	case MethodSourceContent:
-		return s.dispatchSourceContent(ctx, reply, req)
+		return s.dispatchSourceContent(ctx, req)
 	case MethodListMessages:
-		return s.dispatchListMessages(ctx, reply, req)
+		return s.dispatchListMessages(ctx, req)
 	case MethodRegistryStatus:
-		return s.dispatchRegistryStatus(ctx, reply, req)
+		return s.dispatchRegistryStatus(ctx, req)
 	case MethodEngineConfig:
-		return s.dispatchEngineConfig(ctx, reply, req)
+		return s.dispatchEngineConfig(ctx, req)
 	case MethodGetEffectiveConfig:
-		return s.dispatchGetEffectiveConfig(ctx, reply, req)
+		return s.dispatchGetEffectiveConfig(ctx, req)
 	case MethodSetOverrides:
-		return s.dispatchSetOverrides(ctx, reply, req)
+		return s.dispatchSetOverrides(ctx, req)
 	case MethodSetRuntimeViolations:
-		return s.dispatchSetRuntimeViolations(ctx, reply, req)
+		return s.dispatchSetRuntimeViolations(ctx, req)
 	case MethodSecretRanges:
-		return s.dispatchSecretRanges(ctx, reply, req)
+		return s.dispatchSecretRanges(ctx, req)
 	case MethodDatasetRegions:
-		return s.dispatchDatasetRegions(ctx, reply, req)
+		return s.dispatchDatasetRegions(ctx, req)
 	case MethodChainStatus:
-		return s.dispatchChainStatus(ctx, reply, req)
+		return s.dispatchChainStatus(ctx, req)
 	case MethodLayerInfo:
-		return s.dispatchLayerInfo(ctx, reply, req)
+		return s.dispatchLayerInfo(ctx, req)
 	case MethodConfigList:
-		return s.dispatchConfigList(ctx, reply, req)
+		return s.dispatchConfigList(ctx, req)
 	case MethodConfigGet:
-		return s.dispatchConfigGet(ctx, reply, req)
+		return s.dispatchConfigGet(ctx, req)
 	case MethodConfigSet:
-		return s.dispatchConfigSet(ctx, reply, req)
+		return s.dispatchConfigSet(ctx, req)
 	case protocol.MethodShutdown:
 		s.Logger().Info("shutdown requested")
 		s.closed.Store(true)
-		return reply(ctx, nil, nil)
+		return nil, nil
 	case protocol.MethodExit:
 		// Exit is a notification; jsonrpc2 expects no reply. Close the
 		// underlying connection asynchronously so the dispatch loop's
@@ -330,17 +355,17 @@ func (s *Server) Handle(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc
 		if s.conn != nil {
 			go func() { _ = s.conn.Close() }()
 		}
-		return nil
+		return nil, nil
 	default:
 		// Unknown calls get MethodNotFound; unknown notifications are
 		// silently ignored (LSP allows servers to ignore unknown notifs).
 		// jsonrpc2 models the two as different concrete types under the
 		// Request interface — only *Call has an ID and expects a reply.
-		if _, isCall := req.(*jsonrpc2.Call); isCall {
-			return reply(ctx, nil, jsonrpc2.NewError(jsonrpc2.MethodNotFound,
-				"method "+req.Method()+" not implemented"))
+		if req.IsCall() {
+			return nil, jsonrpc2.NewError(jsonrpc2.MethodNotFound,
+				"method "+req.Method()+" not implemented")
 		}
-		return nil
+		return nil, nil
 	}
 }
 
@@ -351,11 +376,11 @@ type initOptions struct {
 	Registry *schema.Config `json:"registry,omitempty"`
 }
 
-func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+func (s *Server) dispatchInitialize(ctx context.Context, req rpcRequest) (any, error) {
 	var params protocol.InitializeParams
-	if err := json.Unmarshal(req.Params(), &params); err != nil {
-		return reply(ctx, nil, jsonrpc2.NewError(jsonrpc2.ParseError,
-			"unmarshalling InitializeParams: "+err.Error()))
+	if err := protocol.Unmarshal(req.Params(), &params); err != nil {
+		return nil, jsonrpc2.NewError(jsonrpc2.ParseError,
+			"unmarshalling InitializeParams: "+err.Error())
 	}
 	s.Logger().Info("initialize",
 		slog.String("client_name", clientName(&params)),
@@ -365,10 +390,9 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	// know which standard LSP mechanisms to use.
 	s.SetClientCapabilities(readClientCapabilities(&params))
 	// I2 of incremental-sync: negotiate position encoding. The
-	// LSP 3.17 field lives at capabilities.general.positionEncodings
-	// which protocol@v0.12.0 doesn't model in its typed struct, so
-	// we read it via a side unmarshal targeted at just that path.
-	s.SetPositionEncoding(negotiatePositionEncoding(req.Params()))
+	// LSP 3.17 field lives at capabilities.general.positionEncodings,
+	// read via a side unmarshal targeted at just that path.
+	s.SetPositionEncoding(negotiatePositionEncoding(json.RawMessage(req.Params())))
 	// Capture configureSchemaLookup's result; defer logging until
 	// after proto_files / chain have had their pass below. Otherwise
 	// every registry-less workspace gets a scary
@@ -376,7 +400,7 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	// providing complete schema coverage — and the same warning
 	// fires for actual no-schema-source workspaces, which means
 	// users can't tell the two cases apart.
-	registrySchemaErr := s.configureSchemaLookup(ctx, initOptionsFromInitializeParams(req.Params()))
+	registrySchemaErr := s.configureSchemaLookup(ctx, initOptionsFromInitializeParams(json.RawMessage(req.Params())))
 	// Capture workspace root for go-to-definition's path resolution.
 	// Newer clients use WorkspaceFolders (multi-root); single-root
 	// clients use RootURI. RootURI is deprecated in LSP 3.6 in favor
@@ -393,15 +417,16 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	// `clientOptions.workspaceFolder` even though the global
 	// workspaceFolders state isn't updated.
 	var rootURI uri.URI
-	for _, f := range params.WorkspaceFolders {
-		candidate := uri.URI(f.URI)
+	folders, _ := params.WorkspaceFolders.Get()
+	for _, f := range folders {
+		candidate := f.URI
 		if _, ok := URIToFilePath(candidate); ok {
 			rootURI = candidate
 			break
 		}
 	}
-	if rootURI == "" && params.RootURI != "" { //nolint:staticcheck // intentional fallback for pre-3.6 single-root clients
-		rootURI = params.RootURI //nolint:staticcheck
+	if rootURI == "" && params.RootURI != nil { //nolint:staticcheck // intentional fallback for pre-3.6 single-root clients
+		rootURI = *params.RootURI //nolint:staticcheck
 	}
 	if rootURI != "" {
 		s.Workspaces().SetWorkspaceRoot(rootURI)
@@ -409,8 +434,8 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	// The editor's UI locale (LSP 3.16). Selects which §7 catalog
 	// protocheck violation messages render through; absent means
 	// spec fallback messages.
-	if params.Locale != "" {
-		s.SetClientLocale(params.Locale)
+	if params.Locale != nil && *params.Locale != "" {
+		s.SetClientLocale(*params.Locale)
 	}
 	// Discover + parse .protolsp.pxf (workspace-config W1). Loaded
 	// AFTER initializationOptions are processed so the schema-lookup
@@ -467,84 +492,78 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	}
 
 	syncIncremental := protocol.TextDocumentSyncKindIncremental
-	// Use the local wrapper struct so we can advertise
-	// positionEncoding (LSP 3.17, not yet modeled in
-	// protocol@v0.12.0's ServerCapabilities). The wrapper embeds
-	// protocol.ServerCapabilities so existing fields marshal
-	// unchanged.
+	openClose, changeKind := true, syncIncremental
 	result := &initializeResult{
-		Capabilities: serverCapabilities{
-			ServerCapabilities: protocol.ServerCapabilities{
-				TextDocumentSync: &protocol.TextDocumentSyncOptions{
-					OpenClose: true,
-					Change:    syncIncremental,
-				},
-				// M4: hover with field type + provenance. The provider has
-				// no extra options; presence of the field flips the
-				// capability on for the client.
-				HoverProvider: true,
-				// Post-MVP: field-name completion. Clients invoke
-				// completion as the user types identifier characters,
-				// which is the right UX for "suggest field names" — but
-				// `@` is not an identifier character, so RFC-001
-				// annotation-use completion in .proto files needs
-				// it as an explicit trigger. Trigger on `{` and
-				// `\n` could be added later for nested-block affordances.
-				CompletionProvider: &protocol.CompletionOptions{
-					TriggerCharacters: []string{"@"},
-				},
-				// Post-MVP: quick fixes for unknown-field diagnostics.
-				// CodeActionKinds advertises which kinds we produce so
-				// clients can grey out menu items we'll never return.
-				CodeActionProvider: &protocol.CodeActionOptions{
-					CodeActionKinds: []protocol.CodeActionKind{protocol.QuickFix},
-				},
-				// Post-MVP: jump to a field's defining `.proto` source
-				// at the position recorded in its SourceLocations.
-				// Resolved against the workspace root the client sent in
-				// initialize.
-				DefinitionProvider: true,
-				// Document outline: hierarchical symbol tree built from
-				// the parsed AST (@type / directives / @dataset / @proto
-				// / blocks / fields). Powers the editor's outline view
-				// + breadcrumbs and replaces vendored tokenizer-based
-				// outline implementations.
-				DocumentSymbolProvider: true,
-				// General block folding: standard pull-based
-				// textDocument/foldingRange over all block structure in
-				// both .pxf documents (nodes / children / state /
-				// lifecycle blocks + directives) and .proto schemas
-				// (message / enum / service / oneof / rpc / extend
-				// bodies, the import group, comment blocks). Pure
-				// structure — the @dataset regions push stays layered on
-				// top for its row-count / auto-collapse enrichment.
-				FoldingRangeProvider: true,
-				// Schema-driven semantic highlighting (LSP 3.16+).
-				// Layers ON TOP of the editor's syntactic highlighter
-				// — we emit tokens for schema-meaningful spans
-				// (directive heads, field names, values) so clients
-				// can mark deprecated fields, surface internal vs.
-				// user-domain schemas, and color enum values.
-				SemanticTokensProvider: SemanticTokensProvider{
-					Legend: SemanticTokensLegend(),
-					Range:  false,
-					Full:   true,
-				},
-				// Canonical PXF formatting via protowire-go's
-				// FormatDocument. Client formatting options
-				// (insertSpaces, tabSize) are advisory only — the
-				// formatter mirrors gofmt's "one true layout"
-				// approach so tooling agrees across IDE / CLI / CI.
-				DocumentFormattingProvider: true,
-				// Workspace-scoped references + rename. Both walk
-				// the open-document set and match dotted paths
-				// (db.host) — clicking on a field in one chameleon
-				// layer surfaces every layer that overrides it.
-				// On-disk indexing deferred.
-				ReferencesProvider: true,
-				RenameProvider:     true,
+		Capabilities: protocol.ServerCapabilities{
+			TextDocumentSync: &protocol.TextDocumentSyncOptions{
+				OpenClose: &openClose,
+				Change:    &changeKind,
 			},
-			PositionEncoding: s.PositionEncoding().String(),
+			// M4: hover with field type + provenance. The provider has
+			// no extra options; presence of the field flips the
+			// capability on for the client.
+			HoverProvider: protocol.Boolean(true),
+			// Post-MVP: field-name completion. Clients invoke
+			// completion as the user types identifier characters,
+			// which is the right UX for "suggest field names" — but
+			// `@` is not an identifier character, so RFC-001
+			// annotation-use completion in .proto files needs
+			// it as an explicit trigger. Trigger on `{` and
+			// `\n` could be added later for nested-block affordances.
+			CompletionProvider: &protocol.CompletionOptions{
+				TriggerCharacters: []string{"@"},
+			},
+			// Post-MVP: quick fixes for unknown-field diagnostics.
+			// CodeActionKinds advertises which kinds we produce so
+			// clients can grey out menu items we'll never return.
+			CodeActionProvider: &protocol.CodeActionOptions{
+				CodeActionKinds: []protocol.CodeActionKind{protocol.CodeActionKindQuickFix},
+			},
+			// Post-MVP: jump to a field's defining `.proto` source
+			// at the position recorded in its SourceLocations.
+			// Resolved against the workspace root the client sent in
+			// initialize.
+			DefinitionProvider: protocol.Boolean(true),
+			// Document outline: hierarchical symbol tree built from
+			// the parsed AST (@type / directives / @dataset / @proto
+			// / blocks / fields). Powers the editor's outline view
+			// + breadcrumbs and replaces vendored tokenizer-based
+			// outline implementations.
+			DocumentSymbolProvider: protocol.Boolean(true),
+			// General block folding: standard pull-based
+			// textDocument/foldingRange over all block structure in
+			// both .pxf documents (nodes / children / state /
+			// lifecycle blocks + directives) and .proto schemas
+			// (message / enum / service / oneof / rpc / extend
+			// bodies, the import group, comment blocks). Pure
+			// structure — the @dataset regions push stays layered on
+			// top for its row-count / auto-collapse enrichment.
+			FoldingRangeProvider: protocol.Boolean(true),
+			// Schema-driven semantic highlighting (LSP 3.16+).
+			// Layers ON TOP of the editor's syntactic highlighter
+			// — we emit tokens for schema-meaningful spans
+			// (directive heads, field names, values) so clients
+			// can mark deprecated fields, surface internal vs.
+			// user-domain schemas, and color enum values.
+			SemanticTokensProvider: &protocol.SemanticTokensOptions{
+				Legend: SemanticTokensLegend(),
+				Range:  protocol.Boolean(false),
+				Full:   protocol.Boolean(true),
+			},
+			// Canonical PXF formatting via protowire-go's
+			// FormatDocument. Client formatting options
+			// (insertSpaces, tabSize) are advisory only — the
+			// formatter mirrors gofmt's "one true layout"
+			// approach so tooling agrees across IDE / CLI / CI.
+			DocumentFormattingProvider: protocol.Boolean(true),
+			// Workspace-scoped references + rename. Both walk
+			// the open-document set and match dotted paths
+			// (db.host) — clicking on a field in one chameleon
+			// layer surfaces every layer that overrides it.
+			// On-disk indexing deferred.
+			ReferencesProvider: protocol.Boolean(true),
+			RenameProvider:     protocol.Boolean(true),
+			PositionEncoding:   protocol.PositionEncodingKind(s.PositionEncoding().String()),
 		},
 		ServerInfo: &serverInfo{
 			Name:    "protolsp",
@@ -561,18 +580,14 @@ func (s *Server) dispatchInitialize(ctx context.Context, reply jsonrpc2.Replier,
 	} else {
 		result.ServerInfo.RPC = endpoint
 	}
-	return reply(ctx, result, nil)
+	return result, nil
 }
 
-// initializeResult is protolsp's wrapper around
-// protocol.InitializeResult so we can ride along the LSP 3.17
-// `capabilities.positionEncoding` field that the older
-// protocol@v0.12.0 typed struct doesn't model. Marshals as the
-// same on-wire JSON shape; the embedded protocol.ServerCapabilities
-// promotes all its fields at the JSON level.
+// initializeResult is protocol.InitializeResult with protolsp's
+// serverInfo, which carries the Connect-RPC discovery payload.
 type initializeResult struct {
-	Capabilities serverCapabilities `json:"capabilities"`
-	ServerInfo   *serverInfo        `json:"serverInfo,omitempty"`
+	Capabilities protocol.ServerCapabilities `json:"capabilities"`
+	ServerInfo   *serverInfo                 `json:"serverInfo,omitempty"`
 }
 
 // serverInfo mirrors protocol.ServerInfo + the Connect-RPC discovery
@@ -585,23 +600,11 @@ type serverInfo struct {
 	RPC     *rpcEndpoint `json:"rpc,omitempty"`
 }
 
-// serverCapabilities embeds protocol.ServerCapabilities + adds
-// the LSP 3.17 PositionEncoding field. Anonymous embedding
-// promotes every protocol.ServerCapabilities field to the outer
-// type so callers can access them transparently
-// (`caps.TextDocumentSync` works regardless of which struct
-// declares the field).
-type serverCapabilities struct {
-	protocol.ServerCapabilities
-	PositionEncoding string `json:"positionEncoding,omitempty"`
-}
-
 // negotiatePositionEncoding extracts client-advertised position
 // encodings from the raw initialize params and picks the best
 // match via positions.Negotiate. The LSP 3.17 field lives at
-// capabilities.general.positionEncodings; protocol@v0.12.0's
-// typed struct doesn't include `general`, so we re-unmarshal
-// the relevant path from the raw JSON. Missing field → UTF-16
+// capabilities.general.positionEncodings, read here from the raw
+// JSON. Missing field → UTF-16
 // default.
 func negotiatePositionEncoding(raw json.RawMessage) positions.Encoding {
 	if len(raw) == 0 {
@@ -696,15 +699,13 @@ func (s *Server) configureSchemaLookup(ctx context.Context, raw json.RawMessage)
 }
 
 func clientName(p *protocol.InitializeParams) string {
-	if p.ClientInfo == nil {
+	if p.ClientInfo.Name == "" {
 		return "unknown"
 	}
 	return p.ClientInfo.Name
 }
 
 func clientVersion(p *protocol.InitializeParams) string {
-	if p.ClientInfo == nil {
-		return ""
-	}
-	return p.ClientInfo.Version
+	v, _ := p.ClientInfo.Version.Get()
+	return v
 }

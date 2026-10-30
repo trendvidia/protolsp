@@ -14,16 +14,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 // setRuntimeViolationsNotif builds the custom notification with a
 // full-replace violation set for the document.
-func setRuntimeViolationsNotif(t *testing.T, u string, violations []RuntimeViolation) jsonrpc2.Request {
+func setRuntimeViolationsNotif(t *testing.T, u string, violations []RuntimeViolation) rpcRequest {
 	t.Helper()
-	notif, err := jsonrpc2.NewNotification(MethodSetRuntimeViolations, SetRuntimeViolationsParams{
-		TextDocument: protocol.TextDocumentIdentifier{URI: protocol.DocumentURI(u)},
+	notif, err := newTestNotification(MethodSetRuntimeViolations, SetRuntimeViolationsParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
 		Violations:   violations,
 	})
 	require.NoError(t, err)
@@ -46,11 +46,11 @@ func lastDiagnostics(t *testing.T, fc *fakeConn) []protocol.Diagnostic {
 func TestSetRuntimeViolations_PublishesInformationDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 	require.Len(t, fc.calls(), 1, "didOpen publishes once")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "check failed for 3 records"},
 			{DescriptorPath: "t.M[t.check#0]/arg#0/call#0", Message: "is_email rejected \"bob@\""},
@@ -64,13 +64,13 @@ func TestSetRuntimeViolations_PublishesInformationDiagnostics(t *testing.T) {
 
 	assert.Equal(t, rng(9, 0, 9, 1), diags[0].Range, "annotation-use key anchors on the `@`")
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, diags[0].Severity)
-	assert.Equal(t, "protolsp/runtime", diags[0].Source)
-	assert.Equal(t, "check failed for 3 records", diags[0].Message)
+	assert.Equal(t, "protolsp/runtime", optValue(diags[0].Source))
+	assert.Equal(t, "check failed for 3 records", messageText(diags[0].Message))
 
 	assert.Equal(t, rng(9, 7, 9, 15), diags[1].Range, "call key anchors on the callee ident")
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, diags[1].Severity)
-	assert.Equal(t, "protolsp/runtime", diags[1].Source)
-	assert.Equal(t, "is_email rejected \"bob@\"", diags[1].Message)
+	assert.Equal(t, "protolsp/runtime", optValue(diags[1].Source))
+	assert.Equal(t, "is_email rejected \"bob@\"", messageText(diags[1].Message))
 }
 
 // The overlay concatenates after the analyze pass's own findings —
@@ -101,9 +101,9 @@ message N {
   Missing x = 1;
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "runtime says no"},
 		})))
@@ -111,15 +111,15 @@ message N {
 	diags := lastDiagnostics(t, fc)
 	var sources []string
 	for _, d := range diags {
-		sources = append(sources, d.Source)
+		sources = append(sources, optValue(d.Source))
 	}
 	assert.Contains(t, sources, "protolsp/proto", "the compile error stays")
 	assert.Contains(t, sources, "protolsp/runtime", "the overlay coexists with it")
 	// The runtime diagnostic comes after the analyze snapshot.
 	last := diags[len(diags)-1]
-	assert.Equal(t, "protolsp/runtime", last.Source)
+	assert.Equal(t, "protolsp/runtime", optValue(last.Source))
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, last.Severity)
-	assert.Equal(t, "runtime says no", last.Message)
+	assert.Equal(t, "runtime says no", messageText(last.Message))
 }
 
 // Re-analysis republishes the overlay: an edit that keeps the mapped
@@ -128,23 +128,23 @@ message N {
 func TestSetRuntimeViolations_SurvivesReanalysisWhileConstructExists(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv-survive.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "still failing"},
 		})))
 
 	// Insert a leading comment line: the construct survives, its
 	// anchor shifts down one line.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, u, 2, "// runtime overlay fixture\n"+rfc001OpaqueCallProto)))
 
 	diags := lastDiagnostics(t, fc)
 	require.Len(t, diags, 1, "the violation survives re-analysis")
-	assert.Equal(t, "protolsp/runtime", diags[0].Source)
+	assert.Equal(t, "protolsp/runtime", optValue(diags[0].Source))
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, diags[0].Severity)
-	assert.Equal(t, "still failing", diags[0].Message)
+	assert.Equal(t, "still failing", messageText(diags[0].Message))
 	assert.Equal(t, rng(10, 0, 10, 1), diags[0].Range,
 		"the range tracks the shifted anchor")
 }
@@ -156,9 +156,9 @@ func TestSetRuntimeViolations_SurvivesReanalysisWhileConstructExists(t *testing.
 func TestSetRuntimeViolations_DropsWhenConstructRemoved(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv-drop.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "gone after edit"},
 		})))
@@ -178,18 +178,18 @@ message M {
   string value = 1;
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, u, 2, withoutUse)))
 	assert.Empty(t, lastDiagnostics(t, fc),
 		"removing the construct drops the violation from the publish")
 
 	// Undo: the construct returns, the key resolves again, and the
 	// stored violation reappears without a new notification.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, u, 3, rfc001OpaqueCallProto)))
 	diags := lastDiagnostics(t, fc)
 	require.Len(t, diags, 1, "restoring the construct restores the overlay")
-	assert.Equal(t, "gone after edit", diags[0].Message)
+	assert.Equal(t, "gone after edit", messageText(diags[0].Message))
 }
 
 // A second notification replaces the document's whole set (full-
@@ -197,10 +197,10 @@ message M {
 func TestSetRuntimeViolations_FullReplaceAndClear(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv-replace.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "first batch A"},
 			{DescriptorPath: "t.M[t.check#0]/arg#0/call#0", Message: "first batch B"},
@@ -208,16 +208,16 @@ func TestSetRuntimeViolations_FullReplaceAndClear(t *testing.T) {
 	require.Len(t, lastDiagnostics(t, fc), 2)
 
 	// Replace: only the new set renders — nothing accumulates.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "second batch"},
 		})))
 	diags := lastDiagnostics(t, fc)
 	require.Len(t, diags, 1, "the second notification replaced the set")
-	assert.Equal(t, "second batch", diags[0].Message)
+	assert.Equal(t, "second batch", messageText(diags[0].Message))
 
 	// Clear: an empty violations list removes the overlay.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, nil)))
 	assert.Empty(t, lastDiagnostics(t, fc), "an empty set clears the overlay")
 }
@@ -230,10 +230,10 @@ func TestSetRuntimeViolations_FullReplaceAndClear(t *testing.T) {
 func TestSetRuntimeViolations_AliasChainAndMapAliasKeys(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv-alias-map.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001AliasMapProto)))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M.x[t.check#0]", Message: "base rule failed"},
 			{DescriptorPath: "t.M.x[t.check#2]", Message: "field-site rule failed"},
@@ -246,15 +246,15 @@ func TestSetRuntimeViolations_AliasChainAndMapAliasKeys(t *testing.T) {
 
 	assert.Equal(t, rng(6, 16, 6, 17), diags[0].Range,
 		"ordinal 0 anchors at the base-most alias's @check")
-	assert.Equal(t, "base rule failed", diags[0].Message)
+	assert.Equal(t, "base rule failed", messageText(diags[0].Message))
 	assert.Equal(t, rng(10, 10, 10, 11), diags[1].Range,
 		"the field-site rule follows the whole chain")
-	assert.Equal(t, "field-site rule failed", diags[1].Message)
+	assert.Equal(t, "field-site rule failed", messageText(diags[1].Message))
 	assert.Equal(t, rng(7, 13, 7, 14), diags[2].Range,
 		"map value-alias keys join on the map field's own path")
-	assert.Equal(t, "map value rejected", diags[2].Message)
+	assert.Equal(t, "map value rejected", messageText(diags[2].Message))
 	for _, d := range diags {
-		assert.Equal(t, "protolsp/runtime", d.Source)
+		assert.Equal(t, "protolsp/runtime", optValue(d.Source))
 		assert.Equal(t, protocol.DiagnosticSeverityInformation, d.Severity)
 	}
 }
@@ -270,10 +270,10 @@ func TestSetRuntimeViolations_AliasChainAndMapAliasKeys(t *testing.T) {
 func TestSetRuntimeViolations_SourceRefJoinAndForKey(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	const u = "file:///work/rv-sr.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001AliasMapProto)))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{
 				SourceRef: &RuntimeSourceRef{File: "work/rv-sr.proto", DescriptorPath: "t.M.x[t.check#0]"},
@@ -300,15 +300,15 @@ func TestSetRuntimeViolations_SourceRefJoinAndForKey(t *testing.T) {
 
 	assert.Equal(t, rng(6, 16, 6, 17), diags[0].Range,
 		"the module-relative file half suffix-matches the absolute source-map file")
-	assert.Equal(t, "joined by source_ref", diags[0].Message)
+	assert.Equal(t, "joined by source_ref", messageText(diags[0].Message))
 
 	assert.Equal(t, rng(7, 13, 7, 14), diags[1].Range,
 		"the rule identity joins even when the positional key is stale")
-	assert.Equal(t, "source_ref wins over positional", diags[1].Message)
+	assert.Equal(t, "source_ref wins over positional", messageText(diags[1].Message))
 
 	assert.Equal(t, rng(6, 16, 6, 17), diags[2].Range,
 		"a key violation anchors at the same rule as value violations")
-	assert.Equal(t, "key too short (map key)", diags[2].Message,
+	assert.Equal(t, "key too short (map key)", messageText(diags[2].Message),
 		"forKey is surfaced in the message")
 }
 
@@ -320,22 +320,22 @@ func TestSetRuntimeViolations_UnopenedDocAndBadParams(t *testing.T) {
 	const u = "file:///work/rv-late-open.proto"
 
 	// Not open yet: stored, no publish.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		setRuntimeViolationsNotif(t, u, []RuntimeViolation{
 			{DescriptorPath: "t.M[t.check#0]", Message: "arrived before open"},
 		})))
 	assert.Empty(t, fc.calls(), "no document, no publish")
 
 	// Malformed params: dropped without error.
-	bad, err := jsonrpc2.NewNotification(MethodSetRuntimeViolations, []string{"nope"})
+	bad, err := newTestNotification(MethodSetRuntimeViolations, []string{"nope"})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, bad))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, bad))
 
 	// Opening the document publishes the stored overlay.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001OpaqueCallProto)))
 	diags := lastDiagnostics(t, fc)
 	require.Len(t, diags, 1, "the pre-open violation renders on open")
-	assert.Equal(t, "arrived before open", diags[0].Message)
-	assert.Equal(t, "protolsp/runtime", diags[0].Source)
+	assert.Equal(t, "arrived before open", messageText(diags[0].Message))
+	assert.Equal(t, "protolsp/runtime", optValue(diags[0].Source))
 }

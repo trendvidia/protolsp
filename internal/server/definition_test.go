@@ -22,7 +22,7 @@ import (
 // client would see.
 func definitionFromHandle(t *testing.T, srv *Server, u string, line, char uint32) []protocol.Location {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentDefinition,
 		&protocol.DefinitionParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -43,7 +43,7 @@ func definitionFromHandle(t *testing.T, srv *Server, u string, line, char uint32
 		require.NoError(t, json.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -51,7 +51,7 @@ func TestDefinition_FieldAssignmentResolvesToProtoFile(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	// Line 2 is `name = "x"`. Definition should point at the field's
@@ -66,7 +66,7 @@ func TestDefinition_TypeDirectiveResolvesToMessageProto(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n")))
 
 	// Cursor anywhere on the @type line should resolve.
@@ -79,7 +79,7 @@ func TestDefinition_TypeDirectiveUnknownFQNReturnsNil(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type some.unknown.Type\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 0, 10)
@@ -94,7 +94,7 @@ func TestDefinition_NoWorkspaceRootReturnsNil(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	// workspaceRoot intentionally not set.
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -109,7 +109,7 @@ func TestDefinition_WorkspaceRootWithTrailingSlash(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos/")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -123,7 +123,7 @@ func TestDefinition_NoLookupConfiguredReturnsNil(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos")
 	// No s.lookup assignment.
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -134,7 +134,7 @@ func TestDefinition_CursorOutsideAnyTargetReturnsNil(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot("file:///work/protos")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	// Line 1 is empty — no field, no @type directive.
@@ -158,7 +158,7 @@ shipping {
   street = "x"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/o.pxf", 1, src)))
 
 	// `street = "x"` is on line 3 (0-indexed). It's inside a nested
@@ -181,7 +181,7 @@ func TestDefinition_RegistryFallback_WhenFileNotOnDisk(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot("file:///nonexistent/work")
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -207,7 +207,7 @@ func TestDefinition_PrefersLocalCopy_WhenBothExist(t *testing.T) {
 	srv.Workspaces().SetWorkspaceRoot(uri.URI("file://" + workDir))
 	_ = fc
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -237,7 +237,7 @@ func TestDefinition_ProtoFilesSourceResolvesToLocalFile(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 
 	docURI := uri.File(filepath.Join(workspaceDir, "greeting.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "@type myapp.v1.Greeting\n\nname = \"alice\"\n")))
 
 	// Line 2 is `name = "alice"`.
@@ -271,7 +271,7 @@ func TestDefinition_SubWorkspaceProtoFilesResolvesToLocalFile(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 
 	docURI := uri.File(filepath.Join(subDir, "hi.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "@type svca.Hi\n\nwho = \"world\"\n")))
 
 	// Line 2 is `who = "world"`.
@@ -285,13 +285,13 @@ func TestInitialize_AdvertisesDefinitionProvider(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
-		&protocol.InitializeParams{ClientInfo: &protocol.ClientInfo{Name: "test"}})
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+		&protocol.InitializeParams{ClientInfo: protocol.ClientInfo{Name: "test"}})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 
 	result := rep.result.(*initializeResult)
-	assert.True(t, result.Capabilities.DefinitionProvider.(bool),
+	assert.True(t, result.Capabilities.DefinitionProvider == protocol.Boolean(true),
 		"server must advertise DefinitionProvider in initialize result")
 }
 
@@ -300,15 +300,15 @@ func TestInitialize_CapturesWorkspaceFolders(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
 		&protocol.InitializeParams{
-			ClientInfo: &protocol.ClientInfo{Name: "test"},
-			WorkspaceFolders: []protocol.WorkspaceFolder{
-				{URI: "file:///work/main", Name: "main"},
-			},
+			ClientInfo: protocol.ClientInfo{Name: "test"},
+			WorkspaceFoldersInitializeParams: workspaceFolders(
+				protocol.WorkspaceFolder{URI: "file:///work/main", Name: "main"},
+			),
 		})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 
 	assert.Equal(t, uri.URI("file:///work/main"), srv.Workspaces().WorkspaceRoot())
 }

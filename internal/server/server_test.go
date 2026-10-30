@@ -16,7 +16,7 @@ import (
 )
 
 // captureReplier records the result + error a handler passes to its
-// jsonrpc2.Replier. Used as a stand-in for a live connection in tests.
+// testReplier. Used as a stand-in for a live connection in tests.
 type captureReplier struct {
 	called bool
 	result interface{}
@@ -38,12 +38,12 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "test", Version: "0"},
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, &protocol.InitializeParams{
+		ClientInfo: protocol.ClientInfo{Name: "test", Version: protocol.NewOptional("0")},
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 	require.True(t, rep.called, "Handle must reply to an initialize call")
 	require.NoError(t, rep.err)
 
@@ -52,8 +52,8 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 
 	syncOpts, ok := result.Capabilities.TextDocumentSync.(*protocol.TextDocumentSyncOptions)
 	require.True(t, ok, "TextDocumentSync should be *TextDocumentSyncOptions")
-	assert.True(t, syncOpts.OpenClose, "openClose must be true for M1+")
-	assert.Equal(t, protocol.TextDocumentSyncKindIncremental, syncOpts.Change,
+	assert.True(t, *syncOpts.OpenClose, "openClose must be true for M1+")
+	assert.Equal(t, protocol.TextDocumentSyncKindIncremental, *syncOpts.Change,
 		"I1: server advertises incremental sync")
 
 	require.NotNil(t, result.ServerInfo)
@@ -61,7 +61,7 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 
 	// General block folding is advertised as a standard
 	// pull-based provider so editors enable textDocument/foldingRange.
-	assert.Equal(t, true, result.Capabilities.FoldingRangeProvider,
+	assert.Equal(t, protocol.Boolean(true), result.Capabilities.FoldingRangeProvider,
 		"FoldingRangeProvider must be advertised")
 }
 
@@ -69,22 +69,22 @@ func TestHandle_InitializedIsNoOp(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	notif, err := jsonrpc2.NewNotification(protocol.MethodInitialized, &protocol.InitializedParams{})
+	notif, err := newTestNotification(protocol.MethodInitialized, &protocol.InitializedParams{})
 	require.NoError(t, err)
 
 	// Notifications go through reply with nil/nil per the jsonrpc2
 	// contract; the framework treats it as "no response to send."
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, notif))
 }
 
 func TestHandle_ShutdownMarksClosed(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodShutdown, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodShutdown, nil)
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 	assert.True(t, rep.called)
 	assert.True(t, srv.closed.Load(), "shutdown must flip the closed flag")
 }
@@ -97,10 +97,10 @@ func TestHandle_ExitClosesConnectionAndReturnsNil(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	notif, err := jsonrpc2.NewNotification(protocol.MethodExit, nil)
+	notif, err := newTestNotification(protocol.MethodExit, nil)
 	require.NoError(t, err)
 
-	err = srv.Handle(context.Background(), rep.reply, notif)
+	err = testHandle(srv, context.Background(), rep.reply, notif)
 	require.NoError(t, err)
 	assert.False(t, rep.called, "exit is a notification — no reply expected")
 }
@@ -111,10 +111,10 @@ func TestHandle_UnknownCallReturnsMethodNotFound(t *testing.T) {
 
 	// Pick any method the dispatcher doesn't recognize. Update if/when
 	// the next feature lands and starts handling whatever's here.
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(3), "textDocument/colorPresentation", nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(3), "textDocument/colorPresentation", nil)
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 	require.True(t, rep.called)
 	require.Error(t, rep.err)
 
@@ -127,9 +127,9 @@ func TestHandle_UnknownNotificationIsSilentlyDropped(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	notif, err := jsonrpc2.NewNotification("$/setTrace", nil)
+	notif, err := newTestNotification("$/setTrace", nil)
 	require.NoError(t, err)
 
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, notif))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, notif))
 	assert.False(t, rep.called, "unknown notifications must not produce a reply")
 }

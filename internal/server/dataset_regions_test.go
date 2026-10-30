@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/positions"
 )
@@ -118,9 +119,9 @@ func TestDetectDatasetRegions_LeadingWhitespaceOnDirectiveLine(t *testing.T) {
 
 // Request dispatch tests.
 
-func datasetRegionsReply(t *testing.T, srv *Server, docURI protocol.DocumentURI) DatasetRegionsResult {
+func datasetRegionsReply(t *testing.T, srv *Server, docURI uri.URI) DatasetRegionsResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodDatasetRegions,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodDatasetRegions,
 		DatasetRegionsParams{TextDocument: protocol.TextDocumentIdentifier{URI: docURI}})
 	require.NoError(t, err)
 	var got DatasetRegionsResult
@@ -130,7 +131,7 @@ func datasetRegionsReply(t *testing.T, srv *Server, docURI protocol.DocumentURI)
 		_ = json.Unmarshal(b, &got)
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -140,7 +141,7 @@ func TestDatasetRegions_RequestReturnsAnalyzedRegions(t *testing.T) {
   { col_a = "x" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/d.pxf", 1, src)))
 
 	got := datasetRegionsReply(t, srv, "file:///work/d.pxf")
@@ -163,7 +164,7 @@ func TestDatasetRegions_RegionsSurviveUnparseableDocument(t *testing.T) {
   this is not valid pxf
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/d.pxf", 1, src)))
 
 	got := datasetRegionsReply(t, srv, "file:///work/d.pxf")
@@ -181,7 +182,7 @@ func TestDatasetRegions_ThresholdConfigurable(t *testing.T) {
   { col_a = "more padding" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/d.pxf", 1, src)))
 
 	got := datasetRegionsReply(t, srv, "file:///work/d.pxf")
@@ -193,7 +194,7 @@ func TestDatasetRegions_ThresholdConfigurable(t *testing.T) {
 func TestDatasetRegions_RegionsClearedOnSourceChange(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/d.pxf", 1,
 			`@dataset a.A {
   { x = 1 }
@@ -205,7 +206,7 @@ func TestDatasetRegions_RegionsClearedOnSourceChange(t *testing.T) {
 	require.Len(t, got.Regions, 1)
 
 	// Replace with a non-dataset document.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/d.pxf", 2, `@type Greeting
 
 name = "x"
@@ -218,7 +219,7 @@ name = "x"
 
 func TestDatasetRegions_NilParamsTolerated(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodDatasetRegions, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodDatasetRegions, nil)
 	require.NoError(t, err)
 	var got DatasetRegionsResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
@@ -227,6 +228,6 @@ func TestDatasetRegions_NilParamsTolerated(t *testing.T) {
 		_ = json.Unmarshal(b, &got)
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.NotNil(t, got.Regions, "null params → empty result, no error")
 }

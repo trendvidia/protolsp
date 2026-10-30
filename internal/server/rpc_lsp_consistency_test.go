@@ -57,9 +57,9 @@ chameleon {
 	// per-doc state to compare.
 	const secretURI = "file:///work/c.pxf"
 	const datasetURI = "file:///work/t.pxf"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, secretURI, 1, secretsScalarSrc)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, datasetURI, 1, tradeDatasetSrc)))
 
 	authed := connect.WithInterceptors(bearerClientInterceptor(srv.rpc.token))

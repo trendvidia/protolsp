@@ -52,14 +52,14 @@ func TestProtoHover_NonASCIIPrefix_UTF8Encoding(t *testing.T) {
 	srv, _, _ := initializeWithPositionEncodings(t, []string{"utf-8"})
 	require.Equal(t, positions.UTF8, srv.PositionEncoding())
 	const u = "file:///work/enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, encodingProtoFixture)))
 
 	// Character 29 is a byte column inside "Priority" (bytes 27–34).
 	// A UTF-16 misread lands on the field NAME "priority" instead.
 	hover := hoverFromHandle(t, srv, u, 5, 29)
 	require.NotNil(t, hover, "utf-8 byte column after emoji must resolve the type ident")
-	assert.Contains(t, hover.Contents.Value, "**enum Priority**",
+	assert.Contains(t, hoverBody(hover), "**enum Priority**",
 		"cursor is on the type reference, not the field name")
 }
 
@@ -67,21 +67,21 @@ func TestProtoHover_NonASCIIPrefix_UTF16Encoding(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	require.Equal(t, positions.UTF16, srv.PositionEncoding())
 	const u = "file:///work/enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, encodingProtoFixture)))
 
 	// Character 19 is a UTF-16 column inside "Priority" (units
 	// 17–24). A byte misread lands mid-emoji and resolves nothing.
 	hover := hoverFromHandle(t, srv, u, 5, 19)
 	require.NotNil(t, hover, "utf-16 code-unit column after emoji must resolve the type ident")
-	assert.Contains(t, hover.Contents.Value, "**enum Priority**")
+	assert.Contains(t, hoverBody(hover), "**enum Priority**")
 }
 
 func TestProtoDefinition_NonASCIIPrefix_UTF8Encoding(t *testing.T) {
 	srv, _, _ := initializeWithPositionEncodings(t, []string{"utf-8"})
 	require.Equal(t, positions.UTF8, srv.PositionEncoding())
 	const u = "file:///work/enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, encodingProtoFixture)))
 
 	locs := definitionFromHandle(t, srv, u, 5, 29)
@@ -94,7 +94,7 @@ func TestProtoDefinition_NonASCIIPrefix_UTF16Encoding(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	require.Equal(t, positions.UTF16, srv.PositionEncoding())
 	const u = "file:///work/enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, encodingProtoFixture)))
 
 	locs := definitionFromHandle(t, srv, u, 5, 19)
@@ -129,7 +129,7 @@ func celDiagnosticFor(t *testing.T, fc *fakeConn, u string) *protocol.Diagnostic
 	last := notes[len(notes)-1]
 	require.Equal(t, uri.URI(u), last.params.URI)
 	for i := range last.params.Diagnostics {
-		if last.params.Diagnostics[i].Source == "buf/validate/cel" {
+		if optValue(last.params.Diagnostics[i].Source) == "buf/validate/cel" {
 			return &last.params.Diagnostics[i]
 		}
 	}
@@ -141,7 +141,7 @@ func TestProtoDiagnostics_ExpressionRange_NonASCIIPrefix_UTF8Encoding(t *testing
 	srv, fc, _ := initializeWithPositionEncodings(t, []string{"utf-8"})
 	require.Equal(t, positions.UTF8, srv.PositionEncoding())
 	const u = "file:///work/expr-enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, expressionDiagFixture)))
 
 	d := celDiagnosticFor(t, fc, u)
@@ -154,7 +154,7 @@ func TestProtoDiagnostics_ExpressionRange_NonASCIIPrefix_UTF16Encoding(t *testin
 	srv, fc := newServerWithFakeConn(t)
 	require.Equal(t, positions.UTF16, srv.PositionEncoding())
 	const u = "file:///work/expr-enc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, expressionDiagFixture)))
 
 	d := celDiagnosticFor(t, fc, u)

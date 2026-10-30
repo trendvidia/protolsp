@@ -88,7 +88,7 @@ message  // missing body
 	// Open the .protolsp.pxf in the doc store so configDiagnostics
 	// has something to compute against.
 	cfgURI := uri.File(filepath.Join(workspaceDir, ".protolsp.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(cfgURI), 1, wsConfigProtoFilesOnly)))
 	doc := srv.Documents().Get(cfgURI)
 	require.NotNil(t, doc)
@@ -96,10 +96,10 @@ message  // missing body
 	require.NotEmpty(t, diags, "compile errors must surface as diagnostics on .protolsp.pxf")
 	var found bool
 	for _, d := range diags {
-		if d.Source == "protolsp/proto_files" {
+		if optValue(d.Source) == "protolsp/proto_files" {
 			found = true
 			assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-			assert.Contains(t, d.Message, "bad.proto")
+			assert.Contains(t, messageText(d.Message), "bad.proto")
 		}
 	}
 	assert.True(t, found, "expected at least one proto_files-source diagnostic")
@@ -121,7 +121,7 @@ func TestProtoFiles_SubWorkspaceGetsItsOwnLookup(t *testing.T) {
 
 	// Open a doc inside the sub-workspace so it gets lazy-loaded.
 	docURI := uri.File(filepath.Join(subDir, "hi.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "@type svca.Hi\nwho = \"world\"\n")))
 
 	doc := srv.Documents().Get(docURI)

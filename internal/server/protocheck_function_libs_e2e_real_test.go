@@ -185,7 +185,7 @@ func TestProtocheckFunctionLibs_E2E_UnimplementedFunctionInformation(t *testing.
 	// through the fresh lookup (miss → hit flips the fingerprint).
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
@@ -194,7 +194,7 @@ func TestProtocheckFunctionLibs_E2E_UnimplementedFunctionInformation(t *testing.
 		"finding carries the reserved CodeFunctionUnimplemented")
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, diags[0].Severity,
 		"unimplemented-function findings are informational, not errors")
-	assert.Contains(t, diags[0].Message, "protolsp.test.fnlib.is_special",
+	assert.Contains(t, messageText(diags[0].Message), "protolsp.test.fnlib.is_special",
 		"fallback message names the unimplemented FQN")
 
 	// Carrier rules embed a source map, so the finding links
@@ -216,7 +216,7 @@ func TestProtocheckFunctionLibs_E2E_NoConfigNoCarrierRules(t *testing.T) {
 	srv, fc := initializeWithWatchSupport(t, workspaceDir)
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/gadget.pxf")
@@ -231,7 +231,7 @@ func TestProtocheckFunctionLibs_E2E_ConfigWatchTriggersRebuild(t *testing.T) {
 	srv, fc := initializeWithWatchSupport(t, workspaceDir)
 	installFnlibLookup(t, srv)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/gadget.pxf", 1, gadgetPxf)))
 	require.Empty(t, lastProtocheckDiags(t, fc, "file:///work/gadget.pxf"),
 		"no engine config yet — no carrier rules")
@@ -239,7 +239,7 @@ func TestProtocheckFunctionLibs_E2E_ConfigWatchTriggersRebuild(t *testing.T) {
 	// Drop the config on disk and deliver the watched-file event
 	// (window 0 → synchronous rebuild + reanalyze).
 	configPath := writeEngineConfig(t, workspaceDir, `function_libraries: "`+fnlibImportPath+`"`+"\n")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(configPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -261,7 +261,7 @@ func TestProtocheckFunctionLibs_E2E_UnresolvableLibraryKeepsValidation(t *testin
 email = "not-an-email"
 age = 30
 score = 50.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	diags := lastProtocheckDiags(t, fc, "file:///work/user.pxf")

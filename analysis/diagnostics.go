@@ -56,7 +56,7 @@ func (s *Workspace) Analyze(doc *Document) {
 	// to analyze; the resolver-side path populated their content
 	// with canonical bytes that don't change post-open. Both the
 	// proto and pxf pipelines below assume file-system filenames
-	// (URI.Filename() panics on non-file schemes; pxf.Parse on a
+	// (URI.FsPath() panics on non-file schemes; pxf.Parse on a
 	// non-pxf source produces noisy fake diagnostics), so short-
 	// circuit here.
 	if !IsFileURI(doc.URI) {
@@ -401,22 +401,22 @@ func (s *Workspace) diagnosticsForLocked(doc *Document) []protocol.Diagnostic {
 		out = append(out, protocol.Diagnostic{
 			Range:    pxfPosToRange(uf.Pos),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/schema",
-			Message:  fmt.Sprintf("unknown field %q on this message", uf.Name),
-			Data: UnknownFieldData{
+			Source:   optString("protolsp/schema"),
+			Message:  protocol.String(fmt.Sprintf("unknown field %q on this message", uf.Name)),
+			Data: mustAny(UnknownFieldData{
 				Kind:      DiagDataKindUnknownField,
 				FieldName: uf.Name,
 				Line:      lspLineFromPxf(uf.Pos),
-			},
+			}),
 		})
 	}
 	for _, du := range doc.deprecatedUses {
 		out = append(out, protocol.Diagnostic{
 			Range:    pxfPosToRange(du.Pos),
 			Severity: protocol.DiagnosticSeverityHint,
-			Source:   "protolsp/schema",
-			Message:  fmt.Sprintf("field %q is deprecated", du.Name),
-			Tags:     []protocol.DiagnosticTag{protocol.DiagnosticTagDeprecated},
+			Source:   optString("protolsp/schema"),
+			Message:  protocol.String(fmt.Sprintf("field %q is deprecated", du.Name)),
+			Tags:     protocol.NewDiagnosticTags(protocol.DiagnosticTagDeprecated),
 		})
 	}
 	if doc.SchemaErr != nil {
@@ -490,8 +490,8 @@ func diagnosticFromError(err error, source string) protocol.Diagnostic {
 		return protocol.Diagnostic{
 			Range:    pxfPosToRange(pxfErr.Pos),
 			Severity: severity,
-			Source:   source,
-			Message:  pxfErr.Msg,
+			Source:   optString(source),
+			Message:  protocol.String(pxfErr.Msg),
 		}
 	}
 	return protocol.Diagnostic{
@@ -500,7 +500,7 @@ func diagnosticFromError(err error, source string) protocol.Diagnostic {
 			End:   protocol.Position{Line: 0, Character: 1},
 		},
 		Severity: severity,
-		Source:   source,
-		Message:  err.Error(),
+		Source:   optString(source),
+		Message:  protocol.String(err.Error()),
 	}
 }

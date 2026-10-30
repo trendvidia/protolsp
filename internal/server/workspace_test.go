@@ -110,7 +110,7 @@ func TestEnsureWorkspaceForDoc_PopulatesWorkspaceDir(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	doc := srv.Documents().Get(devURI)
@@ -126,7 +126,7 @@ func TestEnsureWorkspaceForDoc_LazyLoadsSubWorkspaceState(t *testing.T) {
 		"no sub-workspaces loaded at initialize")
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	require.Equal(t, 1, srv.SubWorkspaceCount())
@@ -148,7 +148,7 @@ func TestLayerInfo_PerWorkspaceClassification(t *testing.T) {
 	srv, _ := initializeWithWorkspace(t, root, nil)
 
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	devDoc := srv.Documents().Get(devURI)
@@ -160,7 +160,7 @@ func TestLayerInfo_PerWorkspaceClassification(t *testing.T) {
 
 	// And the svc-b doc with env=prod also classifies in its OWN chain.
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	prodDoc := srv.Documents().Get(prodURI)
@@ -210,7 +210,7 @@ chameleon { chain_spec = "chain.pxf" }
 		"single-workspace setup populates no sub-workspaces")
 
 	devURI := uri.File(filepath.Join(root, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	devDoc := srv.Documents().Get(devURI)
@@ -229,12 +229,12 @@ func TestLiveReload_TargetsTheRightWorkspace(t *testing.T) {
 
 	// Open env/dev.pxf in svc-a to trigger sub-workspace load.
 	devURI := uri.File(filepath.Join(svcA, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	// Also open svc-b to load its state.
 	prodURI := uri.File(filepath.Join(svcB, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(prodURI), 1, "@type c4test.v1.AppConfig\n")))
 
 	beforeA := subWS(t, srv, svcA).Chain
@@ -245,7 +245,7 @@ func TestLiveReload_TargetsTheRightWorkspace(t *testing.T) {
 
 	// Open + edit svc-a's chain.pxf via didChange.
 	chainAURI := uri.File(filepath.Join(svcA, "chain.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(chainAURI), 1, `@type chameleon.v1.ChainSpec
 version = "1.0.0"
 environments = [
@@ -267,7 +267,7 @@ layers = [
   { id = "env" path = "env/${env}.pxf" for_each = PER_ENV }
 ]
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(chainAURI), 2, edited)))
 
 	// svc-a's chain reflects the bump.

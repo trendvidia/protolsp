@@ -30,8 +30,8 @@ import (
 // IncrementalChange mirrors LSP's TextDocumentContentChangeEvent but
 // uses *Range so we can tell "range omitted" (full-document
 // replacement) from "range at origin" (incremental edit at line
-// 0:col 0). The upstream protocol type uses a value Range which
-// makes this ambiguous after unmarshal — hence the custom shape.
+// 0:col 0) from the JSON alone, without the union decoding of the
+// upstream protocol type.
 //
 // Text is the replacement bytes (or the full document when Range
 // is nil).
@@ -113,9 +113,7 @@ func applyOneChange(src []byte, ch IncrementalChange, enc positions.Encoding) ([
 // UnmarshalIncrementalChanges parses the contentChanges array from
 // a didChange notification's params. We unmarshal via the local
 // IncrementalChange type (which uses *Range) so we can distinguish
-// full-document events from incremental ones — the upstream
-// protocol.TextDocumentContentChangeEvent uses a value Range and
-// loses that distinction.
+// full-document events from incremental ones.
 func UnmarshalIncrementalChanges(raw json.RawMessage) ([]IncrementalChange, error) {
 	if len(raw) == 0 {
 		return nil, nil

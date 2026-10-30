@@ -39,7 +39,7 @@ layers = [
 // decodes the result.
 func layerInfoReply(t *testing.T, srv *Server, docURI uri.URI) LayerInfoResult {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodLayerInfo,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodLayerInfo,
 		LayerInfoParams{TextDocument: protocol.TextDocumentIdentifier{URI: docURI}})
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func layerInfoReply(t *testing.T, srv *Server, docURI uri.URI) LayerInfoResult {
 		require.NoError(t, json.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got
 }
 
@@ -78,7 +78,7 @@ chameleon { chain_spec = "chain.pxf" }
 func TestLayerInfo_PerEnvLayerMatchesEnvironment(t *testing.T) {
 	srv, ws := initializeWithChain(t)
 	docURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "@type myapp.v1.AppConfig\nname = \"x\"\n")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -93,7 +93,7 @@ func TestLayerInfo_PerEnvLayerMatchesEnvironment(t *testing.T) {
 func TestLayerInfo_OnceLayerHasNoEnvironmentOrAncestors(t *testing.T) {
 	srv, ws := initializeWithChain(t)
 	docURI := uri.File(filepath.Join(ws, "base.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "name = \"base\"\n")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -107,7 +107,7 @@ func TestLayerInfo_EncryptedFlagSurfaces(t *testing.T) {
 	srv, ws := initializeWithChain(t)
 	// PER_ENV with ${env}=prod → "secrets/prod.sops.pxf"
 	docURI := uri.File(filepath.Join(ws, "secrets", "prod.sops.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -153,7 +153,7 @@ chameleon { chain_spec = "chain.pxf" }
 	require.NotNil(t, srv.Workspaces().SnapshotChain(), "preconditions: chain loaded")
 
 	docURI := uri.File(filepath.Join(workspaceDir, "layers", "secrets", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "name = \"x\"\n")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -191,7 +191,7 @@ chameleon { chain_spec = "chain.pxf" }
 	require.NotNil(t, srv.Workspaces().SnapshotChain())
 
 	docURI := uri.File(filepath.Join(workspaceDir, "layers", "secrets", "schema.proto"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "syntax = \"proto3\";\n")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -203,7 +203,7 @@ func TestLayerInfo_NonLayerFileIsStandalone(t *testing.T) {
 	srv, ws := initializeWithChain(t)
 	// Random .pxf at the workspace root — not in any layer template.
 	docURI := uri.File(filepath.Join(ws, "scratch.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "name = \"x\"\n")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -217,7 +217,7 @@ func TestLayerInfo_NoChainConfiguredYieldsIsLayerFalse(t *testing.T) {
 	require.Nil(t, srv.Workspaces().SnapshotChain(), "preconditions: no chain")
 
 	docURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "")))
 	got := layerInfoReply(t, srv, docURI)
 	assert.False(t, got.IsLayer,
@@ -229,7 +229,7 @@ func TestLayerInfo_FileOutsideWorkspaceIsStandalone(t *testing.T) {
 	// File in a totally unrelated directory.
 	outside := filepath.Join(t.TempDir(), "elsewhere.pxf")
 	docURI := uri.File(outside)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "")))
 
 	got := layerInfoReply(t, srv, docURI)
@@ -252,7 +252,7 @@ func TestLayerInfo_DocumentNotOpenStillReturnsSnapshot(t *testing.T) {
 
 func TestLayerInfo_NullParamsTolerated(t *testing.T) {
 	srv, _ := initializeWithChain(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodLayerInfo, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodLayerInfo, nil)
 	require.NoError(t, err)
 	var got LayerInfoResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
@@ -262,7 +262,7 @@ func TestLayerInfo_NullParamsTolerated(t *testing.T) {
 		require.NoError(t, json.Unmarshal(b, &got))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.False(t, got.IsLayer,
 		"null params (no URI) yields IsLayer=false rather than RPC error")
 }
@@ -273,7 +273,7 @@ func TestLayerInfo_CachedOnDocumentAfterDidOpen(t *testing.T) {
 	// request fires.
 	srv, ws := initializeWithChain(t)
 	docURI := uri.File(filepath.Join(ws, "env", "prod.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, "")))
 
 	doc := srv.Documents().Get(docURI)

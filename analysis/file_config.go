@@ -289,7 +289,7 @@ func (s *Workspace) ResolvedChainSpecPath() string {
 // Unifies what used to be three near-identical helpers
 // (workspaceRootPath, documentFilePath, watchedURIToPath) — they
 // all did `url.Parse + Scheme=="file" + .Path`. One signature
-// covers all three because `protocol.DocumentURI` is a type alias
+// covers all three because `uri.URI` is a type alias
 // for `uri.URI` (per go.lsp.dev/protocol).
 //
 // Non-file workspace roots are out of scope per the W1 design

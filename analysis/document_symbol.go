@@ -5,6 +5,7 @@ package analysis
 
 import (
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/trendvidia/protolsp/positions"
@@ -16,7 +17,7 @@ import (
 // non-nil) slice is reserved for "parsed, but nothing to show," which
 // the current grammar never produces — a parsed doc always has at
 // least @type or some directive / entry.
-func (s *Workspace) DocumentSymbolsFor(docURI protocol.DocumentURI) []protocol.DocumentSymbol {
+func (s *Workspace) DocumentSymbolsFor(docURI uri.URI) []protocol.DocumentSymbol {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -115,7 +116,7 @@ func (w *symbolWalker) assignmentSymbol(a *pxf.Assignment, md protoreflect.Messa
 	r := w.rangeForName(a.Pos, a.Key)
 	return protocol.DocumentSymbol{
 		Name:           a.Key,
-		Detail:         detail,
+		Detail:         strPtr(detail),
 		Kind:           protocol.SymbolKindField,
 		Range:          r,
 		SelectionRange: r,
@@ -149,7 +150,7 @@ func (w *symbolWalker) blockSymbol(b *pxf.Block, md protoreflect.MessageDescript
 	full := w.rangeFromEntriesTo(b.Pos, b.Entries)
 	return protocol.DocumentSymbol{
 		Name:           b.Name,
-		Detail:         detail,
+		Detail:         strPtr(detail),
 		Kind:           protocol.SymbolKindObject,
 		Range:          full,
 		SelectionRange: name,
@@ -179,7 +180,7 @@ func (w *symbolWalker) keyedEntrySymbols(entries []pxf.Entry, elemMd protoreflec
 		full := w.rangeFromEntriesTo(ke.pos, ke.body)
 		out = append(out, protocol.DocumentSymbol{
 			Name:           ke.key,
-			Detail:         detail,
+			Detail:         strPtr(detail),
 			Kind:           protocol.SymbolKindObject,
 			Range:          full,
 			SelectionRange: name,
@@ -250,7 +251,7 @@ func (w *symbolWalker) datasetSymbol(d pxf.DatasetDirective) protocol.DocumentSy
 	}
 	return protocol.DocumentSymbol{
 		Name:           label,
-		Detail:         d.Type,
+		Detail:         strPtr(d.Type),
 		Kind:           protocol.SymbolKindStruct,
 		Range:          r,
 		SelectionRange: r,

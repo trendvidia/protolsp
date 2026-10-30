@@ -24,7 +24,7 @@ import (
 func TestProtoCompletion_FileScope_RFC001Keywords(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-keywords.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, "syntax = \"proto3\";\n\n")))
 
 	list := completionFromHandle(t, srv, u, 1, 0)
@@ -53,7 +53,7 @@ message M {}
 func TestProtoCompletion_AnnotationUse_InFileDecls(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/ann-completion.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, annotationCompletionFixture)))
 
 	// Line 7 is the bare `@`; cursor sits right after the sigil.
@@ -109,7 +109,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	return fooPath, barPath, srv
@@ -123,7 +123,7 @@ func TestProtoCompletion_AnnotationUse_ImportedDecls(t *testing.T) {
 	dir := "file://" + filepath.ToSlash(filepath.Dir(fooPath))
 
 	unqualified := dir + "/scratch-unqualified.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, unqualified, 1, `syntax = "proto3";
 
 package acme.app.v1;
@@ -139,7 +139,7 @@ message M {}
 		"bare @ offers imported annotations package-qualified")
 
 	qualified := dir + "/scratch-qualified.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, qualified, 1, `syntax = "proto3";
 
 package acme.app.v1;
@@ -166,7 +166,7 @@ message M {}
 func TestProtoHover_AnnotationUseSite(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-hover.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001Proto)))
 
 	positions := []struct {
@@ -181,9 +181,9 @@ func TestProtoHover_AnnotationUseSite(t *testing.T) {
 		t.Run(p.name, func(t *testing.T) {
 			hover := hoverFromHandle(t, srv, u, p.line, p.char)
 			require.NotNil(t, hover, "use site yields a hover")
-			assert.Contains(t, hover.Contents.Value, "**annotation description(text: string)**",
+			assert.Contains(t, hoverBody(hover), "**annotation description(text: string)**",
 				"card headline carries the declaration signature")
-			assert.Contains(t, hover.Contents.Value, "Defined in",
+			assert.Contains(t, hoverBody(hover), "Defined in",
 				"card carries the provenance line")
 		})
 	}
@@ -194,7 +194,7 @@ func TestProtoHover_AnnotationUseSite(t *testing.T) {
 func TestProtoHover_AnnotationDeclarationName(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-decl-hover.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, `syntax = "proto3";
 
 package test.rfc001.nav;
@@ -206,8 +206,8 @@ annotation reviewed(by: string);
 	// Line 5 col 13 is inside the `reviewed` name ident.
 	hover := hoverFromHandle(t, srv, u, 5, 13)
 	require.NotNil(t, hover, "declaration name yields a hover")
-	assert.Contains(t, hover.Contents.Value, "**annotation reviewed(by: string)**")
-	assert.Contains(t, hover.Contents.Value, "Attaches reviewer provenance.",
+	assert.Contains(t, hoverBody(hover), "**annotation reviewed(by: string)**")
+	assert.Contains(t, hoverBody(hover), "Attaches reviewer provenance.",
 		"the leading doc comment flows into the card")
 }
 
@@ -216,7 +216,7 @@ annotation reviewed(by: string);
 func TestProtoDefinition_AnnotationUse_InFile(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/rfc001-def.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, rfc001Proto)))
 
 	// `description` in `annotation description(text: string);`
@@ -253,8 +253,8 @@ func TestProtoNavigation_AnnotationUse_CrossFile(t *testing.T) {
 	// char 16 sits inside `checked`.
 	hover := hoverFromHandle(t, srv, fooURI, 6, 16)
 	require.NotNil(t, hover, "qualified use resolves cross-file via import")
-	assert.Contains(t, hover.Contents.Value, "**annotation checked(by: string)**")
-	assert.Contains(t, hover.Contents.Value, "Marks values audited by compliance.",
+	assert.Contains(t, hoverBody(hover), "**annotation checked(by: string)**")
+	assert.Contains(t, hoverBody(hover), "Marks values audited by compliance.",
 		"the imported file's leading comment flows through")
 
 	locs := definitionFromHandle(t, srv, fooURI, 6, 16)
@@ -298,7 +298,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 6: `@audited(is_uuid)` — char 2 sits in "audited",
@@ -346,15 +346,15 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	siblingURI := "file://" + filepath.ToSlash(siblingPath)
 
 	hover := hoverFromHandle(t, srv, fooURI, 6, 2)
 	require.NotNil(t, hover, "same-package bare annotation use resolves")
-	assert.Contains(t, hover.Contents.Value, "**annotation audited(by: string)**")
-	assert.Contains(t, hover.Contents.Value, "Compliance marker.")
+	assert.Contains(t, hoverBody(hover), "**annotation audited(by: string)**")
+	assert.Contains(t, hoverBody(hover), "Compliance marker.")
 
 	locs := definitionFromHandle(t, srv, fooURI, 6, 2)
 	require.Len(t, locs, 1)
@@ -364,7 +364,7 @@ message Foo {
 
 	hover = hoverFromHandle(t, srv, fooURI, 6, 10)
 	require.NotNil(t, hover, "same-package bare function reference resolves")
-	assert.Contains(t, hover.Contents.Value, "**function is_uuid(s: string)**")
+	assert.Contains(t, hoverBody(hover), "**function is_uuid(s: string)**")
 	locs = definitionFromHandle(t, srv, fooURI, 6, 10)
 	require.Len(t, locs, 1)
 	assert.Equal(t, siblingURI, string(locs[0].URI))
@@ -378,7 +378,7 @@ func TestProtoNavigation_RFC001ScopeRelativeQualifier_Resolves(t *testing.T) {
 	dir := "file://" + filepath.ToSlash(filepath.Dir(fooPath))
 
 	scratch := dir + "/scratch-relative.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, scratch, 1, `syntax = "proto3";
 
 package acme.app.v1;
@@ -393,7 +393,7 @@ message M {}
 	// "checked", char 27 in "is_uuid".
 	hover := hoverFromHandle(t, srv, scratch, 6, 10)
 	require.NotNil(t, hover, "scope-relative annotation qualifier resolves")
-	assert.Contains(t, hover.Contents.Value, "**annotation checked(by: string)**")
+	assert.Contains(t, hoverBody(hover), "**annotation checked(by: string)**")
 
 	locs := definitionFromHandle(t, srv, scratch, 6, 10)
 	require.Len(t, locs, 1)
@@ -401,7 +401,7 @@ message M {}
 
 	hover = hoverFromHandle(t, srv, scratch, 6, 27)
 	require.NotNil(t, hover, "scope-relative function qualifier resolves")
-	assert.Contains(t, hover.Contents.Value, "**function is_uuid(s: string)**")
+	assert.Contains(t, hoverBody(hover), "**function is_uuid(s: string)**")
 }
 
 // `@` completion honors scope-relative package qualifiers too
@@ -412,7 +412,7 @@ func TestProtoCompletion_AnnotationUse_ScopeRelativeQualifier(t *testing.T) {
 	dir := "file://" + filepath.ToSlash(filepath.Dir(fooPath))
 
 	scratch := dir + "/scratch-relative-completion.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, scratch, 1, `syntax = "proto3";
 
 package acme.app.v1;
@@ -465,7 +465,7 @@ message Contact {
 func TestProtoHover_RFC001TypeFunctionSites_InFile(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/typefunc.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, typeFuncFixture)))
 
 	cases := []struct {
@@ -491,7 +491,7 @@ func TestProtoHover_RFC001TypeFunctionSites_InFile(t *testing.T) {
 			hover := hoverFromHandle(t, srv, u, c.line, c.char)
 			require.NotNil(t, hover, "position yields a hover")
 			for _, w := range c.want {
-				assert.Contains(t, hover.Contents.Value, w)
+				assert.Contains(t, hoverBody(hover), w)
 			}
 		})
 	}
@@ -505,7 +505,7 @@ func TestProtoHover_RFC001TypeFunctionSites_InFile(t *testing.T) {
 func TestProtoDefinition_RFC001TypeFunctionSites_InFile(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/typefunc-def.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, typeFuncFixture)))
 
 	cases := []struct {
@@ -541,8 +541,8 @@ func TestProtoNavigation_RFC001TypeFunction_CrossFile(t *testing.T) {
 	// char 17 sits inside `UserID`.
 	hover := hoverFromHandle(t, srv, fooURI, 9, 17)
 	require.NotNil(t, hover, "qualified alias field type resolves cross-file")
-	assert.Contains(t, hover.Contents.Value, "**type UserID = string**")
-	assert.Contains(t, hover.Contents.Value, "Stable user identifier.")
+	assert.Contains(t, hoverBody(hover), "**type UserID = string**")
+	assert.Contains(t, hoverBody(hover), "Stable user identifier.")
 
 	locs := definitionFromHandle(t, srv, fooURI, 9, 17)
 	require.Len(t, locs, 1)
@@ -554,7 +554,7 @@ func TestProtoNavigation_RFC001TypeFunction_CrossFile(t *testing.T) {
 	// reference in the annotation argument.
 	hover = hoverFromHandle(t, srv, fooURI, 6, 37)
 	require.NotNil(t, hover, "qualified function ref resolves cross-file")
-	assert.Contains(t, hover.Contents.Value, "**function is_uuid(s: string)**")
+	assert.Contains(t, hoverBody(hover), "**function is_uuid(s: string)**")
 
 	locs = definitionFromHandle(t, srv, fooURI, 6, 37)
 	require.Len(t, locs, 1)

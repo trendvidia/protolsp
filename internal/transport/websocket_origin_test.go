@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trendvidia/protolsp/internal/lspcodec"
+
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,11 +61,11 @@ func TestWebsocket_OriginPattern_AllowsMatch(t *testing.T) {
 	// actually live — a 101 Switching Protocols alone wouldn't
 	// catch a regression where the upgrade succeeds but the
 	// dispatcher fails to attach.
-	conn := jsonrpc2.NewConn(&wsStream{conn: c})
+	conn := jsonrpc2.NewConn(&wsStream{conn: c}, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	conn.Go(ctx, jsonrpc2.MethodNotFoundHandler)
 	var result protocol.InitializeResult
 	_, err = conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "origin-test", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "origin-test", Version: protocol.NewOptional("0")},
 	}, &result)
 	require.NoError(t, err)
 	assert.NotNil(t, result.ServerInfo)

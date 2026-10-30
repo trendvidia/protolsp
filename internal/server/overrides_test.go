@@ -19,7 +19,7 @@ import (
 // decoded result or the JSON-RPC error.
 func setOverridesReply(t *testing.T, srv *Server, params SetOverridesParams) (*SetOverridesResult, *jsonrpc2.Error) {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, params)
 	require.NoError(t, err)
 
 	var got *SetOverridesResult
@@ -38,7 +38,7 @@ func setOverridesReply(t *testing.T, srv *Server, params SetOverridesParams) (*S
 		got = &r
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got, gotErr
 }
 
@@ -187,7 +187,7 @@ func TestSetOverrides_TokenRedactedInNotification(t *testing.T) {
 func TestSetOverrides_NilParamsTolerated(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, nil)
 	require.NoError(t, err)
 	var got *SetOverridesResult
 	reply := func(_ context.Context, result interface{}, replyErr error) error {
@@ -198,7 +198,7 @@ func TestSetOverrides_NilParamsTolerated(t *testing.T) {
 		got = &r
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.NotNil(t, got)
 	assert.Empty(t, got.Applied, "null params → empty applied map, no error")
 }

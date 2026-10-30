@@ -73,8 +73,8 @@ func newCycleServer(t *testing.T) (*Server, *fakeConn) {
 func cycleDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	var out []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protolsp/schema" &&
-			strings.Contains(d.Message, "reference cycle") {
+		if optValue(d.Source) == "protolsp/schema" &&
+			strings.Contains(messageText(d.Message), "reference cycle") {
 			out = append(out, d)
 		}
 	}
@@ -88,7 +88,7 @@ func TestCycleRefs_TwoNodeCycle(t *testing.T) {
 a = "${b}"
 b = "${a}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
@@ -98,9 +98,9 @@ b = "${a}"
 		// The path mentions both a and b in order — exact ordering
 		// depends on which DFS branch found the cycle first, but
 		// both names appear.
-		assert.Contains(t, d.Message, "a")
-		assert.Contains(t, d.Message, "b")
-		assert.Contains(t, d.Message, "→",
+		assert.Contains(t, messageText(d.Message), "a")
+		assert.Contains(t, messageText(d.Message), "b")
+		assert.Contains(t, messageText(d.Message), "→",
 			"diagnostic renders the cycle as a → b → a")
 	}
 }
@@ -113,7 +113,7 @@ a = "${b}"
 b = "${c}"
 c = "${a}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
@@ -126,12 +126,12 @@ func TestCycleRefs_SelfReference(t *testing.T) {
 
 a = "${a}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1, "a self-reference produces exactly one diagnostic")
-	assert.Contains(t, diags[0].Message, "a")
+	assert.Contains(t, messageText(diags[0].Message), "a")
 }
 
 func TestCycleRefs_NoCycleProducesNoDiagnostic(t *testing.T) {
@@ -142,7 +142,7 @@ a = "static"
 b = "${a}"
 c = "${a} ${b}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
@@ -159,7 +159,7 @@ b = "${c}"
 c = "${a}"
 d = "${a}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
@@ -176,7 +176,7 @@ func TestCycleRefs_EnvCtxReferencesDontCount(t *testing.T) {
 a = "${env.A}"
 b = "${env.B}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)
@@ -193,7 +193,7 @@ func TestCycleRefs_UnresolvedReferenceSkippedFromGraph(t *testing.T) {
 
 a = "${nonexistent}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	// Cycle path silent; the unresolvable diagnostic from C4 fires.
@@ -210,7 +210,7 @@ func TestCycleRefs_NoSchemaSkipsCheck(t *testing.T) {
 a = "${b}"
 b = "${a}"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, src)))
 
 	diags := cycleDiags(fc.calls()[0].params.Diagnostics)

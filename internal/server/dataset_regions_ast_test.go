@@ -67,7 +67,7 @@ func TestEnrichAST_FillsRowCountAndResolvable(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -85,7 +85,7 @@ func TestEnrichAST_ResolvableFalseForUnknownType(t *testing.T) {
 	lookup.add(buildTradeMessageType(t)) // Trade exists; Unknown does not
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetUnknownSrc)))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -106,7 +106,7 @@ func TestEnrichAST_RowCountTriggersHuge(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -131,7 +131,7 @@ func TestEnrichAST_ShrinkBelowThresholdClearsHuge(t *testing.T) {
 	srv.Lookups().Swap(lookup, nil)
 
 	// Open at 3 rows — above threshold → Huge=true.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -144,7 +144,7 @@ func TestEnrichAST_ShrinkBelowThresholdClearsHuge(t *testing.T) {
 	const shrunkSrc = `@dataset acme.demo.v1.Trade(id, qty)
 ("T-1", 10)
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, shrunkSrc)))
 
 	doc = srv.Documents().Get("file:///work/t.pxf")
@@ -167,7 +167,7 @@ func TestEnrichAST_DegradedWhenParseFails(t *testing.T) {
 	const src = `@dataset acme.demo.v1.Trade(id, qty)
 not valid pxf at all !!!
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -198,7 +198,7 @@ func TestDatasetRegionsChanged_GatedUntilLegacyDispatchCalled(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 	assert.Empty(t, fc.datasetRegionsChangedNotifications(),
 		"no notification until the legacy datasetRegions request is invoked")
@@ -211,7 +211,7 @@ func TestDatasetRegionsChanged_FiresOnDidOpenWithRegion(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	notes := fc.datasetRegionsChangedNotifications()
@@ -226,7 +226,7 @@ func TestDatasetRegionsChanged_FiresOnDidOpenWithRegion(t *testing.T) {
 
 func TestDatasetRegionsChanged_SilentForDocumentWithoutRegions(t *testing.T) {
 	srv, fc, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 	assert.Empty(t, fc.datasetRegionsChangedNotifications(),
 		"document with no @dataset block fires no notification")
@@ -240,12 +240,12 @@ func TestDatasetRegionsChanged_FiresOnDidChange_RegionAdded(t *testing.T) {
 	srv.Lookups().Swap(lookup, nil)
 
 	// Open WITHOUT a dataset, then add one via didChange.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, "")))
 	require.Empty(t, fc.datasetRegionsChangedNotifications(),
 		"empty initial doc → no notification")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, tradeDatasetSrc)))
 
 	notes := fc.datasetRegionsChangedNotifications()
@@ -262,12 +262,12 @@ func TestDatasetRegionsChanged_SilentOnIdenticalReopen(t *testing.T) {
 	lookup.add(buildTradeMessageType(t))
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 	require.Len(t, fc.datasetRegionsChangedNotifications(), 1,
 		"first open fires once")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, tradeDatasetSrc)))
 
 	assert.Len(t, fc.datasetRegionsChangedNotifications(), 1,

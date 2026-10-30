@@ -76,7 +76,7 @@ func TestCompileInlineSchema_Imports(t *testing.T) {
 			loadInlineSchema(doc)
 			var msgs []string
 			for _, d := range doc.inline.diags {
-				msgs = append(msgs, d.Message)
+				msgs = append(msgs, MessageText(d.Message))
 			}
 			switch {
 			case bytes.HasPrefix(src, []byte("# accept:")):

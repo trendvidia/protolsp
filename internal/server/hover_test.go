@@ -20,7 +20,7 @@ import (
 // client would see over the wire after JSON round-trip.
 func hoverFromHandle(t *testing.T, srv *Server, u string, line, char uint32) *protocol.Hover {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentHover,
 		&protocol.HoverParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -44,7 +44,7 @@ func hoverFromHandle(t *testing.T, srv *Server, u string, line, char uint32) *pr
 		captured = &h
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -52,7 +52,7 @@ func TestHover_ReportsFieldTypeAndDefiningFile(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	// Open the valid Greeting doc so the document store + parsed AST
 	// are populated.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	// greetingValid is:
@@ -63,8 +63,8 @@ func TestHover_ReportsFieldTypeAndDefiningFile(t *testing.T) {
 	h := hoverFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
 	require.NotNil(t, h, "hover on a known field should return content")
 
-	assert.Equal(t, protocol.Markdown, h.Contents.Kind)
-	body := h.Contents.Value
+	assert.Equal(t, protocol.MarkupKindMarkdown, h.Contents.(*protocol.MarkupContent).Kind)
+	body := hoverBody(h)
 	assert.Contains(t, body, "**name**", "hover should bold the field name")
 	assert.Contains(t, body, "`string`", "hover should report the protobuf kind")
 	assert.Contains(t, body, "acme/demo/v1/greeting.proto", "hover should name the defining file")
@@ -72,7 +72,7 @@ func TestHover_ReportsFieldTypeAndDefiningFile(t *testing.T) {
 
 func TestHover_ReturnsNilForUnknownLine(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	// Line 100 is past the end of the document — no entry there.
@@ -82,7 +82,7 @@ func TestHover_ReturnsNilForUnknownLine(t *testing.T) {
 
 func TestHover_ReturnsNilWhenNoTypeDirective(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingNoTypeDirective)))
 
 	h := hoverFromHandle(t, srv, "file:///work/g.pxf", 0, 0)
@@ -92,7 +92,7 @@ func TestHover_ReturnsNilWhenNoTypeDirective(t *testing.T) {
 func TestHover_ReturnsNilWhenNoLookupConfigured(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	// No lookup assignment.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	h := hoverFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
@@ -105,14 +105,14 @@ func TestHover_UnknownFieldOnKnownMessageShowsFallback(t *testing.T) {
 	// rather than nothing, so the user gets immediate confirmation
 	// they're looking at a bad name.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingUnknownField)))
 
 	// Line 2 has "stranger = ..."
 	h := hoverFromHandle(t, srv, "file:///work/g.pxf", 2, 0)
 	require.NotNil(t, h)
-	assert.Contains(t, h.Contents.Value, "**stranger**")
-	assert.Contains(t, h.Contents.Value, "Unknown field")
+	assert.Contains(t, hoverBody(h), "**stranger**")
+	assert.Contains(t, hoverBody(h), "Unknown field")
 }
 
 // Hover/go-to-def regression: fields inside an array literal of
@@ -136,7 +136,7 @@ addresses = [
   { street = "1 Main St" }
 ]
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/o.pxf", 1, src)))
 
 	// Line 3 (0-indexed): "  { street = \"1 Main St\" }"
@@ -144,7 +144,7 @@ addresses = [
 	// not column-keyed, so any column works.
 	h := hoverFromHandle(t, srv, "file:///work/o.pxf", 3, 4)
 	require.NotNil(t, h, "hover on a field inside an array entry should resolve")
-	body := h.Contents.Value
+	body := hoverBody(h)
 	assert.Contains(t, body, "**street**", "field name in markdown")
 	assert.Contains(t, body, "`string`", "field type in markdown")
 }
@@ -153,12 +153,12 @@ func TestInitialize_AdvertisesHoverProvider(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
-		&protocol.InitializeParams{ClientInfo: &protocol.ClientInfo{Name: "test"}})
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+		&protocol.InitializeParams{ClientInfo: protocol.ClientInfo{Name: "test"}})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 
 	result := rep.result.(*initializeResult)
-	assert.True(t, result.Capabilities.HoverProvider.(bool),
+	assert.True(t, result.Capabilities.HoverProvider == protocol.Boolean(true),
 		"server must advertise hover capability in initialize result")
 }

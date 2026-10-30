@@ -156,8 +156,8 @@ func validateRows(d *pxf.DatasetDirective, desc protoreflect.MessageDescriptor) 
 			out = append(out, protocol.Diagnostic{
 				Range:    pxfPosToRange(d.Pos),
 				Severity: protocol.DiagnosticSeverityError,
-				Source:   "protolsp/dataset",
-				Message:  problem,
+				Source:   optString("protolsp/dataset"),
+				Message:  protocol.String(problem),
 			})
 		}
 	}
@@ -176,8 +176,8 @@ func validateRows(d *pxf.DatasetDirective, desc protoreflect.MessageDescriptor) 
 			out = append(out, protocol.Diagnostic{
 				Range:    cellRange(pos),
 				Severity: protocol.DiagnosticSeverityError,
-				Source:   "protolsp/dataset",
-				Message:  problem,
+				Source:   optString("protolsp/dataset"),
+				Message:  protocol.String(problem),
 			})
 		}
 		if !rowOK {
@@ -187,8 +187,8 @@ func validateRows(d *pxf.DatasetDirective, desc protoreflect.MessageDescriptor) 
 			out = append(out, protocol.Diagnostic{
 				Range:    cellRange(pos),
 				Severity: protocol.DiagnosticSeverityError,
-				Source:   "protolsp/dataset",
-				Message:  problem,
+				Source:   optString("protolsp/dataset"),
+				Message:  protocol.String(problem),
 			})
 		}
 	}
@@ -541,8 +541,8 @@ func datasetUnresolvableDiagnostic(region *DatasetRegion) protocol.Diagnostic {
 	return protocol.Diagnostic{
 		Range:    directiveRange,
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "protolsp/dataset",
-		Message:  fmt.Sprintf("unknown row type %q — row validation disabled", region.TypeFQN),
+		Source:   optString("protolsp/dataset"),
+		Message:  protocol.String(fmt.Sprintf("unknown row type %q — row validation disabled", region.TypeFQN)),
 	}
 }
 
@@ -557,8 +557,8 @@ func datasetHugeSkippedDiagnostic(region *DatasetRegion) protocol.Diagnostic {
 	return protocol.Diagnostic{
 		Range:    directiveRange,
 		Severity: protocol.DiagnosticSeverityInformation,
-		Source:   "protolsp/dataset",
-		Message:  fmt.Sprintf("huge @dataset region (%d rows, %d bytes) — row validation skipped; run `pxf validate` for whole-region checks", region.RowCount, region.ByteSize),
+		Source:   optString("protolsp/dataset"),
+		Message:  protocol.String(fmt.Sprintf("huge @dataset region (%d rows, %d bytes) — row validation skipped; run `pxf validate` for whole-region checks", region.RowCount, region.ByteSize)),
 	}
 }
 

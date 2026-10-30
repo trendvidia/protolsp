@@ -36,8 +36,10 @@ func (p serverPublisher) PublishDiagnostics(ctx context.Context, docURI uri.URI,
 	}
 	params := &protocol.PublishDiagnosticsParams{
 		URI:         docURI,
-		Version:     version,
 		Diagnostics: diags,
+	}
+	if version != 0 {
+		params.Version = protocol.NewOptional(int32(version))
 	}
 	if err := p.s.conn.Notify(ctx, protocol.MethodTextDocumentPublishDiagnostics, params); err != nil {
 		p.s.Logger().Warn("publishDiagnostics: notify failed", slog.String("err", err.Error()))

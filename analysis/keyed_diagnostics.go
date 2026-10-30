@@ -29,8 +29,8 @@ func (s *Workspace) keyedDiagnostics(doc *Document) []protocol.Diagnostic {
 		out = append(out, protocol.Diagnostic{
 			Range:    keyedErrorRange(doc.Source, k.Pos, s.positionEncoding),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/keyed",
-			Message:  k.Msg,
+			Source:   optString("protolsp/keyed"),
+			Message:  protocol.String(k.Msg),
 		})
 	}
 	return out

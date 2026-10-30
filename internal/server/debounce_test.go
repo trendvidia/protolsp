@@ -36,13 +36,13 @@ func TestDebounce_ZeroWindowIsSynchronous(t *testing.T) {
 	require.Equal(t, time.Duration(0), srv.DebounceWindow())
 
 	const src = "@type acme.demo.v1.Greeting\n\nname = \"a\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 	// didOpen runs the pipeline directly (not through schedule).
 	// Subsequent didChange events with window=0 ALSO run inline.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 3, src)))
 
 	assert.Equal(t, int64(3), srv.AnalyzeCount(),
@@ -54,13 +54,13 @@ func TestDebounce_NonZeroWindowCoalescesRapidEdits(t *testing.T) {
 	srv.SetDebounceWindow(25 * time.Millisecond)
 
 	const src = "@type acme.demo.v1.Greeting\n\nname = \"a\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 3, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 4, src)))
 
 	// At this point: 1 analyze from didOpen (synchronous). The
@@ -85,7 +85,7 @@ func TestDebounce_PipelineRunsWithFinalSource(t *testing.T) {
 	srv.SetDebounceWindow(25 * time.Millisecond)
 
 	const initial = "@type acme.demo.v1.Greeting\n\nname = \"world\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, initial)))
 
 	// Two edits in quick succession. Each replaces "world" / "Mars"
@@ -95,13 +95,13 @@ func TestDebounce_PipelineRunsWithFinalSource(t *testing.T) {
 		Start: protocol.Position{Line: 2, Character: 8},
 		End:   protocol.Position{Line: 2, Character: 13},
 	}
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeIncrementalCall(t, "file:///work/g.pxf", 2, r, "Mars")))
 	r2 := protocol.Range{
 		Start: protocol.Position{Line: 2, Character: 8},
 		End:   protocol.Position{Line: 2, Character: 12},
 	}
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeIncrementalCall(t, "file:///work/g.pxf", 3, r2, "Earth")))
 
 	require.True(t, waitForAnalyzeCount(t, srv, 2, 500*time.Millisecond))
@@ -119,7 +119,7 @@ func TestDebounce_PipelineRunsWithFinalSource(t *testing.T) {
 		"at least two publishDiagnostics calls: didOpen + final analyze")
 	// Latest publish carries the FINAL version.
 	last := notes[len(notes)-1]
-	assert.Equal(t, uint32(3), last.params.Version,
+	assert.Equal(t, protocol.NewOptional(int32(3)), last.params.Version,
 		"latest publish tags the final post-edit version")
 }
 
@@ -133,14 +133,14 @@ func TestDebounce_DidCloseCancelsPendingTimer(t *testing.T) {
 	srv.SetDebounceWindow(25 * time.Millisecond)
 
 	const src = "@type acme.demo.v1.Greeting\n\nname = \"a\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 	require.Equal(t, int64(1), srv.AnalyzeCount(),
 		"didOpen runs the pipeline synchronously (count=1)")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, src)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didCloseCall(t, "file:///work/g.pxf")))
 
 	// analyzeCount must STAY at 1 — the close stopped the timer.
@@ -161,7 +161,7 @@ func TestDebounce_DidOpenAlwaysSynchronous(t *testing.T) {
 	srv.SetDebounceWindow(500 * time.Millisecond)
 
 	const src = "@type acme.demo.v1.Greeting\n\nname = \"a\"\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 
 	// No wait — count must be 1 immediately.

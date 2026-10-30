@@ -70,7 +70,14 @@ func Diagnostic(d *protocol.Diagnostic, secretValues []string) {
 	if d == nil || len(secretValues) == 0 {
 		return
 	}
-	d.Message = String(d.Message, secretValues)
+	switch m := d.Message.(type) {
+	case protocol.String:
+		d.Message = protocol.String(String(string(m), secretValues))
+	case *protocol.MarkupContent:
+		if m != nil {
+			d.Message = &protocol.MarkupContent{Kind: m.Kind, Value: String(m.Value, secretValues)}
+		}
+	}
 }
 
 // String redacts any secretValues substring in s and returns the

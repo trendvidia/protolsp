@@ -103,8 +103,8 @@ func loadInlineSchema(doc *Document) {
 		diags = append(diags, protocol.Diagnostic{
 			Range:    pxfPosToRange(pos),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   "protolsp/proto",
-			Message:  fmt.Sprintf(format, args...),
+			Source:   optString("protolsp/proto"),
+			Message:  protocol.String(fmt.Sprintf(format, args...)),
 		})
 	}
 

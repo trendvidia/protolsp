@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/trendvidia/protolsp/positions"
@@ -29,7 +30,7 @@ import (
 // last-good parse when the document is mid-edit and currently
 // invalid (typing `field = ` produces a single broken line, but the
 // rest of the AST is still meaningful).
-func (s *Workspace) CompletionFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.CompletionList {
+func (s *Workspace) CompletionFor(docURI uri.URI, pos protocol.Position) *protocol.CompletionList {
 	// Internal descriptors are always available via findType /
 	// rangeTypes — no gate on s.lookup here; the no-user-registry
 	// path still gets completion for protolsp.v1.* and
@@ -383,8 +384,8 @@ func (s *Workspace) completeMessageTypes() *protocol.CompletionList {
 		items = append(items, protocol.CompletionItem{
 			Label:      name,
 			Kind:       protocol.CompletionItemKindClass,
-			Detail:     "message",
-			InsertText: name,
+			Detail:     optString("message"),
+			InsertText: optString(name),
 		})
 		return true
 	}
@@ -458,8 +459,8 @@ func completeEnumValues(ed protoreflect.EnumDescriptor) *protocol.CompletionList
 		items = append(items, protocol.CompletionItem{
 			Label:      string(ev.Name()),
 			Kind:       protocol.CompletionItemKindEnumMember,
-			Detail:     string(ed.FullName()),
-			InsertText: string(ev.Name()),
+			Detail:     optString(string(ed.FullName())),
+			InsertText: optString(string(ev.Name())),
 		})
 	}
 	if len(items) == 0 {
@@ -517,12 +518,12 @@ func fieldCompletionItem(fd protoreflect.FieldDescriptor) protocol.CompletionIte
 	item := protocol.CompletionItem{
 		Label:      string(fd.Name()),
 		Kind:       kind,
-		Detail:     fieldTypeLabel(fd),
-		InsertText: string(fd.Name()) + " = ",
+		Detail:     optString(fieldTypeLabel(fd)),
+		InsertText: optString(string(fd.Name()) + " = "),
 	}
 	loc := fd.ParentFile().SourceLocations().ByDescriptor(fd)
 	if c := strings.TrimSpace(loc.LeadingComments); c != "" {
-		item.Documentation = c
+		item.Documentation = protocol.String(c)
 	}
 	return item
 }

@@ -31,6 +31,7 @@ import (
 	"github.com/trendvidia/protocompile/ast"
 	"github.com/trendvidia/protocompile/source"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
@@ -102,7 +103,7 @@ func (s *Workspace) resolveRegistryProtoImport(ctx context.Context, namespace, w
 		return nil
 	}
 	return &protocol.Location{
-		URI: protocol.DocumentURI(BuildRegistryURI(namespace, path)),
+		URI: uri.URI(BuildRegistryURI(namespace, path)),
 		Range: protocol.Range{
 			Start: protocol.Position{Line: 0, Character: 0},
 			End:   protocol.Position{Line: 0, Character: 0},
@@ -120,7 +121,7 @@ func registryProtoLocation(namespace, importPath string, fileNode *protoast.File
 		return nil
 	}
 	return &protocol.Location{
-		URI:   protocol.DocumentURI(BuildRegistryURI(namespace, importPath)),
+		URI:   uri.URI(BuildRegistryURI(namespace, importPath)),
 		Range: nodeLSPRange(fileNode, n, enc),
 	}
 }

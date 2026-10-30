@@ -33,7 +33,7 @@ func TestDatasetsSubscribe_SnapshotPlusChanges(t *testing.T) {
 	t.Cleanup(srv.stopRPC)
 
 	// Open a doc with one @dataset region containing three rows.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	client := rpcpbconnect.NewDatasetsServiceClient(
@@ -67,7 +67,7 @@ func TestDatasetsSubscribe_SnapshotPlusChanges(t *testing.T) {
 ("T-1", 10)
 ("T-2", 20)
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, tradeDatasetTwoRowsSrc)))
 
 	require.True(t, stream.Receive(), "change event after row drop")
@@ -93,7 +93,7 @@ func TestDatasetsSubscribe_NoChurnOnByteEqualEdits(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(srv.stopRPC)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	client := rpcpbconnect.NewDatasetsServiceClient(
@@ -117,7 +117,7 @@ func TestDatasetsSubscribe_NoChurnOnByteEqualEdits(t *testing.T) {
 
 	// Re-apply identical content. DatasetRegion shape is unchanged →
 	// datasetRegionsEqual short-circuits notify → no Subscribe event.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, tradeDatasetSrc)))
 
 	// Race the stream against a short deadline.
@@ -188,7 +188,7 @@ func TestDatasetsGetRegions_AnonymousProto(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			uri := "file:///work/" + tc.name + ".pxf"
-			require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, uri, 1, tc.src)))
+			require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, uri, 1, tc.src)))
 			resp, err := client.GetRegions(context.Background(), connect.NewRequest(&rpcpb.DatasetsServiceGetRegionsRequest{
 				TextDocument: &rpcpb.TextDocumentIdentifier{Uri: uri},
 			}))

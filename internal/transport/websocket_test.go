@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trendvidia/protolsp/internal/lspcodec"
+
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,7 +64,7 @@ func TestWebsocket_InitializeRoundTrip(t *testing.T) {
 	// Drive the client side with jsonrpc2 over the same wsStream
 	// adapter the server uses, so the test exercises both directions.
 	clientStream := &wsStream{conn: c}
-	conn := jsonrpc2.NewConn(clientStream)
+	conn := jsonrpc2.NewConn(clientStream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	// Conn.Go installs a handler for server-initiated calls /
 	// notifications. The initialize round-trip only needs the
 	// response side, so we use a do-nothing handler that returns
@@ -71,7 +73,7 @@ func TestWebsocket_InitializeRoundTrip(t *testing.T) {
 
 	var result protocol.InitializeResult
 	_, err = conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "protolsp-ws-test", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "protolsp-ws-test", Version: protocol.NewOptional("0")},
 	}, &result)
 	require.NoError(t, err)
 
@@ -79,7 +81,7 @@ func TestWebsocket_InitializeRoundTrip(t *testing.T) {
 	assert.Equal(t, "protolsp", result.ServerInfo.Name)
 	// M4 advertised the hover provider; tests prove M1–M4 wiring
 	// flows through the WS transport identically.
-	assert.True(t, result.Capabilities.HoverProvider.(bool))
+	assert.Equal(t, protocol.Boolean(true), result.Capabilities.HoverProvider)
 
 	// Send exit so the server-side jsonrpc2 loop terminates and the
 	// handler returns. We use Notify for fire-and-forget (no response

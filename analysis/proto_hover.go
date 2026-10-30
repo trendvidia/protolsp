@@ -39,7 +39,7 @@ import (
 // stream backwards from the declaration, which lines up with
 // protoc's convention for what gets attached as the documentation of
 // a declaration.
-func (s *Workspace) protoHoverFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.Hover {
+func (s *Workspace) protoHoverFor(docURI uri.URI, pos protocol.Position) *protocol.Hover {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -125,7 +125,7 @@ func (s *Workspace) protoHoverFor(docURI protocol.DocumentURI, pos protocol.Posi
 	// optional prefix or a map<...>'s type arguments).
 	if def.Classify() == ast.DefKindField {
 		if md := s.renderProtoFieldTypeHover(docURI, wsDir, doc.protoAST, refPath.Canonicalized(), protoRefScopeAt(doc.protoAST, path)); md != "" {
-			return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: md}}
+			return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: md}}
 		}
 	}
 	return nil
@@ -163,7 +163,7 @@ func renderProtoFieldHover(f *protoast.File, field ast.DefField) *protocol.Hover
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // protoTagValue extracts a field tag / enum number as a uint64 when
@@ -193,7 +193,7 @@ func renderProtoMessageHover(f *protoast.File, def ast.DeclDef) *protocol.Hover 
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // renderProtoEnumHover formats an enum declaration. Shape:
@@ -211,7 +211,7 @@ func renderProtoEnumHover(f *protoast.File, def ast.DeclDef) *protocol.Hover {
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // renderProtoEnumValueHover formats an enum-value declaration. Shape:
@@ -235,7 +235,7 @@ func renderProtoEnumValueHover(f *protoast.File, v ast.DefEnumValue) *protocol.H
 		b.WriteString(comment)
 		b.WriteString("\n")
 	}
-	return &protocol.Hover{Contents: protocol.MarkupContent{Kind: protocol.Markdown, Value: b.String()}}
+	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: b.String()}}
 }
 
 // renderProtoFieldTypeHover resolves a type reference (the possibly
@@ -259,7 +259,7 @@ func renderProtoEnumValueHover(f *protoast.File, v ast.DefEnumValue) *protocol.H
 //
 // refScope is the reference site's lexical scope (protoRefScopeAt);
 // "" falls back to the file's package inside the resolvers.
-func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, workspaceDir string, f *protoast.File, name, refScope string) string {
+func (s *Workspace) renderProtoFieldTypeHover(docURI uri.URI, workspaceDir string, f *protoast.File, name, refScope string) string {
 	if isProtoBuiltinType(name) {
 		// Built-in scalars (string, int32, bool, …) — no hover.
 		// Editors render the keyword color already; markdown
@@ -290,7 +290,7 @@ func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, works
 			}
 		}
 		if hv := s.rfc001RemoteHover(workspaceDir, f, rfc001KindType, name, refScope); hv != nil {
-			return hv.Contents.Value
+			return hoverText(hv)
 		}
 		return ""
 	}
@@ -305,7 +305,7 @@ func (s *Workspace) renderProtoFieldTypeHover(docURI protocol.DocumentURI, works
 	// the index doesn't hold — resolvable through the schema lookup
 	// as served source or from the compiled descriptor.
 	if hv := s.rfc001RemoteHover(workspaceDir, f, rfc001KindType, name, refScope); hv != nil {
-		return hv.Contents.Value
+		return hoverText(hv)
 	}
 	return ""
 }
@@ -319,12 +319,12 @@ func renderProtoTypeLookupHover(r protoTypeLookup) string {
 		return ""
 	}
 	if r.IsAlias() {
-		return renderProtoTypeAliasHover(r.File, r.Alias).Contents.Value
+		return hoverText(renderProtoTypeAliasHover(r.File, r.Alias))
 	}
 	if r.IsEnum() {
-		return renderProtoEnumHover(r.File, r.Def).Contents.Value
+		return hoverText(renderProtoEnumHover(r.File, r.Def))
 	}
-	return renderProtoMessageHover(r.File, r.Def).Contents.Value
+	return hoverText(renderProtoMessageHover(r.File, r.Def))
 }
 
 // protoFieldTypeLabel renders a field's type for hover. For scalars

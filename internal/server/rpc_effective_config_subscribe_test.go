@@ -66,14 +66,14 @@ func TestEffectiveConfigSubscribe_DeltasOnOverrideChange(t *testing.T) {
 	// Trigger an override change via the LSP method. SetOverrides
 	// calls NotifyEffectiveConfigChanged which fans out to RPC
 	// subscribers.
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
 		WorkspaceDir: workspaceDir,
 		Overrides: map[string]any{
 			"protolsp.registry.address": "override.example:443",
 		},
 	})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	var stream *connect.ServerStreamForClient[rpcpb.EffectiveConfigServiceSubscribeResponse]
 	select {
@@ -138,14 +138,14 @@ func TestEffectiveConfigSubscribe_RedactsSecretSections(t *testing.T) {
 
 	settleSubscribers(t, srv, workspaceDir)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
 		WorkspaceDir: workspaceDir,
 		Overrides: map[string]any{
 			"protolsp.registry.token": "real-secret-token-xyz",
 		},
 	})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	var stream *connect.ServerStreamForClient[rpcpb.EffectiveConfigServiceSubscribeResponse]
 	select {

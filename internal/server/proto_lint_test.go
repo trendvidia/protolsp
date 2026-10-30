@@ -86,13 +86,13 @@ message badName {
   string FieldName = 1;
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/lint.proto", 1, src)))
 
 	diags := publishedProtoDiagnostics(t, fc)
 	bufFindings := 0
 	for _, d := range diags {
-		if d.Source == "buf/lint" {
+		if optValue(d.Source) == "buf/lint" {
 			bufFindings++
 			assert.Equal(t, protocol.DiagnosticSeverityWarning, d.Severity,
 				"lint findings render as warnings, not errors")
@@ -116,12 +116,12 @@ func TestProtoLint_CompileFindingsAreFiltered(t *testing.T) {
 package foo;
 import "missing/file.proto";
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/lint.proto", 1, src)))
 
 	diags := publishedProtoDiagnostics(t, fc)
 	for _, d := range diags {
-		assert.NotEqual(t, "buf/lint", d.Source,
+		assert.NotEqual(t, "buf/lint", optValue(d.Source),
 			"COMPILE findings from buf are filtered (protocompile already reports them)")
 	}
 }
@@ -139,12 +139,12 @@ func TestProtoLint_SilentWhenBufMissing(t *testing.T) {
 package foo;
 message Foo {}
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/lint.proto", 1, src)))
 
 	diags := publishedProtoDiagnostics(t, fc)
 	for _, d := range diags {
-		assert.NotEqual(t, "buf/lint", d.Source,
+		assert.NotEqual(t, "buf/lint", optValue(d.Source),
 			"missing buf produces no lint diagnostics")
 	}
 }
@@ -162,12 +162,12 @@ func TestProtoLint_DisabledTogglePreventsInvocation(t *testing.T) {
 	const src = `syntax = "proto3";
 message badName {}
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/lint.proto", 1, src)))
 
 	diags := publishedProtoDiagnostics(t, fc)
 	for _, d := range diags {
-		assert.NotEqual(t, "buf/lint", d.Source,
+		assert.NotEqual(t, "buf/lint", optValue(d.Source),
 			"toggle-off path skips the lint pass entirely")
 	}
 }

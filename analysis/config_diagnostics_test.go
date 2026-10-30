@@ -51,9 +51,9 @@ layers = [
 	hintCount := 0
 	var hintMessages []string
 	for _, d := range diags {
-		if d.Severity == protocol.DiagnosticSeverityHint && d.Source == "protolsp/chainspec" {
+		if d.Severity == protocol.DiagnosticSeverityHint && optText(d.Source) == "protolsp/chainspec" {
 			hintCount++
-			hintMessages = append(hintMessages, d.Message)
+			hintMessages = append(hintMessages, MessageText(d.Message))
 		}
 	}
 	assert.Equal(t, 2, hintCount,

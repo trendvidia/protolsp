@@ -28,10 +28,20 @@ without a major bump.
 
 ### Changed
 
-- Dependencies moved to their latest releases, except the three
-  `go.lsp.dev` modules. Those need a separate migration. `cel-go` now
-  comes from its new module path, `cel.dev/cel-go` (v0.33.1), which
-  protovalidate v1.4.0 requires.
+- Dependencies moved to their latest releases. `cel-go` now comes from
+  its new module path, `cel.dev/cel-go` (v0.33.1), which protovalidate
+  v1.4.0 requires.
+- **`go.lsp.dev` protocol, jsonrpc2 and uri moved to v1.0.1** (#15), a
+  rewrite of those libraries generated from the LSP 3.18 specification.
+  Editors see the same messages: a scripted session of 45 messages
+  across hover, completion, rename, quick fixes, non-ASCII edits and
+  `protolsp/*` methods is byte-identical before and after. Two things
+  differ.
+  - `protolsp/setOverrides` now sends its config-changed notification
+    before its response, not after.
+  - `analysis.SemanticTokensProvider` is gone, because
+    `protocol.SemanticTokensOptions` replaces it. `analysis` types that
+    wrap protocol fields changed with the library.
 - **protocompile v0.35.1 → v0.36.0**, for the printer fixes above
   (trendvidia/protocompile#258, #273, #274). It also brings the parser's
   new diagnostic for a run of tokens that start no declaration.

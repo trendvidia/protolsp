@@ -7,6 +7,7 @@ import (
 	"bytes"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protowire-go/encoding/pxf"
@@ -26,7 +27,7 @@ import (
 // Returns an empty (non-nil) edit slice when the source is already
 // canonical — mirrors FormattingEditsFor's contract so "format on
 // save" doesn't dirty the buffer unnecessarily.
-func (s *Workspace) ProtoFormattingEditsFor(docURI protocol.DocumentURI) []protocol.TextEdit {
+func (s *Workspace) ProtoFormattingEditsFor(docURI uri.URI) []protocol.TextEdit {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -64,7 +65,7 @@ func (s *Workspace) ProtoFormattingEditsFor(docURI protocol.DocumentURI) []proto
 // instead of "formatter unavailable" — the difference matters for
 // editor commands like "format on save" that want to suppress
 // no-op feedback.
-func (s *Workspace) FormattingEditsFor(docURI protocol.DocumentURI) []protocol.TextEdit {
+func (s *Workspace) FormattingEditsFor(docURI uri.URI) []protocol.TextEdit {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil

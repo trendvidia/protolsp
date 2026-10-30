@@ -4,7 +4,6 @@
 package analysis
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +28,7 @@ func rfc001QuickFixAnalyze(t *testing.T, w *Workspace, root, src string) (*Docum
 	w.Analyze(doc)
 	var out []protocol.Diagnostic
 	for _, d := range doc.ProtoDiagnostics {
-		if d.Source == "protolsp/proto" {
+		if optText(d.Source) == "protolsp/proto" {
 			out = append(out, d)
 		}
 	}
@@ -86,10 +85,10 @@ func TestRFC001QuickFix_TypoGetsCandidates(t *testing.T) {
 	d := diags[0]
 	assert.Equal(t, rfc001QuickFixRange(t, src, rfc001QuickFixFieldLine, "mathces"), d.Range,
 		"the compiler anchors the diagnostic on the callee name")
-	assert.True(t, strings.HasPrefix(d.Message, "unknown function `mathces`"), d.Message)
-	assert.True(t, strings.HasSuffix(d.Message, `; did you mean "matches"?`), d.Message)
-	data, ok := d.Data.(UnresolvedNameData)
-	require.True(t, ok, "Data carries the typed payload in-process")
+	assert.True(t, strings.HasPrefix(MessageText(d.Message), "unknown function `mathces`"), MessageText(d.Message))
+	assert.True(t, strings.HasSuffix(MessageText(d.Message), `; did you mean "matches"?`), MessageText(d.Message))
+	data := DecodeUnresolvedNameData(d.Data)
+	require.NotNil(t, data, "Data carries the typed payload")
 	assert.Equal(t, DiagDataKindUnresolvedName, data.Kind)
 	assert.Equal(t, "mathces", data.Name)
 	assert.Equal(t, []string{"matches"}, data.Candidates,
@@ -126,7 +125,7 @@ func TestRFC001QuickFix_OtherDiagnosticsUntouched(t *testing.T) {
 			require.NotEmpty(t, diags)
 			for _, d := range diags {
 				assert.Nil(t, d.Data, "%s: %s", rule, d.Message)
-				assert.NotContains(t, d.Message, "did you mean")
+				assert.NotContains(t, MessageText(d.Message), "did you mean")
 			}
 		})
 	}
@@ -139,7 +138,7 @@ func TestRFC001QuickFix_NoCandidateNoDecoration(t *testing.T) {
 	_, diags := rfc001QuickFixAnalyze(t, w, t.TempDir(), rfc001QuickFixProto(`frobnicate(this)`))
 	require.Len(t, diags, 1)
 	assert.Nil(t, diags[0].Data)
-	assert.NotContains(t, diags[0].Message, "did you mean")
+	assert.NotContains(t, MessageText(diags[0].Message), "did you mean")
 }
 
 // A function declared in an imported file of another package is
@@ -181,13 +180,8 @@ func TestCodeActions_UnresolvedNameReplace(t *testing.T) {
 	doc, diags := rfc001QuickFixAnalyze(t, w, t.TempDir(), src)
 	require.Len(t, diags, 1)
 
-	// Round-trip Data through JSON the way the LSP client returns it.
-	raw, err := json.Marshal(diags[0].Data)
-	require.NoError(t, err)
-	var generic interface{}
-	require.NoError(t, json.Unmarshal(raw, &generic))
+	// Data is raw JSON, which is how the LSP client returns it.
 	diag := diags[0]
-	diag.Data = generic
 
 	doc.mu.RLock()
 	actions := w.CodeActionsFor(doc, []protocol.Diagnostic{diag})
@@ -195,8 +189,8 @@ func TestCodeActions_UnresolvedNameReplace(t *testing.T) {
 	require.Len(t, actions, 1)
 	a := actions[0]
 	assert.Equal(t, `Replace "mathces" with "matches"`, a.Title)
-	assert.Equal(t, protocol.QuickFix, a.Kind)
-	assert.True(t, a.IsPreferred)
+	assert.Equal(t, protocol.CodeActionKindQuickFix, *a.Kind)
+	assert.True(t, isTrue(a.IsPreferred))
 	edits := a.Edit.Changes[doc.URI]
 	require.Len(t, edits, 1)
 	assert.Equal(t, diags[0].Range, edits[0].Range)

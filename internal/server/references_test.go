@@ -21,7 +21,7 @@ import (
 
 func referencesFromHandle(t *testing.T, srv *Server, u string, line, char uint32, includeDecl bool) []protocol.Location {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentReferences,
 		&protocol.ReferenceParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -43,7 +43,7 @@ func referencesFromHandle(t *testing.T, srv *Server, u string, line, char uint32
 		require.NoError(t, json.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -52,9 +52,9 @@ func TestReferences_FindsTopLevelFieldAcrossOpenDocs(t *testing.T) {
 	// Two docs that both set `name`. With no `.protolsp.pxf`
 	// ancestor they fall into the same "no workspace dir" cohort
 	// — references should match across both.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/b.pxf", 1, greetingValid)))
 
 	// greetingValid layout: line 0 @type, line 1 blank, line 2 `name = "world"`.
@@ -80,31 +80,31 @@ name = "outer"
 other = "x"
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/x.pxf", 1, layered)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/y.pxf", 1, nestedSrc)))
 
 	locs := referencesFromHandle(t, srv, "file:///work/x.pxf", 2, 0, true)
 	require.Len(t, locs, 1, "`name` and `other` are distinct paths")
-	assert.Equal(t, protocol.DocumentURI("file:///work/x.pxf"), locs[0].URI)
+	assert.Equal(t, uri.URI("file:///work/x.pxf"), locs[0].URI)
 }
 
 func TestReferences_ExcludeDeclarationDropsCursorSite(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/b.pxf", 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, "file:///work/a.pxf", 2, 0, false)
 	require.Len(t, locs, 1, "decl excluded → only b.pxf's occurrence remains")
-	assert.Equal(t, protocol.DocumentURI("file:///work/b.pxf"), locs[0].URI)
+	assert.Equal(t, uri.URI("file:///work/b.pxf"), locs[0].URI)
 }
 
 func TestReferences_CursorOffPathReturnsNil(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/a.pxf", 1, greetingValid)))
 
 	// Line 1 is blank — no path under the cursor.
@@ -124,7 +124,7 @@ db {
 }
 `
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/n.pxf", 1, src)))
 
 	// Cursor on the top-level `host` (line 2).
@@ -161,7 +161,7 @@ func TestReferences_FindsHitsInUnopenedFileOnDisk(t *testing.T) {
 
 	// Only a.pxf is opened by the client.
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, string(aURI), 2, 0, true)
@@ -202,10 +202,10 @@ other = "stale"
 
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
 	bURI := uri.File(filepath.Join(workspaceDir, "b.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 	// b.pxf opened with edited content — open doc must shadow disk.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(bURI), 1, editedSource)))
 
 	locs := referencesFromHandle(t, srv, string(aURI), 2, 0, true)
@@ -238,12 +238,12 @@ func TestReferences_SkipsSubWorkspace(t *testing.T) {
 
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, string(aURI), 2, 0, true)
 	require.Len(t, locs, 1, "sub-workspace's `name` must not leak in")
-	assert.Equal(t, protocol.DocumentURI(aURI), locs[0].URI)
+	assert.Equal(t, uri.URI(aURI), locs[0].URI)
 }
 
 func TestReferences_SkipsHiddenDirsAndNonPxfFiles(t *testing.T) {
@@ -267,12 +267,12 @@ func TestReferences_SkipsHiddenDirsAndNonPxfFiles(t *testing.T) {
 
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, string(aURI), 2, 0, true)
 	require.Len(t, locs, 1, "hidden-dir + non-pxf occurrences must be skipped")
-	assert.Equal(t, protocol.DocumentURI(aURI), locs[0].URI)
+	assert.Equal(t, uri.URI(aURI), locs[0].URI)
 }
 
 // TestReferences_LargeWorkspaceCorrectness exercises the
@@ -298,7 +298,7 @@ func TestReferences_LargeWorkspaceCorrectness(t *testing.T) {
 
 	srv, _ := initializeWithWorkspace(t, workspaceDir, nil)
 	openURI := uri.File(filepath.Join(workspaceDir, "layer-00.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(openURI), 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, string(openURI), 2, 0, true)
@@ -336,7 +336,7 @@ func TestReferences_TruncatesAndWarnsPastCap(t *testing.T) {
 	srv.SetMaxReferencesFiles(cap)
 
 	openURI := uri.File(filepath.Join(workspaceDir, "layer-00.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(openURI), 1, greetingValid)))
 
 	locs := referencesFromHandle(t, srv, string(openURI), 2, 0, true)
@@ -380,7 +380,7 @@ func TestReferences_NoWarningUnderCap(t *testing.T) {
 	// Default cap is 10000, way above the single file we wrote.
 
 	aURI := uri.File(filepath.Join(workspaceDir, "a.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(aURI), 1, greetingValid)))
 
 	_ = referencesFromHandle(t, srv, string(aURI), 2, 0, true)
@@ -392,7 +392,7 @@ func TestReferences_NoWarningUnderCap(t *testing.T) {
 
 func TestReferences_AdvertisesCapability(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodInitialize,
 		&protocol.InitializeParams{})
 	require.NoError(t, err)
@@ -406,6 +406,6 @@ func TestReferences_AdvertisesCapability(t *testing.T) {
 		caps = probe.Capabilities
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.Equal(t, true, caps["referencesProvider"])
 }

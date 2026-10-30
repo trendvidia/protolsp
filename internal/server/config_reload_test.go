@@ -70,7 +70,7 @@ environments = [
 ]
 layers = []
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(chainURI), 1, edited)))
 
 	assert.Equal(t, "prod", srv.Workspaces().SnapshotChain().Spec.DefaultEnvironment,
@@ -100,7 +100,7 @@ layers = [
 
 	// Open env/dev.pxf — classified as a PER_ENV layer initially.
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig`+"\n")))
 	devDoc := srv.Documents().Get(devURI)
 	require.True(t, devDoc.LayerInfo.IsLayer,
@@ -108,7 +108,7 @@ layers = [
 
 	// Open chain.pxf and remove the env layer entry via didChange.
 	chainURI := uri.File(filepath.Join(ws, "chain.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(chainURI), 1, initialChain)))
 	const edited = `@type chameleon.v1.ChainSpec
 
@@ -120,7 +120,7 @@ environments = [
 ]
 layers = []
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(chainURI), 2, edited)))
 
 	devDoc = srv.Documents().Get(devURI)
@@ -143,7 +143,7 @@ schema_sources {
   registry { address = "from-buffer:443" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(configURI), 1, opened)))
 
 	require.NotNil(t, srv.Workspaces().SnapshotFileConfig(),
@@ -167,7 +167,7 @@ schema_sources {
 
 	// Open the file (matches disk).
 	configURI := uri.File(filepath.Join(workspaceDir, ".protolsp.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(configURI), 1, `@type protolsp.v1.WorkspaceConfig
 schema_sources {
   registry { address = "from-disk:443" }
@@ -180,7 +180,7 @@ schema_sources {
   registry { address = "from-buffer:443" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(configURI), 2, editedBuffer)))
 
 	assert.Equal(t, "from-buffer:443", srv.Workspaces().SnapshotFileConfig().Registry.Address,
@@ -203,7 +203,7 @@ schema_sources {
 	before := srv.Workspaces().SnapshotFileConfig()
 
 	other := uri.File(filepath.Join(workspaceDir, "other.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(other), 1, `@type acme.demo.v1.Greeting
 name = "x"
 `)))
@@ -234,10 +234,10 @@ layers = [
 	})
 	// Open the chain spec + a layer file.
 	chainURI := uri.File(filepath.Join(ws, "chain.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(chainURI), 1, initial)))
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig`+"\n")))
 
 	before := srv.AnalyzeCount()
@@ -245,7 +245,7 @@ layers = [
 	// + 1 analyze per OTHER open doc (just env/dev.pxf). The other
 	// open doc here is env/dev.pxf only — plus the chain.pxf
 	// itself, but reanalyzeOpenDocsExcept skips it.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(chainURI), 2, initial))) // same content; still triggers reload
 
 	delta := srv.AnalyzeCount() - before
@@ -273,9 +273,9 @@ layers = []
 
 	devURI := uri.File(filepath.Join(ws, "env", "dev.pxf"))
 	chainURI := uri.File(filepath.Join(ws, "chain.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type c4test.v1.AppConfig`+"\n")))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(chainURI), 1, initial)))
 
 	// Snapshot analyze count.
@@ -295,7 +295,7 @@ func TestLiveReload_DetectionByTypeURL(t *testing.T) {
 	const wsConfig = `@type protolsp.v1.WorkspaceConfig
 security { inline_secrets = "warn" }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/weird-name.pxf", 1, wsConfig)))
 	doc := srv.Documents().Get(uri.URI("file:///work/weird-name.pxf"))
 	require.NotNil(t, doc)
@@ -308,7 +308,7 @@ version = "1.0.0"
 environments = [{ name = "dev" }]
 layers = []
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/oddly-named.pxf", 1, chainSpec)))
 	doc2 := srv.Documents().Get(uri.URI("file:///work/oddly-named.pxf"))
 	require.NotNil(t, doc2)

@@ -104,7 +104,7 @@ func TestRPCInterceptor_LogsStreamingHandler(t *testing.T) {
 	srv.Lookups().Swap(lookup, nil)
 	t.Cleanup(func() { _ = srv.Close() })
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/c.pxf", 1, secretsScalarSrc)))
 
 	endpoint, err := srv.startRPC()
@@ -129,7 +129,7 @@ func TestRPCInterceptor_LogsStreamingHandler(t *testing.T) {
 	require.Len(t, stream.Msg().Ranges, 1)
 
 	// Trigger one change.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/c.pxf", 2,
 			"@type acme.demo.v1.Credentials\n\nusername = \"alice\"\n")))
 	require.True(t, stream.Receive())

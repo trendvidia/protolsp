@@ -13,17 +13,19 @@ package transport
 
 import (
 	"context"
-	"encoding/json"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/trendvidia/protolsp/internal/lspcodec"
 
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 // TestLSPLifecycle_Stdio drives an LSP doc through every dispatcher
@@ -50,7 +52,7 @@ func TestLSPLifecycle_Stdio(t *testing.T) {
 	// initialize
 	var initResult protocol.InitializeResult
 	_, err := client.conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo:   &protocol.ClientInfo{Name: "e2e-lifecycle", Version: "0"},
+		ClientInfo:   protocol.ClientInfo{Name: "e2e-lifecycle", Version: protocol.NewOptional("0")},
 		Capabilities: protocol.ClientCapabilities{},
 	}, &initResult)
 	require.NoError(t, err)
@@ -64,7 +66,7 @@ func TestLSPLifecycle_Stdio(t *testing.T) {
 	// (no @type, no chain) so dispatchDidOpen takes the plain analyze
 	// path. The publish is what proves the analyze pipeline reached
 	// the client.
-	docURI := protocol.DocumentURI("file:///lifecycle/doc.pxf")
+	docURI := uri.URI("file:///lifecycle/doc.pxf")
 	require.NoError(t, client.conn.Notify(ctx, protocol.MethodTextDocumentDidOpen,
 		&protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
@@ -76,7 +78,7 @@ func TestLSPLifecycle_Stdio(t *testing.T) {
 		}))
 
 	first := expectPublish(t, client, docURI, 3*time.Second)
-	assert.Equal(t, uint32(1), first.Version,
+	assert.Equal(t, protocol.NewOptional(int32(1)), first.Version,
 		"first publish carries the didOpen version")
 
 	// didChange to v2 — a second publishDiagnostics must arrive,
@@ -90,11 +92,11 @@ func TestLSPLifecycle_Stdio(t *testing.T) {
 				Version:                2,
 			},
 			ContentChanges: []protocol.TextDocumentContentChangeEvent{
-				{Text: "# edited inert pxf\n"},
+				&protocol.TextDocumentContentChangeWholeDocument{Text: "# edited inert pxf\n"},
 			},
 		}))
 	second := expectPublish(t, client, docURI, 3*time.Second)
-	assert.Equal(t, uint32(2), second.Version,
+	assert.Equal(t, protocol.NewOptional(int32(2)), second.Version,
 		"second publish carries the didChange version — proves analyze re-ran")
 
 	// didClose — no acknowledgment needed, but the subsequent
@@ -147,30 +149,30 @@ func TestLSPLifecycle_WebSocket(t *testing.T) {
 	defer func() { _ = c.Close(websocket.StatusNormalClosure, "test done") }()
 
 	clientStream := &wsStream{conn: c}
-	conn := jsonrpc2.NewConn(clientStream)
+	conn := jsonrpc2.NewConn(clientStream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 
 	// Capture publishDiagnostics notifications. Same shape as the
 	// piped test's pipedClient — small handler that funnels
 	// publishes into a buffered channel.
 	publishes := make(chan *protocol.PublishDiagnosticsParams, 8)
-	conn.Go(ctx, func(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+	conn.Go(ctx, func(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 		if req.Method() == protocol.MethodTextDocumentPublishDiagnostics {
 			var p protocol.PublishDiagnosticsParams
-			if err := json.Unmarshal(req.Params(), &p); err == nil {
+			if err := protocol.Unmarshal(req.Params(), &p); err == nil {
 				select {
 				case publishes <- &p:
 				default:
 				}
 			}
-			return reply(ctx, nil, nil)
+			return nil, nil
 		}
-		return jsonrpc2.MethodNotFoundHandler(ctx, reply, req)
+		return jsonrpc2.MethodNotFoundHandler(ctx, req)
 	})
 
 	// initialize
 	var initResult protocol.InitializeResult
 	_, err = conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "e2e-ws-lifecycle", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "e2e-ws-lifecycle", Version: protocol.NewOptional("0")},
 	}, &initResult)
 	require.NoError(t, err)
 	require.NotNil(t, initResult.ServerInfo)
@@ -178,7 +180,7 @@ func TestLSPLifecycle_WebSocket(t *testing.T) {
 	require.NoError(t, conn.Notify(ctx, protocol.MethodInitialized, &protocol.InitializedParams{}))
 
 	// didOpen → publish
-	docURI := protocol.DocumentURI("file:///lifecycle/ws.pxf")
+	docURI := uri.URI("file:///lifecycle/ws.pxf")
 	require.NoError(t, conn.Notify(ctx, protocol.MethodTextDocumentDidOpen,
 		&protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
@@ -189,7 +191,7 @@ func TestLSPLifecycle_WebSocket(t *testing.T) {
 			},
 		}))
 	first := expectPublishFromChan(t, publishes, docURI, 3*time.Second)
-	assert.Equal(t, uint32(1), first.Version)
+	assert.Equal(t, protocol.NewOptional(int32(1)), first.Version)
 
 	// didChange → publish at v2
 	require.NoError(t, conn.Notify(ctx, protocol.MethodTextDocumentDidChange,
@@ -199,11 +201,11 @@ func TestLSPLifecycle_WebSocket(t *testing.T) {
 				Version:                2,
 			},
 			ContentChanges: []protocol.TextDocumentContentChangeEvent{
-				{Text: "# edited inert pxf — ws\n"},
+				&protocol.TextDocumentContentChangeWholeDocument{Text: "# edited inert pxf — ws\n"},
 			},
 		}))
 	second := expectPublishFromChan(t, publishes, docURI, 3*time.Second)
-	assert.Equal(t, uint32(2), second.Version)
+	assert.Equal(t, protocol.NewOptional(int32(2)), second.Version)
 
 	// didClose + shutdown + exit
 	require.NoError(t, conn.Notify(ctx, protocol.MethodTextDocumentDidClose,
@@ -228,7 +230,7 @@ func TestLSPLifecycle_WebSocket(t *testing.T) {
 // in pipedClient ensures we don't lose intermediate publishes; we
 // drain notifications for other URIs in case the server publishes
 // against ambient docs.
-func expectPublish(t *testing.T, c *pipedClient, docURI protocol.DocumentURI, timeout time.Duration) *protocol.PublishDiagnosticsParams {
+func expectPublish(t *testing.T, c *pipedClient, docURI uri.URI, timeout time.Duration) *protocol.PublishDiagnosticsParams {
 	t.Helper()
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()
@@ -249,7 +251,7 @@ func expectPublish(t *testing.T, c *pipedClient, docURI protocol.DocumentURI, ti
 // expectPublishFromChan is the WebSocket-test analogue: same draining
 // behavior but reading from a local channel rather than the pipedClient
 // struct's field.
-func expectPublishFromChan(t *testing.T, ch chan *protocol.PublishDiagnosticsParams, docURI protocol.DocumentURI, timeout time.Duration) *protocol.PublishDiagnosticsParams {
+func expectPublishFromChan(t *testing.T, ch chan *protocol.PublishDiagnosticsParams, docURI uri.URI, timeout time.Duration) *protocol.PublishDiagnosticsParams {
 	t.Helper()
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()

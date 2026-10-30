@@ -109,7 +109,7 @@ func TestLSPRPC_ErrorShape_UnknownOverrideSection_BothReject(t *testing.T) {
 
 	// LSP side: SetOverrides should reply with InvalidParams +
 	// the offending section name.
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSetOverrides, SetOverridesParams{
 		Overrides: map[string]any{badSection: "anything"},
 	})
 	require.NoError(t, err)
@@ -118,7 +118,7 @@ func TestLSPRPC_ErrorShape_UnknownOverrideSection_BothReject(t *testing.T) {
 		lspErr = replyErr
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.Error(t, lspErr, "LSP: unknown section must surface an error")
 	var jsonErr *jsonrpc2.Error
 	require.ErrorAs(t, lspErr, &jsonErr,
@@ -159,7 +159,7 @@ func TestLSPRPC_ErrorShape_UnknownOverrideSection_BothReject(t *testing.T) {
 func TestLSPRPC_ErrorShape_MalformedParamsRejection(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 
-	rawReq, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodSecretRanges,
+	rawReq, err := newTestCall(jsonrpc2.NewNumberID(1), MethodSecretRanges,
 		json.RawMessage(`{"textDocument": 42}`))
 	require.NoError(t, err)
 	var lspErr error
@@ -167,7 +167,7 @@ func TestLSPRPC_ErrorShape_MalformedParamsRejection(t *testing.T) {
 		lspErr = replyErr
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, rawReq))
+	require.NoError(t, testHandle(srv, context.Background(), reply, rawReq))
 	require.Error(t, lspErr, "LSP: malformed params must reject, not crash")
 	var jsonErr *jsonrpc2.Error
 	require.ErrorAs(t, lspErr, &jsonErr)

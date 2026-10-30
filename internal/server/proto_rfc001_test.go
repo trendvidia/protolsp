@@ -36,7 +36,7 @@ message Email {
 func TestDidOpen_RFC001GrammarPublishesEmptyDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/rfc001.proto", 1, rfc001Proto)))
 
 	notes := fc.calls()
@@ -63,7 +63,7 @@ function is_email(s: string);
 `
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/decls.proto", 1, src)))
 
 	notes := fc.calls()
@@ -187,7 +187,7 @@ message M {}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			srv, fc := newServerWithFakeConn(t)
-			require.NoError(t, srv.Handle(context.Background(), noopReply,
+			require.NoError(t, testHandle(srv, context.Background(), noopReply,
 				didOpenCall(t, "file:///work/bad.proto", 1, c.src)))
 
 			notes := fc.calls()
@@ -197,14 +197,14 @@ message M {}
 
 			var match *protocol.Diagnostic
 			for i := range diags {
-				if strings.Contains(diags[i].Message, c.wantMsg) {
+				if strings.Contains(messageText(diags[i].Message), c.wantMsg) {
 					match = &diags[i]
 					break
 				}
 			}
 			require.NotNil(t, match, "no diagnostic contains %q; got %+v", c.wantMsg, diags)
 			assert.Equal(t, c.wantRng, match.Range, "squiggle must cover the offending token")
-			assert.Equal(t, "protolsp/proto", match.Source)
+			assert.Equal(t, "protolsp/proto", optValue(match.Source))
 			assert.Equal(t, protocol.DiagnosticSeverityError, match.Severity)
 		})
 	}

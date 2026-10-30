@@ -36,7 +36,7 @@ import (
 //   - Message / enum / field / enum-value name identifier → jump
 //     to itself (degenerate but harmless: a Cmd+click on a
 //     definition stays put rather than failing).
-func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol.Position) *protocol.Location {
+func (s *Workspace) protoDefinitionFor(docURI uri.URI, pos protocol.Position) *protocol.Location {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -162,7 +162,7 @@ func (s *Workspace) protoDefinitionFor(docURI protocol.DocumentURI, pos protocol
 //
 // refScope is the reference site's lexical scope (protoRefScopeAt);
 // "" falls back to the file's package inside the resolvers.
-func (s *Workspace) resolveProtoTypeDefinition(docURI protocol.DocumentURI, workspaceDir string, currentFile *protoast.File, name, refScope string) *protocol.Location {
+func (s *Workspace) resolveProtoTypeDefinition(docURI uri.URI, workspaceDir string, currentFile *protoast.File, name, refScope string) *protocol.Location {
 	if isProtoBuiltinType(name) {
 		return nil
 	}

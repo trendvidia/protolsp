@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 const (
@@ -89,15 +90,15 @@ func (s *Workspace) literalSecretDiagnostics(doc *Document) []protocol.Diagnosti
 		out = append(out, protocol.Diagnostic{
 			Range:    sr.Range,
 			Severity: severity,
-			Source:   "protolsp/security",
-			Message: fmt.Sprintf(
+			Source:   optString("protolsp/security"),
+			Message: protocol.String(fmt.Sprintf(
 				"literal secret value at %q — consider a vault reference (e.g. ${env.%s})",
 				sr.Path, envName,
-			),
-			Data: LiteralSecretData{
+			)),
+			Data: mustAny(LiteralSecretData{
 				Kind:      DiagDataKindLiteralSecret,
 				FieldPath: sr.Path,
-			},
+			}),
 		})
 	}
 	return out
@@ -165,6 +166,7 @@ func envVarNameFromPath(path string) string {
 // as DecodeUnknownFieldData — handles the typed struct (in-process
 // tests) and the map[string]any form (real JSON-RPC clients).
 func DecodeLiteralSecretData(v interface{}) *LiteralSecretData {
+	v = diagDataValue(v)
 	if v == nil {
 		return nil
 	}
@@ -198,10 +200,10 @@ func replaceLiteralWithEnvRefAction(doc *Document, diag protocol.Diagnostic, dat
 	}
 	return protocol.CodeAction{
 		Title:       fmt.Sprintf("Replace literal with ${env.%s}", envName),
-		Kind:        protocol.QuickFix,
+		Kind:        quickFixKind(),
 		Diagnostics: []protocol.Diagnostic{diag},
 		Edit: &protocol.WorkspaceEdit{
-			Changes: map[protocol.DocumentURI][]protocol.TextEdit{
+			Changes: map[uri.URI][]protocol.TextEdit{
 				doc.URI: {edit},
 			},
 		},

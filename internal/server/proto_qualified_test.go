@@ -46,7 +46,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	expectedBarURI := uri.URI("file://" + filepath.ToSlash(barPath))
@@ -92,13 +92,13 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	hover := hoverFromHandle(t, srv, fooURI, 7, 15)
 	require.NotNil(t, hover, "qualified cross-package hover should resolve")
-	assert.Contains(t, hover.Contents.Value, "**message Bar**")
-	assert.Contains(t, hover.Contents.Value, "Documentation for Bar")
+	assert.Contains(t, hoverBody(hover), "**message Bar**")
+	assert.Contains(t, hoverBody(hover), "Documentation for Bar")
 }
 
 func TestProtoDefinition_QualifiedRef_WrongPackage_DoesNotResolve(t *testing.T) {
@@ -136,7 +136,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 8: `  right.pkg.v1.Bar field = 1;` — cursor on "Bar".
@@ -190,7 +190,7 @@ message Broken {
 	srv.LoadProtoIndex()
 
 	goodURI := "file://" + filepath.ToSlash(goodPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, goodURI, 1, mustRead(t, goodPath))))
 
 	// Definition request on MyType from inside Holder. With a
@@ -231,7 +231,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 7: `  acme.demo.v1.Bar self = 1;` — cursor on "Bar".
@@ -288,7 +288,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	expectedBarURI := uri.URI("file://" + filepath.ToSlash(barPath))
@@ -302,8 +302,8 @@ message Foo {
 
 	hover := hoverFromHandle(t, srv, fooURI, 7, 22)
 	require.NotNil(t, hover, "outer-qualified nested message hovers")
-	assert.Contains(t, hover.Contents.Value, "**message Inner**")
-	assert.Contains(t, hover.Contents.Value, "Nested payload message.")
+	assert.Contains(t, hoverBody(hover), "**message Inner**")
+	assert.Contains(t, hoverBody(hover), "Nested payload message.")
 
 	// Line 8: `  .other.lib.v1.Outer.Mode mode = 2;` — the fully-
 	// qualified leading-dot form, cursor on "Mode" (a nested enum).
@@ -339,7 +339,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 11: `  Outer.Inner f = 1;` — cursor on "Inner".
@@ -351,7 +351,7 @@ message Foo {
 
 	hover := hoverFromHandle(t, srv, fooURI, 11, 9)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**message Inner**")
+	assert.Contains(t, hoverBody(hover), "**message Inner**")
 }
 
 func TestProtoNavigation_SiblingNestedTypeFromEnclosingScope(t *testing.T) {
@@ -381,7 +381,7 @@ message Outer {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 11: `  Middle.Inner f = 1;` — cursor on "Inner".
@@ -393,8 +393,8 @@ message Outer {
 
 	hover := hoverFromHandle(t, srv, fooURI, 11, 10)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**message Inner**")
-	assert.Contains(t, hover.Contents.Value, "Deeply nested payload.")
+	assert.Contains(t, hoverBody(hover), "**message Inner**")
+	assert.Contains(t, hoverBody(hover), "Deeply nested payload.")
 }
 
 func TestProtoNavigation_BareNamePrefersNearestEnclosingScope(t *testing.T) {
@@ -426,7 +426,7 @@ message B {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 14: `  Dup f = 1;` — cursor on "Dup".
@@ -478,7 +478,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 7: `  Bar bare = 1;` — bare cross-package reference.
@@ -527,7 +527,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 7: `  Bar b = 1;` — cursor on "Bar".
@@ -538,8 +538,8 @@ message Foo {
 
 	hover := hoverFromHandle(t, srv, fooURI, 7, 3)
 	require.NotNil(t, hover)
-	assert.Contains(t, hover.Contents.Value, "**message Bar**")
-	assert.Contains(t, hover.Contents.Value, "Sibling bar.")
+	assert.Contains(t, hoverBody(hover), "**message Bar**")
+	assert.Contains(t, hoverBody(hover), "Sibling bar.")
 }
 
 func TestProtoNavigation_GroupDeclaredInExtendResolves(t *testing.T) {
@@ -571,7 +571,7 @@ message Holder {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 14: `  optional Holder.Extra f = 1;` — cursor on "Extra".
@@ -583,7 +583,7 @@ message Holder {
 
 	hover := hoverFromHandle(t, srv, fooURI, 14, 19)
 	require.NotNil(t, hover, "extend-declared group type hovers")
-	assert.Contains(t, hover.Contents.Value, "**message Extra**")
+	assert.Contains(t, hoverBody(hover), "**message Extra**")
 }
 
 func TestProtoNavigation_OuterQualifiedNestedType_MissDegrades(t *testing.T) {
@@ -608,7 +608,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 7: cursor on "Missing".

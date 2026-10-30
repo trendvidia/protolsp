@@ -49,7 +49,7 @@ func TestWatchedFiles_RegistrationIncludesProtoAndBuf(t *testing.T) {
 
 	globs := make([]string, 0, len(opts.Watchers))
 	for _, w := range opts.Watchers {
-		globs = append(globs, w.GlobPattern)
+		globs = append(globs, patternText(w.GlobPattern))
 	}
 
 	assert.Contains(t, globs, "**/*.proto",
@@ -84,7 +84,7 @@ message First { string a = 1; }
 package x.v1;
 message Second { string b = 1; }
 `)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(secondPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -123,7 +123,7 @@ message OldName { string a = 1; }
 package x.v1;
 message NewName { string a = 1; }
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(protoPath), Type: protocol.FileChangeTypeChanged},
 		})))
@@ -161,7 +161,7 @@ package x.v1;
 modules:
   - path: api
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(yamlPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -198,7 +198,7 @@ deps:
   - name: buf.build/some/dep
     commit: abc
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(lockPath), Type: protocol.FileChangeTypeCreated},
 		})))
@@ -225,7 +225,7 @@ func TestWatchedFiles_ProtoOutsideIndexIsIgnored(t *testing.T) {
 	// Create a .proto OUTSIDE the proto/ module dir.
 	outsidePath := filepath.Join(workspaceDir, "scratch", "playground.proto")
 	mustWrite(t, outsidePath, `syntax = "proto3";`)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(outsidePath), Type: protocol.FileChangeTypeCreated},
 		})))

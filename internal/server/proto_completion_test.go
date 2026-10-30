@@ -52,7 +52,7 @@ func TestProtoCompletion_FileScope(t *testing.T) {
 	// A syntax line is the realistic "barely started" case — the
 	// parser produces a valid FileNode and the cursor on the next
 	// (blank) line is in file scope.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, "syntax = \"proto3\";\n\n")))
 
 	list := completionFromHandle(t, srv, u, 1, 0)
@@ -94,7 +94,7 @@ message Letter {
 func TestProtoCompletion_MessageScope(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/letter.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, completionMessageFixture)))
 
 	// Line 14 is the blank line inside message Letter. Cursor at
@@ -131,7 +131,7 @@ enum Tone {
 func TestProtoCompletion_EnumScope(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/tone.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, completionEnumFixture)))
 
 	// Line 5 is the blank line inside enum Tone.
@@ -159,7 +159,7 @@ service Greeter {
 func TestProtoCompletion_ServiceScope(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/greeter.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, completionServiceFixture)))
 
 	// Line 6 is the blank line inside service Greeter.
@@ -204,7 +204,7 @@ message Other {
 func TestProtoCompletion_DotCompletion_InFileNested(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/dot.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, dotInFileFixture)))
 
 	// Line 15 (0-indexed): "  Outer.Inner1 child = 1;"
@@ -228,7 +228,7 @@ func TestProtoCompletion_DotCompletion_InFileNested(t *testing.T) {
 func TestProtoCompletion_DotCompletion_InFileMultiSegment(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/dot.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, dotInFileFixture)))
 
 	// Line 16 (0-indexed): "  Outer.Inner1.Deepest deeper = 2;"
@@ -257,7 +257,7 @@ message Holder {
 }
 `
 	const u = "file:///work/unresolved.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 
 	// Line 4 (0-indexed): "  NoSuchType. value = 1;"
@@ -289,7 +289,7 @@ message Foo {
 }
 `)
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 2, mustRead(t, fooPath))))
 
 	// Line 7 (0-indexed): "  acme.demo.v1.Bar reference = 1;"
@@ -310,7 +310,7 @@ message Foo {
 func TestProtoCompletion_InFileNestedTypesScopedLabels(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/dot.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, dotInFileFixture)))
 
 	// Line 15 col 2: start of the field line inside message Other —
@@ -358,7 +358,7 @@ message Foo {
 	srv.LoadProtoIndex()
 
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 1, mustRead(t, fooPath))))
 
 	// Line 7 col 2: inside Foo's body, scope-fallback completion.
@@ -395,7 +395,7 @@ message B {
 }
 `
 	const u = "file:///work/minimal.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 
 	// Line 14: the blank line inside message B.
@@ -426,7 +426,7 @@ message Foo {
 }
 `)
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 2, mustRead(t, fooPath))))
 
 	// Line 7: `  acme.Bar x = 1;` — char 7 is one past the dot;
@@ -465,7 +465,7 @@ message Outer {
 }
 `
 	const u = "file:///work/sibling.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 
 	// Line 7: `  Middle.Inner f = 1;` — character 9 is one past the
@@ -497,7 +497,7 @@ message Foo {
 }
 `)
 	fooURI := "file://" + filepath.ToSlash(fooPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, fooURI, 2, mustRead(t, fooPath))))
 
 	// Line 7: `  demo.v1.Bar ref = 1;` — character 10 is one past the

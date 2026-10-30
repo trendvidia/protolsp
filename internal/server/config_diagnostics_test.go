@@ -19,7 +19,7 @@ import (
 func workspaceConfigDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	out := []protocol.Diagnostic{}
 	for _, d := range diags {
-		if d.Source == "protolsp/workspaceconfig" {
+		if optValue(d.Source) == "protolsp/workspaceconfig" {
 			out = append(out, d)
 		}
 	}
@@ -29,7 +29,7 @@ func workspaceConfigDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 func chainSpecDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	out := []protocol.Diagnostic{}
 	for _, d := range diags {
-		if d.Source == "protolsp/chainspec" {
+		if optValue(d.Source) == "protolsp/chainspec" {
 			out = append(out, d)
 		}
 	}
@@ -47,13 +47,13 @@ security {
   inline_secrets = "maybee"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	diags := workspaceConfigDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1)
 	assert.Equal(t, protocol.DiagnosticSeverityWarning, diags[0].Severity)
-	assert.Contains(t, diags[0].Message, "allow|warn|refuse",
+	assert.Contains(t, messageText(diags[0].Message), "allow|warn|refuse",
 		"warning names the allowed values so users can correct")
 }
 
@@ -66,12 +66,12 @@ mystery_block {
   foo = "bar"
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	diags := workspaceConfigDiags(fc.calls()[0].params.Diagnostics)
 	require.Len(t, diags, 1)
-	assert.Contains(t, diags[0].Message, "mystery_block")
+	assert.Contains(t, messageText(diags[0].Message), "mystery_block")
 }
 
 func TestConfigDiagnostics_MissingTypeDirectiveWarns(t *testing.T) {
@@ -87,7 +87,7 @@ func TestConfigDiagnostics_MissingTypeDirectiveWarns(t *testing.T) {
   registry { address = "x:443" }
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, src)))
 
 	diags := workspaceConfigDiags(fc.calls()[0].params.Diagnostics)
@@ -102,7 +102,7 @@ func TestConfigDiagnostics_NonConfigDocGetsNoWarnings(t *testing.T) {
 
 name = "world"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, src)))
 
 	all := fc.calls()[0].params.Diagnostics
@@ -122,14 +122,14 @@ environments = [
 ]
 layers = []
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/chain.pxf", 1, cyclicChain)))
 
 	diags := chainSpecDiags(fc.calls()[0].params.Diagnostics)
 	require.NotEmpty(t, diags)
 	found := false
 	for _, d := range diags {
-		if strings.Contains(d.Message, "cycle") {
+		if strings.Contains(messageText(d.Message), "cycle") {
 			found = true
 			assert.Equal(t, protocol.DiagnosticSeverityWarning, d.Severity)
 		}
@@ -149,7 +149,7 @@ layers = []
 	// This spec is structurally fine, no warnings expected from
 	// the chain parser itself. (Verify the success path doesn't
 	// emit spurious warnings.)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/chain.pxf", 1, src)))
 
 	diags := chainSpecDiags(fc.calls()[0].params.Diagnostics)
@@ -165,7 +165,7 @@ func TestConfigDiagnostics_ParseErrorSuppressesConfigWarnings(t *testing.T) {
 
 unclosed {
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/.protolsp.pxf", 1, broken)))
 
 	all := fc.calls()[0].params.Diagnostics
@@ -174,7 +174,7 @@ unclosed {
 	// The generic parse diagnostic should still fire.
 	hasParse := false
 	for _, d := range all {
-		if d.Source == "protolsp/parse" {
+		if optValue(d.Source) == "protolsp/parse" {
 			hasParse = true
 		}
 	}

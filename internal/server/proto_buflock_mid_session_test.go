@@ -93,31 +93,31 @@ message Remote {
 	srv.SetWatchedFilesWindow(0)
 	srv.SetProtoIndexCacheRoot(cacheRoot)
 	params := &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "buf-lock-mid-session-test"},
-		WorkspaceFolders: []protocol.WorkspaceFolder{
-			{URI: string(uri.File(root)), Name: "root"},
-		},
+		ClientInfo: protocol.ClientInfo{Name: "buf-lock-mid-session-test"},
+		WorkspaceFoldersInitializeParams: workspaceFolders(
+			protocol.WorkspaceFolder{URI: uri.File(root), Name: "root"},
+		),
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesWorkspaceClientCapabilities{
-					DynamicRegistration: true,
+				DidChangeWatchedFiles: &protocol.DidChangeWatchedFilesClientCapabilities{
+					DynamicRegistration: boolRef(true),
 				},
 			},
 		},
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize, params)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
-	initCall, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
+	initCall, err := newTestCall(jsonrpc2.NewNumberID(2), protocol.MethodInitialized, nil)
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, initCall))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, initCall))
 	srv.WaitInitialized()
 
 	// Open the consumer doc. The hover handler reads from the
 	// index that was just built — which doesn't include the dep
 	// yet because the lock had no deps.
 	consumerURI := "file://" + filepath.ToSlash(consumerPath)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, consumerURI, 1, mustRead(t, consumerPath))))
 
 	// Sanity: the index instance is in place and the dep file
@@ -144,7 +144,7 @@ deps:
   - name: `+depName+`
     commit: `+depCommit+`
 `), 0o600))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		fileEventCall(t, []*protocol.FileEvent{
 			{URI: uri.File(lockPath), Type: protocol.FileChangeTypeChanged},
 		})))

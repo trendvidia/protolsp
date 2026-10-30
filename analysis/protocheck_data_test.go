@@ -189,11 +189,11 @@ func TestProtocheckDataDiagnostics_RendersFindings(t *testing.T) {
 	diags := protocheckDataDiagnostics(doc)
 	require.Len(t, diags, 2)
 	for _, d := range diags {
-		require.Equal(t, "protocheck", d.Source)
+		require.Equal(t, "protocheck", optText(d.Source))
 		require.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
 	}
-	require.Equal(t, "int32.lte", diags[0].Code)
-	require.Equal(t, "string.email", diags[1].Code)
+	require.Equal(t, protocol.String("int32.lte"), diags[0].Code)
+	require.Equal(t, protocol.String("string.email"), diags[1].Code)
 }
 
 func TestProtocheckDataDiagnostics_ForKeySuffix(t *testing.T) {
@@ -208,7 +208,7 @@ func TestProtocheckDataDiagnostics_ForKeySuffix(t *testing.T) {
 	}
 	diags := protocheckDataDiagnostics(doc)
 	require.Len(t, diags, 1)
-	require.Equal(t, "value length must be at least 3 (key)", diags[0].Message,
+	require.Equal(t, "value length must be at least 3 (key)", MessageText(diags[0].Message),
 		"map-key violations render the same (key) suffix as Report.Format and the runtime overlay")
 	require.Equal(t, protocol.DiagnosticSeverityError, diags[0].Severity)
 }

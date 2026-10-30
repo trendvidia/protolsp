@@ -20,7 +20,7 @@ import (
 func TestProtoDefinition_TypeReferenceJumpsToDeclaration(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/greet.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, hoverProtoFixture)))
 
 	// Line 10 (`  Priority priority = 2;`), char 4 → middle of "Priority".
@@ -39,7 +39,7 @@ func TestProtoDefinition_TypeReferenceJumpsToDeclaration(t *testing.T) {
 func TestProtoDefinition_BuiltinTypeReturnsNothing(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/greet.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, hoverProtoFixture)))
 
 	// Line 7 (`  string name = 1;`), char 4 → middle of "string".
@@ -52,7 +52,7 @@ func TestProtoDefinition_BuiltinTypeReturnsNothing(t *testing.T) {
 func TestProtoDefinition_FieldNameJumpsToSelf(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/greet.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, hoverProtoFixture)))
 
 	// Line 7 (`  string name = 1;`), char 11 → middle of "name".
@@ -76,7 +76,7 @@ message Wrapper {
   Missing thing = 1;
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, protoWithUnresolvedRef)))
 
 	// Line 3 (`  Missing thing = 1;`), char 4 → "Missing".
@@ -91,7 +91,7 @@ func TestProtoDefinition_PxfDispatchStillWorks(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	srv.Workspaces().SetWorkspaceRoot(uri.URI("file:///work/protos"))
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\nname = \"x\"\n")))
 
 	locs := definitionFromHandle(t, srv, "file:///work/g.pxf", 2, 0)

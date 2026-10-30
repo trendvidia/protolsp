@@ -81,7 +81,7 @@ password = "`+plaintext+`"
 	require.NotNil(t, srv.Workspaces().SnapshotChain(), "chain must load")
 
 	devURI := uri.File(filepath.Join(workspaceDir, "env", "dev.pxf"))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(devURI), 1, `@type acme.demo.v1.Credentials
 password = "`+plaintext+`"
 `)))
@@ -106,7 +106,7 @@ password = "`+plaintext+`"
 			continue
 		}
 		for _, d := range n.params.Diagnostics {
-			assert.NotContains(t, d.Message, plaintext,
+			assert.NotContains(t, messageText(d.Message), plaintext,
 				"diagnostic message must not contain the plaintext password: %q", d.Message)
 		}
 	}

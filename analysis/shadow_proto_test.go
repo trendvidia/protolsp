@@ -61,9 +61,9 @@ func TestOpenShadowProto_HoverResolvesInBuffer(t *testing.T) {
 	// Line 4 (`  Priority priority = 2;`), char 4 → middle of the
 	// "Priority" type reference. Hover routes through the proto AST
 	// handler for a registry:// URI.
-	h := w.HoverFor(protocol.DocumentURI(u), protocol.Position{Line: 4, Character: 4})
+	h := w.HoverFor(uri.URI(u), protocol.Position{Line: 4, Character: 4})
 	require.NotNil(t, h, "hover resolves the in-file type reference")
-	assert.Contains(t, h.Contents.Value, "Priority", "hover card names the resolved type")
+	assert.Contains(t, hoverText(h), "Priority", "hover card names the resolved type")
 }
 
 func TestOpenShadowProto_DefinitionJumpsWithinBuffer(t *testing.T) {
@@ -75,7 +75,7 @@ func TestOpenShadowProto_DefinitionJumpsWithinBuffer(t *testing.T) {
 	// declaration (line 7) — and, crucially, the target URI is the
 	// registry:// buffer itself, not a bogus file:// path derived
 	// from the relative parse filename.
-	loc := w.DefinitionFor(protocol.DocumentURI(u), protocol.Position{Line: 4, Character: 4})
+	loc := w.DefinitionFor(uri.URI(u), protocol.Position{Line: 4, Character: 4})
 	require.NotNil(t, loc, "in-file type reference resolves to a location")
 	assert.Equal(t, uri.URI(u), uri.URI(loc.URI),
 		"within-buffer definition stays on the registry:// URI")

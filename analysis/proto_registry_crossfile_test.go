@@ -100,7 +100,7 @@ func TestRegistryCrossFile_TypeRefJumpsToAnotherRegistryFile(t *testing.T) {
 
 	// Cursor on the "Greeting" type ref (line 6, char 4) — a message
 	// declared in another registry file reached via the import.
-	loc := w.DefinitionFor(protocol.DocumentURI(importerURI), protocol.Position{Line: 6, Character: 4})
+	loc := w.DefinitionFor(uri.URI(importerURI), protocol.Position{Line: 6, Character: 4})
 	require.NotNil(t, loc, "cross-file type ref resolves through the namespace lookup")
 	assert.Equal(t, uri.URI("registry://_proto_files_/myapp/v1/greeting.proto"), uri.URI(loc.URI),
 		"target is the OTHER registry file, as a registry:// URI (not file://)")
@@ -115,7 +115,7 @@ func TestRegistryCrossFile_EnumRefResolves(t *testing.T) {
 
 	// Cursor on the "Tone" enum ref (line 7, char 4). Enums resolve via
 	// the parsed AST — the Lookup interface exposes no enum-by-name.
-	loc := w.DefinitionFor(protocol.DocumentURI(importerURI), protocol.Position{Line: 7, Character: 4})
+	loc := w.DefinitionFor(uri.URI(importerURI), protocol.Position{Line: 7, Character: 4})
 	require.NotNil(t, loc, "cross-file enum ref resolves too")
 	assert.Equal(t, uri.URI("registry://_proto_files_/myapp/v1/greeting.proto"), uri.URI(loc.URI))
 	assert.Equal(t, uint32(8), loc.Range.Start.Line, "range points at the enum declaration line")
@@ -140,16 +140,16 @@ message Box {
 
 	// Line 6: `  myapp.v1.Wrapper.Payload payload = 1;` — cursor on
 	// "Payload".
-	loc := w.DefinitionFor(protocol.DocumentURI(u), protocol.Position{Line: 6, Character: 20})
+	loc := w.DefinitionFor(uri.URI(u), protocol.Position{Line: 6, Character: 20})
 	require.NotNil(t, loc, "outer-qualified nested type resolves through the namespace lookup")
 	assert.Equal(t, uri.URI("registry://_proto_files_/myapp/v1/nested.proto"), uri.URI(loc.URI))
 	assert.Equal(t, uint32(4), loc.Range.Start.Line,
 		"range points at the nested Payload declaration line")
 
 	// A nested path that misses keeps the graceful nil.
-	hover := w.HoverFor(protocol.DocumentURI(u), protocol.Position{Line: 6, Character: 20})
+	hover := w.HoverFor(uri.URI(u), protocol.Position{Line: 6, Character: 20})
 	require.NotNil(t, hover, "outer-qualified nested type hovers")
-	assert.Contains(t, hover.Contents.Value, "**message Payload**")
+	assert.Contains(t, hoverText(hover), "**message Payload**")
 }
 
 func TestRegistryCrossFile_ImportDirectiveJumps(t *testing.T) {
@@ -159,7 +159,7 @@ func TestRegistryCrossFile_ImportDirectiveJumps(t *testing.T) {
 
 	// Cursor inside the import string (line 3). Jumps to the imported
 	// registry file at its start.
-	loc := w.DefinitionFor(protocol.DocumentURI(importerURI), protocol.Position{Line: 3, Character: 15})
+	loc := w.DefinitionFor(uri.URI(importerURI), protocol.Position{Line: 3, Character: 15})
 	require.NotNil(t, loc, "import directive resolves to the imported registry file")
 	assert.Equal(t, uri.URI("registry://_proto_files_/myapp/v1/greeting.proto"), uri.URI(loc.URI))
 	assert.Equal(t, uint32(0), loc.Range.Start.Line, "import jump lands at file start")
@@ -181,11 +181,11 @@ message Envelope {
 	w.OpenShadowProto(uri.URI(u), src)
 
 	// Type ref to a type in the missing import → no target.
-	loc := w.DefinitionFor(protocol.DocumentURI(u), protocol.Position{Line: 6, Character: 2})
+	loc := w.DefinitionFor(uri.URI(u), protocol.Position{Line: 6, Character: 2})
 	assert.Nil(t, loc, "a type from an unresolvable import has nowhere to jump")
 
 	// Import directive on the missing file → no target.
-	impLoc := w.DefinitionFor(protocol.DocumentURI(u), protocol.Position{Line: 3, Character: 15})
+	impLoc := w.DefinitionFor(uri.URI(u), protocol.Position{Line: 3, Character: 15})
 	assert.Nil(t, impLoc, "an import that doesn't resolve returns nil")
 }
 
@@ -209,7 +209,7 @@ message Inner {
 	w.OpenShadowProto(uri.URI(u), src)
 
 	// Cursor on "Inner" (line 4). Resolves in-file to line 7.
-	loc := w.DefinitionFor(protocol.DocumentURI(u), protocol.Position{Line: 4, Character: 4})
+	loc := w.DefinitionFor(uri.URI(u), protocol.Position{Line: 4, Character: 4})
 	require.NotNil(t, loc)
 	assert.Equal(t, uri.URI(u), uri.URI(loc.URI), "in-file jump stays on the same preview")
 	assert.Equal(t, uint32(7), loc.Range.Start.Line)

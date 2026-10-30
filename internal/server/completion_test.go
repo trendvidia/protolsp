@@ -24,7 +24,7 @@ import (
 // the deserialized CompletionList. Mirrors what a real client sees.
 func completionFromHandle(t *testing.T, srv *Server, u string, line, char uint32) *protocol.CompletionList {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentCompletion,
 		&protocol.CompletionParams{
 			TextDocumentPositionParams: protocol.TextDocumentPositionParams{
@@ -47,7 +47,7 @@ func completionFromHandle(t *testing.T, srv *Server, u string, line, char uint32
 		captured = &list
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
@@ -70,7 +70,7 @@ func TestCompletion_TopLevelFieldsOnRoot(t *testing.T) {
 	// On a blank line at the top of a Greeting doc, the resolver
 	// should return the single field "name" defined on Greeting.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\n\n")))
 
 	// Cursor on the empty line 2 (0-indexed), col 0.
@@ -82,7 +82,7 @@ func TestCompletion_TopLevelFieldsOnRoot(t *testing.T) {
 
 func TestCompletion_ItemShape(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n\n")))
 
 	list := completionFromHandle(t, srv, "file:///work/g.pxf", 1, 0)
@@ -92,14 +92,14 @@ func TestCompletion_ItemShape(t *testing.T) {
 
 	assert.Equal(t, "name", item.Label)
 	assert.Equal(t, protocol.CompletionItemKindField, item.Kind)
-	assert.Equal(t, "string", item.Detail, "Detail labels the protobuf kind")
-	assert.Equal(t, "name = ", item.InsertText,
+	assert.Equal(t, "string", detailText(item.Detail), "Detail labels the protobuf kind")
+	assert.Equal(t, "name = ", detailText(item.InsertText),
 		"InsertText prefills the assignment operator so the user types the value next")
 }
 
 func TestCompletion_ReturnsNilWhenNoLookup(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "@type acme.demo.v1.Greeting\n")))
 
 	list := completionFromHandle(t, srv, "file:///work/g.pxf", 1, 0)
@@ -108,7 +108,7 @@ func TestCompletion_ReturnsNilWhenNoLookup(t *testing.T) {
 
 func TestCompletion_ReturnsNilWhenNoTypeDirective(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, "name = \"x\"\n")))
 
 	list := completionFromHandle(t, srv, "file:///work/g.pxf", 0, 0)
@@ -131,7 +131,7 @@ shipping {
 
 }
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/o.pxf", 1, src)))
 
 	// Source lines (0-indexed):
@@ -161,7 +161,7 @@ shipping {
 }
 
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/o.pxf", 1, src)))
 
 	// Cursor on line 4 (0-indexed) — blank line after the closed block.
@@ -191,7 +191,7 @@ func TestCompletion_TypeDirectiveListsAllKnownMessages(t *testing.T) {
 	// User typed `@type ` and is at the end of the line. The document
 	// likely fails to parse (no value yet) — type completion is
 	// supposed to work regardless.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/new.pxf", 1, "@type \n")))
 
 	list := completionFromHandle(t, srv, "file:///work/new.pxf", 0, 6)
@@ -212,7 +212,7 @@ func TestCompletion_TypeDirectiveItemShape(t *testing.T) {
 	// @type completion. This test pins the SHAPE of the user-
 	// registered item rather than the exact count.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/new.pxf", 1, "@type \n")))
 
 	list := completionFromHandle(t, srv, "file:///work/new.pxf", 0, 6)
@@ -227,8 +227,8 @@ func TestCompletion_TypeDirectiveItemShape(t *testing.T) {
 	}
 	require.NotNil(t, greeting, "user-registered Greeting must appear in the suggestions")
 	assert.Equal(t, protocol.CompletionItemKindClass, greeting.Kind)
-	assert.Equal(t, "message", greeting.Detail)
-	assert.Equal(t, "acme.demo.v1.Greeting", greeting.InsertText,
+	assert.Equal(t, "message", detailText(greeting.Detail))
+	assert.Equal(t, "acme.demo.v1.Greeting", detailText(greeting.InsertText),
 		"InsertText is the bare FQN — no trailing punctuation needed")
 }
 
@@ -237,7 +237,7 @@ func TestCompletion_TypeDirectivePartialKeyword(t *testing.T) {
 	// directive keyword (`@t`, `@ty`, …). The handler must recognize
 	// these as in-progress `@type` and still suggest types.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/new.pxf", 1, "@t")))
 
 	list := completionFromHandle(t, srv, "file:///work/new.pxf", 0, 2)
@@ -249,7 +249,7 @@ func TestCompletion_OtherAtDirectiveNotTreatedAsType(t *testing.T) {
 	// `@dataset`, `@proto`, etc. are separate directive families;
 	// completion must NOT offer message FQNs there.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/new.pxf", 1, "@dataset \n")))
 
 	list := completionFromHandle(t, srv, "file:///work/new.pxf", 0, 9)
@@ -263,7 +263,7 @@ func TestCompletion_NotTypeDirectiveWhenMidEditOfDifferentWord(t *testing.T) {
 	// chars but isn't the directive. Past `@type` we require a
 	// whitespace separator before treating it as the directive.
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/new.pxf", 1, "@typewriter\n")))
 
 	list := completionFromHandle(t, srv, "file:///work/new.pxf", 0, 11)
@@ -336,7 +336,7 @@ func TestCompletion_EnumValuesOnRHS(t *testing.T) {
 
 title = "x"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	// Then user types "priority = " on a new line. didChange with the
@@ -345,7 +345,7 @@ title = "x"
 
 title = "x"
 priority = `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, editedSrc)))
 
 	// Cursor at end of line 3 (the `priority = ` line, 0-indexed),
@@ -361,9 +361,9 @@ func TestCompletion_EnumItemShape(t *testing.T) {
 	srv := newServerWithTicket(t)
 	// Open with a clean parseable document so the AST is available
 	// when we then didChange to a mid-edit invalid state.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, "@type acme.demo.v1.Ticket\n\ntitle = \"x\"\n")))
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, "@type acme.demo.v1.Ticket\n\ntitle = \"x\"\npriority = ")))
 
 	list := completionFromHandle(t, srv, "file:///work/t.pxf", 3, uint32(len("priority = ")))
@@ -372,8 +372,8 @@ func TestCompletion_EnumItemShape(t *testing.T) {
 	item := list.Items[0]
 	assert.Equal(t, "PRIORITY_UNKNOWN", item.Label)
 	assert.Equal(t, protocol.CompletionItemKindEnumMember, item.Kind)
-	assert.Equal(t, "acme.demo.v1.Priority", item.Detail, "Detail names the enum type")
-	assert.Equal(t, "PRIORITY_UNKNOWN", item.InsertText)
+	assert.Equal(t, "acme.demo.v1.Priority", detailText(item.Detail), "Detail names the enum type")
+	assert.Equal(t, "PRIORITY_UNKNOWN", detailText(item.InsertText))
 }
 
 func TestCompletion_NonEnumFieldRHSReturnsNil(t *testing.T) {
@@ -384,7 +384,7 @@ func TestCompletion_NonEnumFieldRHSReturnsNil(t *testing.T) {
 	const src = `@type acme.demo.v1.Ticket
 
 title = `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	list := completionFromHandle(t, srv, "file:///work/t.pxf", 2, uint32(len("title = ")))
@@ -399,7 +399,7 @@ func TestCompletion_UnknownFieldOnRHSReturnsNil(t *testing.T) {
 	const src = `@type acme.demo.v1.Ticket
 
 nope = `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	list := completionFromHandle(t, srv, "file:///work/t.pxf", 2, uint32(len("nope = ")))
@@ -413,7 +413,7 @@ func TestCompletion_LastGoodParseFallback(t *testing.T) {
 	// us @type and the surrounding structure, even though the
 	// current Parsed is nil).
 	srv := newServerWithTicket(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, "@type acme.demo.v1.Ticket\n\ntitle = \"x\"\n")))
 
 	doc := srv.Documents().Get("file:///work/t.pxf")
@@ -423,7 +423,7 @@ func TestCompletion_LastGoodParseFallback(t *testing.T) {
 
 	// Now the edited version that won't parse.
 	const edited = "@type acme.demo.v1.Ticket\n\ntitle = \"x\"\npriority = "
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/t.pxf", 2, edited)))
 
 	doc = srv.Documents().Get("file:///work/t.pxf")
@@ -440,10 +440,10 @@ func TestInitialize_AdvertisesCompletionProvider(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
-		&protocol.InitializeParams{ClientInfo: &protocol.ClientInfo{Name: "test"}})
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+		&protocol.InitializeParams{ClientInfo: protocol.ClientInfo{Name: "test"}})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 
 	result := rep.result.(*initializeResult)
 	require.NotNil(t, result.Capabilities.CompletionProvider,

@@ -5,9 +5,9 @@ package transport
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/trendvidia/protolsp/internal/lspcodec"
 	"io"
 	"log/slog"
 	"net/http"
@@ -91,7 +91,7 @@ func serveOverWS(ctx context.Context, log *slog.Logger, c *websocket.Conn) error
 	}()
 
 	stream := &wsStream{conn: c}
-	jc := jsonrpc2.NewConn(stream)
+	jc := jsonrpc2.NewConn(stream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	srv.AttachConn(jc)
 	// Same slow-handler tripwire as stdio (see handler_warn.go). The
 	// hosted IDE has the same single-goroutine-dispatcher contract.
@@ -143,11 +143,14 @@ func (s *wsStream) Read(ctx context.Context) (jsonrpc2.Message, int64, error) {
 }
 
 func (s *wsStream) Write(ctx context.Context, msg jsonrpc2.Message) (int64, error) {
-	data, err := json.Marshal(msg)
+	data, err := jsonrpc2.EncodeMessage(msg)
 	if err != nil {
 		return 0, fmt.Errorf("ws: encoding jsonrpc2 message: %w", err)
 	}
-	if err := s.conn.Write(ctx, websocket.MessageText, data); err != nil {
+	// jsonrpc2 pools the request context it passes here, and the
+	// websocket library keeps watching a write's context after the
+	// write returns. Watching a recycled context panics.
+	if err := s.conn.Write(jsonrpc2.DetachContext(ctx), websocket.MessageText, data); err != nil {
 		return 0, err
 	}
 	return int64(len(data)), nil

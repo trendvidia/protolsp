@@ -64,7 +64,7 @@ type keyedRenameSpec struct {
 
 // RenameTargetKind reports what a rename at (docURI, pos) would target.
 // Used by the dispatch layer to choose new-name validation.
-func (s *Workspace) RenameTargetKind(docURI protocol.DocumentURI, pos protocol.Position) RenameTargetKind {
+func (s *Workspace) RenameTargetKind(docURI uri.URI, pos protocol.Position) RenameTargetKind {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return RenameTargetNone
@@ -192,12 +192,12 @@ func collectKeyedEntries(entries []pxf.Entry, md protoreflect.MessageDescriptor,
 // scopeDir == "" (a document with no workspace context) falls back to
 // the open documents that also have no workspace, so the originating
 // document is still covered.
-func (s *Workspace) collectKeyedRenameEditsAcrossWorkspace(ctx context.Context, scopeDir string, spec keyedRenameSpec) map[protocol.DocumentURI][]protocol.TextEdit {
-	out := map[protocol.DocumentURI][]protocol.TextEdit{}
+func (s *Workspace) collectKeyedRenameEditsAcrossWorkspace(ctx context.Context, scopeDir string, spec keyedRenameSpec) map[uri.URI][]protocol.TextEdit {
+	out := map[uri.URI][]protocol.TextEdit{}
 	add := func(u uri.URI, source []byte, entries []pxf.Entry) {
 		edits := keyedRenameEditsInFile(source, s.positionEncoding, entries, spec)
 		if len(edits) > 0 {
-			du := protocol.DocumentURI(u)
+			du := uri.URI(u)
 			out[du] = append(out[du], edits...)
 		}
 	}

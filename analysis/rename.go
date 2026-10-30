@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 // RenameEditFor builds the WorkspaceEdit for a rename request, or nil
@@ -20,7 +21,7 @@ import (
 //     explicit key assignment. Tried first.
 //   - Otherwise the path-based field rename: every Assignment / Block
 //     whose dotted path matches the cursor's is rewritten.
-func (s *Workspace) RenameEditFor(ctx context.Context, docURI protocol.DocumentURI, pos protocol.Position, newName string) *protocol.WorkspaceEdit {
+func (s *Workspace) RenameEditFor(ctx context.Context, docURI uri.URI, pos protocol.Position, newName string) *protocol.WorkspaceEdit {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -60,9 +61,9 @@ func (s *Workspace) RenameEditFor(ctx context.Context, docURI protocol.DocumentU
 	if len(hits) == 0 {
 		return nil
 	}
-	changes := make(map[protocol.DocumentURI][]protocol.TextEdit, 1)
+	changes := make(map[uri.URI][]protocol.TextEdit, 1)
 	for _, h := range hits {
-		changes[protocol.DocumentURI(h.uri)] = append(changes[protocol.DocumentURI(h.uri)], protocol.TextEdit{
+		changes[uri.URI(h.uri)] = append(changes[uri.URI(h.uri)], protocol.TextEdit{
 			Range:   h.rang,
 			NewText: newName,
 		})

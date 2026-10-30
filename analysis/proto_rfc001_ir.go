@@ -33,6 +33,7 @@ import (
 	"github.com/trendvidia/protocompile/source/length"
 	schemav1 "github.com/trendvidia/protos/protowire/schema/v1"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/trendvidia/protolsp/positions"
@@ -170,7 +171,7 @@ func rfc001CallSiteAt(doc *Document, pos protocol.Position, enc positions.Encodi
 // to a declaration site: AST-first through the import chain, then
 // the remote (registry/carrier) fallback. nil when the cursor isn't
 // on an extracted call name.
-func (s *Workspace) rfc001OpaqueCallDefinition(docURI protocol.DocumentURI, wsDir string, doc *Document, pos protocol.Position) *protocol.Location {
+func (s *Workspace) rfc001OpaqueCallDefinition(docURI uri.URI, wsDir string, doc *Document, pos protocol.Position) *protocol.Location {
 	name, ok := rfc001CallSiteAt(doc, pos, s.positionEncoding)
 	if !ok {
 		return nil
@@ -210,7 +211,7 @@ func (s *Workspace) rfc001OpaqueCallHover(wsDir string, doc *Document, pos proto
 // site, the callee ident of a FUNCTION_CALL, the type ident of a
 // TYPE_REFINEMENT). ok=false when the document isn't analyzed, holds
 // no source map, the key doesn't parse, or no entry matches.
-func (s *Workspace) RFC001SourceRange(docURI protocol.DocumentURI, descriptorPath string) (protocol.Range, bool) {
+func (s *Workspace) RFC001SourceRange(docURI uri.URI, descriptorPath string) (protocol.Range, bool) {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return protocol.Range{}, false

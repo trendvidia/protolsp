@@ -20,7 +20,7 @@ import (
 // the decoded TextEdit slice (nil = "no edits available").
 func formattingFromHandle(t *testing.T, srv *Server, u string) []protocol.TextEdit {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodTextDocumentFormatting,
 		&protocol.DocumentFormattingParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
@@ -39,13 +39,13 @@ func formattingFromHandle(t *testing.T, srv *Server, u string) []protocol.TextEd
 		require.NoError(t, json.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return captured
 }
 
 func TestFormatting_AlreadyCanonicalReturnsEmptySlice(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, greetingValid)))
 
 	edits := formattingFromHandle(t, srv, "file:///work/g.pxf")
@@ -58,7 +58,7 @@ func TestFormatting_RewritesNonCanonicalSource(t *testing.T) {
 	// protowire-go's FormatDocument re-emits canonical layout.
 	const messy = "@type acme.demo.v1.Greeting\n\n\n\nname    =     \"world\"\n"
 	srv, _, _ := newServerWithLookup(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/m.pxf", 1, messy)))
 
 	edits := formattingFromHandle(t, srv, "file:///work/m.pxf")
@@ -81,7 +81,7 @@ func TestFormatting_ReturnsNilWhenDocumentNotOpen(t *testing.T) {
 func TestFormatting_ReturnsNilOnParseError(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
 	// Parse error: assignment with no key.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/bad.pxf", 1, "= 1\n")))
 
 	edits := formattingFromHandle(t, srv, "file:///work/bad.pxf")
@@ -98,7 +98,7 @@ func formatProtoDoc(t *testing.T, src string) []protocol.TextEdit {
 	t.Helper()
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/foo.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
 	return formattingFromHandle(t, srv, u)
 }
@@ -280,7 +280,7 @@ message Foo {
 
 func TestFormatting_AdvertisesCapability(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodInitialize,
 		&protocol.InitializeParams{})
 	require.NoError(t, err)
@@ -294,6 +294,6 @@ func TestFormatting_AdvertisesCapability(t *testing.T) {
 		caps = probe.Capabilities
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.Equal(t, true, caps["documentFormattingProvider"])
 }

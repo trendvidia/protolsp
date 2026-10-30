@@ -139,7 +139,7 @@ func installFixtureLookup(t *testing.T, srv *Server) {
 func findProtocheckDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	var out []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protocheck" {
+		if optValue(d.Source) == "protocheck" {
 			out = append(out, d)
 		}
 	}
@@ -150,7 +150,7 @@ func findProtocheckDiags(diags []protocol.Diagnostic) []protocol.Diagnostic {
 // carries the given ConstraintID in its Code field.
 func hasDiagWithCode(diags []protocol.Diagnostic, code string) bool {
 	for _, d := range diags {
-		if c, ok := d.Code.(string); ok && c == code {
+		if c, ok := d.Code.(protocol.String); ok && string(c) == code {
 			return true
 		}
 	}
@@ -168,7 +168,7 @@ func TestProtocheckDataValidation_E2E_StringEmail(t *testing.T) {
 email = "not-an-email"
 age = 30
 score = 50.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -188,7 +188,7 @@ func TestProtocheckDataValidation_E2E_Int32OutOfRange(t *testing.T) {
 email = "alice@example.com"
 age = 200
 score = 50.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -209,7 +209,7 @@ func TestProtocheckDataValidation_E2E_CustomExpression(t *testing.T) {
 email = "alice@example.com"
 age = 30
 score = 200.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -230,7 +230,7 @@ func TestProtocheckDataValidation_E2E_MultipleViolations(t *testing.T) {
 email = "not-an-email"
 age = 200
 score = 200.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -250,7 +250,7 @@ func TestProtocheckDataValidation_E2E_AllValidEmitsNothing(t *testing.T) {
 email = "alice@example.com"
 age = 30
 score = 75.5`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -269,7 +269,7 @@ func TestProtocheckDataValidation_E2E_MessageLevelCrossField(t *testing.T) {
 from_account = "acc-1"
 to_account = "acc-1"
 amount = 100.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/transfer.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -294,7 +294,7 @@ func TestProtocheckDataValidation_E2E_FieldPathPositionRange(t *testing.T) {
 email = "alice@example.com"
 age = 200
 score = 50.0`
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/user.pxf", 1, src)))
 
 	notes := fc.calls()

@@ -17,7 +17,7 @@ import (
 func findDatasetSource(diags []protocol.Diagnostic) []protocol.Diagnostic {
 	var out []protocol.Diagnostic
 	for _, d := range diags {
-		if d.Source == "protolsp/dataset" {
+		if optValue(d.Source) == "protolsp/dataset" {
 			out = append(out, d)
 		}
 	}
@@ -35,7 +35,7 @@ func TestDatasetValidate_TypeMismatchInRowCell(t *testing.T) {
 ("T-1", 10)
 ("T-2", "ten")
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -44,9 +44,9 @@ func TestDatasetValidate_TypeMismatchInRowCell(t *testing.T) {
 	require.Len(t, diags, 1, "exactly one dataset diagnostic (the bad qty cell)")
 	d := diags[0]
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Contains(t, d.Message, "qty")
-	assert.Contains(t, d.Message, "int32")
-	assert.Contains(t, d.Message, "string",
+	assert.Contains(t, messageText(d.Message), "qty")
+	assert.Contains(t, messageText(d.Message), "int32")
+	assert.Contains(t, messageText(d.Message), "string",
 		"message names both expected and got kinds")
 }
 
@@ -61,7 +61,7 @@ func TestDatasetValidate_AllValidRowsEmitNoDiagnostics(t *testing.T) {
 ("T-2", 20)
 ("T-3", 30)
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -81,7 +81,7 @@ func TestDatasetValidate_UnknownColumn(t *testing.T) {
 ("T-1", "x")
 ("T-2", "y")
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -90,8 +90,8 @@ func TestDatasetValidate_UnknownColumn(t *testing.T) {
 	// One diagnostic at the directive line — not one per row.
 	require.Len(t, diags, 1,
 		"unknown column is reported once on the directive, not per row")
-	assert.Contains(t, diags[0].Message, "bogus")
-	assert.Contains(t, diags[0].Message, "acme.demo.v1.Trade")
+	assert.Contains(t, messageText(diags[0].Message), "bogus")
+	assert.Contains(t, messageText(diags[0].Message), "acme.demo.v1.Trade")
 }
 
 func TestDatasetValidate_UnknownTypeEmitsDirectiveDiagnostic(t *testing.T) {
@@ -101,7 +101,7 @@ func TestDatasetValidate_UnknownTypeEmitsDirectiveDiagnostic(t *testing.T) {
 	// don't register Unknown
 	srv.Lookups().Swap(lookup, nil)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetUnknownSrc)))
 
 	notes := fc.calls()
@@ -110,9 +110,9 @@ func TestDatasetValidate_UnknownTypeEmitsDirectiveDiagnostic(t *testing.T) {
 	require.Len(t, diags, 1,
 		"unknown row type → one directive-line error, no per-row diagnostics")
 	assert.Equal(t, protocol.DiagnosticSeverityError, diags[0].Severity)
-	assert.Contains(t, diags[0].Message, "unknown row type")
-	assert.Contains(t, diags[0].Message, "acme.totally.Unknown")
-	assert.Contains(t, diags[0].Message, "row validation disabled")
+	assert.Contains(t, messageText(diags[0].Message), "unknown row type")
+	assert.Contains(t, messageText(diags[0].Message), "acme.totally.Unknown")
+	assert.Contains(t, messageText(diags[0].Message), "row validation disabled")
 }
 
 func TestDatasetValidate_HugeRegionInfoDiagnostic(t *testing.T) {
@@ -129,7 +129,7 @@ func TestDatasetValidate_HugeRegionInfoDiagnostic(t *testing.T) {
 ("T-1", "definitely wrong, would be flagged if not huge")
 ("T-2", "also wrong")
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -138,8 +138,8 @@ func TestDatasetValidate_HugeRegionInfoDiagnostic(t *testing.T) {
 	require.Len(t, diags, 1,
 		"huge resolvable region emits one info-severity skip note, not per-row")
 	assert.Equal(t, protocol.DiagnosticSeverityInformation, diags[0].Severity)
-	assert.Contains(t, diags[0].Message, "huge")
-	assert.Contains(t, diags[0].Message, "pxf validate",
+	assert.Contains(t, messageText(diags[0].Message), "huge")
+	assert.Contains(t, messageText(diags[0].Message), "pxf validate",
 		"info message points users at the CLI for whole-region checks")
 }
 
@@ -148,7 +148,7 @@ func TestDatasetValidate_NoLookupSkipsValidation(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 	// Don't set srv.lookup.
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, tradeDatasetSrc)))
 
 	notes := fc.calls()
@@ -168,7 +168,7 @@ func TestDatasetValidate_MultipleRowsMultipleErrors(t *testing.T) {
 ("T-2", 20)
 ("T-3", "third-bad")
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
@@ -190,14 +190,14 @@ func TestDatasetValidate_NullOnAScalarIsAnError(t *testing.T) {
 	const src = `@dataset acme.demo.v1.Trade(id, qty)
 ("T-1", null)
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/t.pxf", 1, src)))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
 	diags := findDatasetSource(notes[0].params.Diagnostics)
 	require.Len(t, diags, 1)
-	assert.Equal(t, `column "qty" expects int32; got null`, diags[0].Message)
+	assert.Equal(t, `column "qty" expects int32; got null`, messageText(diags[0].Message))
 }
 
 // Lower-level checks of the cell check happen indirectly through the

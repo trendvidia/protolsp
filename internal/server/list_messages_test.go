@@ -17,7 +17,7 @@ import (
 // returns the decoded result or the JSON-RPC error.
 func listMessagesReply(t *testing.T, srv *Server, params interface{}) (*ListMessagesResult, *jsonrpc2.Error) {
 	t.Helper()
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodListMessages, params)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodListMessages, params)
 	require.NoError(t, err)
 
 	var got *ListMessagesResult
@@ -39,7 +39,7 @@ func listMessagesReply(t *testing.T, srv *Server, params interface{}) (*ListMess
 		got = &r
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	return got, gotErr
 }
 
@@ -90,7 +90,7 @@ func TestListMessages_EmptyOriginOmittedFromJSON(t *testing.T) {
 	// empty string".
 	srv, _, _ := newServerWithLookup(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodListMessages,
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodListMessages,
 		&ListMessagesParams{})
 	require.NoError(t, err)
 
@@ -101,7 +101,7 @@ func TestListMessages_EmptyOriginOmittedFromJSON(t *testing.T) {
 		rawResult = b
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.NotContains(t, string(rawResult), `"namespace"`,
 		"empty namespace should be omitted from the JSON entirely")
 }
@@ -136,7 +136,7 @@ func TestListMessages_NilParamsTolerated(t *testing.T) {
 	// shouldn't fail — the handler treats them as "no filter."
 	srv, _, _ := newServerWithLookup(t)
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), MethodListMessages, nil)
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), MethodListMessages, nil)
 	require.NoError(t, err)
 
 	var got *ListMessagesResult
@@ -149,7 +149,7 @@ func TestListMessages_NilParamsTolerated(t *testing.T) {
 		got = &r
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	require.NotNil(t, got)
 	assert.NotEmpty(t, got.Messages, "null params should behave like empty filter, not error")
 }

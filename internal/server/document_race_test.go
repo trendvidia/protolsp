@@ -21,8 +21,8 @@ import (
 // first iteration.
 func TestDocument_AnalyzeRaceWithConcurrentHover(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	docURI := uri.New("file:///workspace/race.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	docURI := uri.MustParse("file:///workspace/race.pxf")
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, greetingValid)))
 
 	doc := srv.Documents().Get(docURI)
@@ -73,8 +73,8 @@ func TestDocument_AnalyzeRaceWithConcurrentHover(t *testing.T) {
 // Source-slice swap races with HoverFor's source-walk paths.
 func TestDocuments_UpdateRaceWithConcurrentReads(t *testing.T) {
 	srv, _, _ := newServerWithLookup(t)
-	docURI := uri.New("file:///workspace/update.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	docURI := uri.MustParse("file:///workspace/update.pxf")
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, greetingValid)))
 
 	doc := srv.Documents().Get(docURI)

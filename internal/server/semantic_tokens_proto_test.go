@@ -42,7 +42,7 @@ message Email {
 
 func TestSemanticTokens_ProtoRFC001KeywordsAndUses(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/rfc001.proto", 1, rfc001TokensProto)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/rfc001.proto")
@@ -52,10 +52,10 @@ func TestSemanticTokens_ProtoRFC001KeywordsAndUses(t *testing.T) {
 	assert.Equal(t, []decodedToken{
 		// Declaration keywords — the constructs stock proto grammars
 		// mis-tokenize (a leading `type` reads as a field type).
-		{line: 4, char: 0, length: uint32(len("type")), tokenType: protocol.SemanticTokenKeyword},
-		{line: 5, char: 0, length: uint32(len("function")), tokenType: protocol.SemanticTokenKeyword},
-		{line: 6, char: 0, length: uint32(len("annotation")), tokenType: protocol.SemanticTokenKeyword},
-		{line: 7, char: 0, length: uint32(len("annotation")), tokenType: protocol.SemanticTokenKeyword},
+		{line: 4, char: 0, length: uint32(len("type")), tokenType: protocol.SemanticTokenTypesKeyword},
+		{line: 5, char: 0, length: uint32(len("function")), tokenType: protocol.SemanticTokenTypesKeyword},
+		{line: 6, char: 0, length: uint32(len("annotation")), tokenType: protocol.SemanticTokenTypesKeyword},
+		{line: 7, char: 0, length: uint32(len("annotation")), tokenType: protocol.SemanticTokenTypesKeyword},
 		// Leading use bound to `message Email` — token covers
 		// `@description` (sigil + name), not the argument list.
 		{line: 9, char: 0, length: uint32(len("@description")), tokenType: semanticTokenDecorator},
@@ -69,7 +69,7 @@ func TestSemanticTokens_ProtoRFC001KeywordsAndUses(t *testing.T) {
 
 func TestSemanticTokens_ClassicProtoEmitsNoTokens(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/classic.proto", 1, validProto)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/classic.proto")
@@ -88,7 +88,7 @@ annotation required
 type Broken
 `
 	srv, _ := newServerWithFakeConn(t)
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/broken.proto", 1, src)))
 
 	st := semanticTokensFromHandle(t, srv, "file:///work/broken.proto")
@@ -99,7 +99,7 @@ type Broken
 	for _, tk := range tokens {
 		kinds = append(kinds, tk.tokenType)
 	}
-	assert.Contains(t, kinds, protocol.SemanticTokenKeyword,
+	assert.Contains(t, kinds, protocol.SemanticTokenTypesKeyword,
 		"keyword tokens survive a partial parse")
 }
 
@@ -108,5 +108,5 @@ func TestSemanticTokens_LegendIncludesDecorator(t *testing.T) {
 	require.Greater(t, len(legend.TokenTypes), 8)
 	// Index 8 must remain `decorator` — like the other indices it is
 	// wire-frozen: clients resolve legend entries by position.
-	assert.Equal(t, semanticTokenDecorator, legend.TokenTypes[8])
+	assert.Equal(t, string(semanticTokenDecorator), legend.TokenTypes[8])
 }

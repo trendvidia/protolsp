@@ -76,7 +76,7 @@ func rfc001UnresolvedFunctionName(msg string) (string, bool) {
 // diagnostic needs it. No-op for every other diagnostic and when
 // nothing is close enough to suggest.
 func rfc001AttachQuickFix(d *protocol.Diagnostic, funcs func() []rfc001DeclaredFunction) {
-	name, ok := rfc001UnresolvedFunctionName(d.Message)
+	name, ok := rfc001UnresolvedFunctionName(MessageText(d.Message))
 	if !ok {
 		return
 	}
@@ -84,8 +84,8 @@ func rfc001AttachQuickFix(d *protocol.Diagnostic, funcs func() []rfc001DeclaredF
 	if len(near) == 0 {
 		return
 	}
-	d.Message += fmt.Sprintf("; did you mean %q?", near[0])
-	d.Data = UnresolvedNameData{Kind: DiagDataKindUnresolvedName, Name: name, Candidates: near}
+	d.Message = protocol.String(MessageText(d.Message) + fmt.Sprintf("; did you mean %q?", near[0]))
+	d.Data = mustAny(UnresolvedNameData{Kind: DiagDataKindUnresolvedName, Name: name, Candidates: near})
 }
 
 // rfc001DeclaredFunction is a function declaration visible from the

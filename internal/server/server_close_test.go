@@ -53,15 +53,15 @@ func TestServerClose_StopsWatchedFilesTimer(t *testing.T) {
 
 	// Schedule a watched-files notification. The handler stores
 	// the event and starts the timer; Close should stop it.
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1),
+	call, err := newTestCall(jsonrpc2.NewNumberID(1),
 		protocol.MethodWorkspaceDidChangeWatchedFiles,
 		&protocol.DidChangeWatchedFilesParams{
-			Changes: []*protocol.FileEvent{
+			Changes: []protocol.FileEvent{
 				{URI: uri.URI("file:///work/.protolsp.pxf"), Type: protocol.FileChangeTypeChanged},
 			},
 		})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	// Timer must be set right after the notification — confirms the
 	// preconditions of the test before we exercise Close.

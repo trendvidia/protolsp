@@ -53,7 +53,7 @@ func TestIsProtoURI(t *testing.T) {
 func TestDidOpen_RegistryProtoURIDoesNotCrash(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "registry:///acme/foo.proto", 1, validProto)))
 
 	// No publishDiagnostics fires — protolsp ignores non-file
@@ -78,7 +78,7 @@ func TestDidChange_RegistryProtoURIDoesNotCrash(t *testing.T) {
 	// Send didChange straight off — no preceding didOpen. The
 	// fall-through Open() path inside dispatchDidChange would
 	// have created the doc and tripped the same Filename panic.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "registry:///acme/foo.proto", 2, validProto)))
 
 	assert.Empty(t, fc.calls())
@@ -111,7 +111,7 @@ message Broken {
 func TestDidOpen_ValidProtoPublishesEmptyDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/greet.proto", 1, validProto)))
 
 	notes := fc.calls()
@@ -132,7 +132,7 @@ func TestDidOpen_ValidProtoPublishesEmptyDiagnostics(t *testing.T) {
 func TestDidOpen_BrokenProtoPublishesDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/broken.proto", 1, brokenProto)))
 
 	notes := fc.calls()
@@ -141,7 +141,7 @@ func TestDidOpen_BrokenProtoPublishesDiagnostics(t *testing.T) {
 	require.NotEmpty(t, diags, "broken .proto must produce at least one diagnostic")
 
 	for _, d := range diags {
-		assert.Equal(t, "protolsp/proto", d.Source,
+		assert.Equal(t, "protolsp/proto", optValue(d.Source),
 			"every proto diagnostic carries the protolsp/proto source string")
 		assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity,
 			"protocompile parse failures map to Error severity")
@@ -167,7 +167,7 @@ import "no/such/file.proto";
 
 package acme.demo.v1;
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/imports.proto", 1, src)))
 
 	notes := fc.calls()
@@ -175,6 +175,6 @@ package acme.demo.v1;
 	diags := notes[0].params.Diagnostics
 	require.NotEmpty(t, diags, "unresolved import should surface as a diagnostic")
 	for _, d := range diags {
-		assert.Equal(t, "protolsp/proto", d.Source)
+		assert.Equal(t, "protolsp/proto", optValue(d.Source))
 	}
 }

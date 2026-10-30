@@ -18,7 +18,6 @@ package transport
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -26,10 +25,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trendvidia/protolsp/internal/lspcodec"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/internal/server"
 )
@@ -70,10 +72,10 @@ func TestDispatcher_NoDeadlockOnDidChangeConfiguration(t *testing.T) {
 	// test entirely, so we'd never exercise the deadlock window.
 	var initResult protocol.InitializeResult
 	_, err := client.conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "dispatcher-smoke", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "dispatcher-smoke", Version: protocol.NewOptional("0")},
 		Capabilities: protocol.ClientCapabilities{
 			Workspace: &protocol.WorkspaceClientCapabilities{
-				Configuration: true,
+				Configuration: &trueValue,
 			},
 		},
 	}, &initResult)
@@ -117,7 +119,7 @@ func TestDispatcher_NoDeadlockOnDidChangeConfiguration(t *testing.T) {
 	// produces a different deadlock that has nothing to do with the
 	// regression under test). The bare analyze + publishDiagnostics path
 	// is what we want to exercise.
-	docURI := protocol.DocumentURI("file:///nonexistent/smoke.pxf")
+	docURI := uri.URI("file:///nonexistent/smoke.pxf")
 	require.NoError(t, client.conn.Notify(ctx, protocol.MethodTextDocumentDidOpen,
 		&protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
@@ -157,7 +159,7 @@ func syncProbe(t *testing.T, ctx context.Context, conn jsonrpc2.Conn) {
 	_, err := conn.Call(ctx, protocol.MethodTextDocumentDocumentSymbol,
 		&protocol.DocumentSymbolParams{
 			TextDocument: protocol.TextDocumentIdentifier{
-				URI: protocol.DocumentURI("file:///dispatcher-smoke/sync-probe"),
+				URI: uri.URI("file:///dispatcher-smoke/sync-probe"),
 			},
 		}, &dummy)
 	require.NoError(t, err, "sync probe Call should always succeed; failure here means the dispatcher itself is broken")
@@ -202,7 +204,7 @@ func newPipedSession(t *testing.T, ctx context.Context) (*server.Server, *pipedC
 	srv := server.New(discardLogger(t))
 	serverRWC := &pipeRWC{r: c2sR, w: s2cW, name: "server"}
 	srvStream := jsonrpc2.NewStream(serverRWC)
-	srvConn := jsonrpc2.NewConn(srvStream)
+	srvConn := jsonrpc2.NewConn(srvStream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	srv.AttachConn(srvConn)
 	srvConn.Go(ctx, srv.Handle)
 
@@ -211,7 +213,7 @@ func newPipedSession(t *testing.T, ctx context.Context) (*server.Server, *pipedC
 	}
 	clientRWC := &pipeRWC{r: s2cR, w: c2sW, name: "client"}
 	clientStream := jsonrpc2.NewStream(clientRWC)
-	client.conn = jsonrpc2.NewConn(clientStream)
+	client.conn = jsonrpc2.NewConn(clientStream, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	client.conn.Go(ctx, client.handle)
 
 	shutdown := func() {
@@ -248,24 +250,24 @@ func newPipedSession(t *testing.T, ctx context.Context) (*server.Server, *pipedC
 //
 // Any other inbound method gets MethodNotFound back — useful as a
 // fail-fast if a new server-initiated call shows up unexpectedly.
-func (c *pipedClient) handle(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
+func (c *pipedClient) handle(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 	switch req.Method() {
 	case protocol.MethodWorkspaceConfiguration:
 		var params protocol.ConfigurationParams
-		if err := json.Unmarshal(req.Params(), &params); err != nil {
-			return reply(ctx, nil, err)
+		if err := protocol.Unmarshal(req.Params(), &params); err != nil {
+			return nil, err
 		}
 		nulls := make([]any, len(params.Items))
-		return reply(ctx, nulls, nil)
+		return nulls, nil
 	case protocol.MethodClientRegisterCapability:
-		return reply(ctx, nil, nil)
+		return nil, nil
 	case protocol.MethodWindowShowMessage:
 		// Notification — no reply payload; reply with nil per jsonrpc2.
-		return reply(ctx, nil, nil)
+		return nil, nil
 	case protocol.MethodTextDocumentPublishDiagnostics:
 		var params protocol.PublishDiagnosticsParams
-		if err := json.Unmarshal(req.Params(), &params); err != nil {
-			return reply(ctx, nil, err)
+		if err := protocol.Unmarshal(req.Params(), &params); err != nil {
+			return nil, err
 		}
 		select {
 		case c.publishes <- &params:
@@ -274,9 +276,9 @@ func (c *pipedClient) handle(ctx context.Context, reply jsonrpc2.Replier, req js
 			// receive side timing out, not this drop, so we don't
 			// fail loudly here.
 		}
-		return reply(ctx, nil, nil)
+		return nil, nil
 	default:
-		return jsonrpc2.MethodNotFoundHandler(ctx, reply, req)
+		return jsonrpc2.MethodNotFoundHandler(ctx, req)
 	}
 }
 
@@ -312,3 +314,5 @@ func (p *pipeRWC) Close() error {
 	})
 	return p.closeErr
 }
+
+var trueValue = true

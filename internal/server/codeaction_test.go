@@ -77,7 +77,7 @@ name = "alice"
 unknown_a = 1
 also_unknown = "x"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/e.pxf", 1, src)))
 
 	diags := diagnosticsAt(t, fc, 0)
@@ -92,8 +92,8 @@ also_unknown = "x"
 	require.Contains(t, byLine, uint32(4))
 	d := byLine[3]
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Equal(t, "protolsp/schema", d.Source)
-	assert.Contains(t, d.Message, "unknown_a")
+	assert.Equal(t, "protolsp/schema", optValue(d.Source))
+	assert.Contains(t, messageText(d.Message), "unknown_a")
 
 	// Data payload survives the JSON round-trip the fakeConn does
 	// before storing the call. Decoded as map[string]any.
@@ -110,7 +110,7 @@ func TestDiag_DeprecatedFieldEmitsHintWithTag(t *testing.T) {
 name = "alice"
 email = "alice@example.com"
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/e.pxf", 1, src)))
 
 	diags := diagnosticsAt(t, fc, 0)
@@ -118,9 +118,9 @@ email = "alice@example.com"
 	d := diags[0]
 	assert.Equal(t, protocol.DiagnosticSeverityHint, d.Severity,
 		"deprecation surfaces as Hint so editors render strikethrough without complaining")
-	assert.Contains(t, d.Message, "email")
-	require.Len(t, d.Tags, 1)
-	assert.Equal(t, protocol.DiagnosticTagDeprecated, d.Tags[0])
+	assert.Contains(t, messageText(d.Message), "email")
+	require.Equal(t, 1, d.Tags.Len())
+	assert.Equal(t, protocol.DiagnosticTagDeprecated, d.Tags.Slice()[0])
 }
 
 func TestCodeAction_RemoveFieldQuickFix(t *testing.T) {
@@ -130,7 +130,7 @@ func TestCodeAction_RemoveFieldQuickFix(t *testing.T) {
 name = "alice"
 unknown_a = 1
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/e.pxf", 1, src)))
 
 	// Client typically sends back the diagnostics it's seen, with
@@ -143,14 +143,14 @@ unknown_a = 1
 			End:   protocol.Position{Line: 3, Character: 1},
 		},
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "protolsp/schema",
-		Message:  `unknown field "unknown_a" on this message`,
-		Data: UnknownFieldData{
+		Source:   protocol.NewOptional("protolsp/schema"),
+		Message:  protocol.String(`unknown field "unknown_a" on this message`),
+		Data: testAny(UnknownFieldData{
 			Kind: DiagDataKindUnknownField, FieldName: "unknown_a", Line: 3,
-		},
+		}),
 	}
 
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(7),
+	call, err := newTestCall(jsonrpc2.NewNumberID(7),
 		protocol.MethodTextDocumentCodeAction,
 		&protocol.CodeActionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
@@ -170,12 +170,12 @@ unknown_a = 1
 		require.NoError(t, json.Unmarshal(b, &captured))
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 
 	require.Len(t, captured, 1, "exactly one quick-fix for the unknown field")
 	act := captured[0]
 	assert.Equal(t, "Remove field \"unknown_a\"", act.Title)
-	assert.Equal(t, protocol.QuickFix, act.Kind)
+	assert.Equal(t, protocol.CodeActionKindQuickFix, *act.Kind)
 	require.NotNil(t, act.Edit)
 	edits := act.Edit.Changes[docURI]
 	require.Len(t, edits, 1)
@@ -208,8 +208,8 @@ name = "alice"
 unknown_a = 1
 unknown_b = 2
 `
-	docURI := protocol.DocumentURI("file:///work/e.pxf")
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	docURI := uri.URI("file:///work/e.pxf")
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, string(docURI), 1, src)))
 
 	// didOpen produced one publishDiagnostics. Pull the
@@ -243,7 +243,7 @@ unknown_b = 2
 name = "alice"
 unknown_b = 2
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, string(docURI), 2, editedSrc)))
 
 	// Post-edit: one diagnostic remains, on line 3 (was line 4).
@@ -282,7 +282,7 @@ func TestCodeAction_IgnoresUnrelatedDiagnostics(t *testing.T) {
 	srv, _ := newServerWithEmployee(t)
 	const src = `@type acme.demo.v1.Employee
 `
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/e.pxf", 1, src)))
 
 	diag := protocol.Diagnostic{
@@ -291,10 +291,10 @@ func TestCodeAction_IgnoresUnrelatedDiagnostics(t *testing.T) {
 			End:   protocol.Position{Line: 0, Character: 1},
 		},
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "protolsp/parse",
-		Message:  "syntax error",
+		Source:   protocol.NewOptional("protolsp/parse"),
+		Message:  protocol.String("syntax error"),
 	}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(8),
+	call, err := newTestCall(jsonrpc2.NewNumberID(8),
 		protocol.MethodTextDocumentCodeAction,
 		&protocol.CodeActionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI("file:///work/e.pxf")},
@@ -307,7 +307,7 @@ func TestCodeAction_IgnoresUnrelatedDiagnostics(t *testing.T) {
 		gotResult = result != nil
 		return nil
 	}
-	require.NoError(t, srv.Handle(context.Background(), reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), reply, call))
 	assert.False(t, gotResult, "non-protolsp diagnostics should yield no actions (null result)")
 }
 
@@ -329,16 +329,14 @@ func TestDiagnosticData_RoundTripsViaJSON(t *testing.T) {
 			FieldName: "missing_field",
 			Line:      7,
 		}
-		// json.Marshal a Diagnostic with the typed value, then
+		// Marshal a Diagnostic with the typed value, then
 		// Unmarshal back into a Diagnostic — same path
 		// dispatchCodeAction takes when a real client returns the
 		// diagnostic with the CodeActionRequest.
-		buf, err := json.Marshal(protocol.Diagnostic{Data: original})
+		buf, err := protocol.Marshal(protocol.Diagnostic{Data: testAny(original)})
 		require.NoError(t, err)
 		var roundtripped protocol.Diagnostic
-		require.NoError(t, json.Unmarshal(buf, &roundtripped))
-		require.IsType(t, map[string]interface{}{}, roundtripped.Data,
-			"after JSON round-trip Data is a map, not the typed struct")
+		require.NoError(t, protocol.Unmarshal(buf, &roundtripped))
 
 		decoded := DecodeUnknownFieldData(roundtripped.Data)
 		require.NotNil(t, decoded)
@@ -352,11 +350,10 @@ func TestDiagnosticData_RoundTripsViaJSON(t *testing.T) {
 			Kind:      DiagDataKindLiteralSecret,
 			FieldPath: "credentials.password",
 		}
-		buf, err := json.Marshal(protocol.Diagnostic{Data: original})
+		buf, err := protocol.Marshal(protocol.Diagnostic{Data: testAny(original)})
 		require.NoError(t, err)
 		var roundtripped protocol.Diagnostic
-		require.NoError(t, json.Unmarshal(buf, &roundtripped))
-		require.IsType(t, map[string]interface{}{}, roundtripped.Data)
+		require.NoError(t, protocol.Unmarshal(buf, &roundtripped))
 
 		decoded := DecodeLiteralSecretData(roundtripped.Data)
 		require.NotNil(t, decoded)
@@ -368,13 +365,13 @@ func TestDiagnosticData_RoundTripsViaJSON(t *testing.T) {
 func TestInitialize_AdvertisesCodeActionProvider(t *testing.T) {
 	srv := New(discardLogger())
 	rep := &captureReplier{}
-	call, err := jsonrpc2.NewCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
-		&protocol.InitializeParams{ClientInfo: &protocol.ClientInfo{Name: "test"}})
+	call, err := newTestCall(jsonrpc2.NewNumberID(1), protocol.MethodInitialize,
+		&protocol.InitializeParams{ClientInfo: protocol.ClientInfo{Name: "test"}})
 	require.NoError(t, err)
-	require.NoError(t, srv.Handle(context.Background(), rep.reply, call))
+	require.NoError(t, testHandle(srv, context.Background(), rep.reply, call))
 
 	result := rep.result.(*initializeResult)
 	opts, ok := result.Capabilities.CodeActionProvider.(*protocol.CodeActionOptions)
 	require.True(t, ok, "CodeActionProvider should be a *CodeActionOptions, got %T", result.Capabilities.CodeActionProvider)
-	require.Contains(t, opts.CodeActionKinds, protocol.QuickFix)
+	require.Contains(t, opts.CodeActionKinds, protocol.CodeActionKindQuickFix)
 }

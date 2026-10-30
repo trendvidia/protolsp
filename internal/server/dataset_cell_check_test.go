@@ -128,7 +128,7 @@ func TestDatasetCellCheck_MatchesTheDecoder(t *testing.T) {
 		t.Run(fmt.Sprintf("%s<-%s", tc.col, tc.cell), func(t *testing.T) {
 			u := fmt.Sprintf("file:///work/c%d.pxf", i)
 			src := fmt.Sprintf("@dataset c.v1.R (%s)\n(%s)\n", tc.col, tc.cell)
-			require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, u, 1, src)))
+			require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, u, 1, src)))
 			doc := srv.Documents().Get(uri.URI(u))
 			require.NoError(t, doc.ParseErr)
 			notes := fc.calls()
@@ -138,7 +138,7 @@ func TestDatasetCellCheck_MatchesTheDecoder(t *testing.T) {
 				return
 			}
 			require.Len(t, diags, 1)
-			assert.Equal(t, tc.reject, diags[0].Message)
+			assert.Equal(t, tc.reject, messageText(diags[0].Message))
 			assert.Equal(t, uint32(1), diags[0].Range.Start.Line)
 			assert.Equal(t, uint32(1), diags[0].Range.Start.Character, "the range starts at the cell")
 		})
@@ -171,12 +171,12 @@ func TestDatasetCellCheck_DottedColumns(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			u := fmt.Sprintf("file:///work/dot%d.pxf", i)
 			src := fmt.Sprintf("@dataset c.v1.R (%s)\n(%s)\n", tc.cols, tc.row)
-			require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, u, 1, src)))
+			require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, u, 1, src)))
 			require.NoError(t, srv.Documents().Get(uri.URI(u)).ParseErr)
 			notes := fc.calls()
 			var got []string
 			for _, d := range findDatasetSource(notes[len(notes)-1].params.Diagnostics) {
-				got = append(got, d.Message)
+				got = append(got, messageText(d.Message))
 			}
 			assert.Equal(t, tc.want, got)
 		})
@@ -207,7 +207,7 @@ func TestDatasetCellCheck_InsideListsAndMaps(t *testing.T) {
 		t.Run(fmt.Sprintf("%s<-%s", tc.col, tc.cell), func(t *testing.T) {
 			u := fmt.Sprintf("file:///work/in%d.pxf", i)
 			src := fmt.Sprintf("@dataset c.v1.R (%s)\n(%s)\n", tc.col, tc.cell)
-			require.NoError(t, srv.Handle(context.Background(), noopReply, didOpenCall(t, u, 1, src)))
+			require.NoError(t, testHandle(srv, context.Background(), noopReply, didOpenCall(t, u, 1, src)))
 			require.NoError(t, srv.Documents().Get(uri.URI(u)).ParseErr)
 			notes := fc.calls()
 			diags := findDatasetSource(notes[len(notes)-1].params.Diagnostics)
@@ -216,7 +216,7 @@ func TestDatasetCellCheck_InsideListsAndMaps(t *testing.T) {
 				return
 			}
 			require.Len(t, diags, 1)
-			assert.Equal(t, tc.want, diags[0].Message)
+			assert.Equal(t, tc.want, messageText(diags[0].Message))
 			assert.Equal(t, uint32(1), diags[0].Range.Start.Line)
 			assert.Equal(t, tc.char, diags[0].Range.Start.Character)
 		})

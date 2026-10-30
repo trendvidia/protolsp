@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/trendvidia/protolsp/internal/lspcodec"
+
 	"github.com/coder/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,11 +92,11 @@ func TestWebsocket_AbnormalClose_SurfacesAsError(t *testing.T) {
 	// behavior may still be benign but the test is about pinning
 	// the documented error-mapping logic, which only matters once
 	// the dispatcher is running.
-	conn := jsonrpc2.NewConn(&wsStream{conn: c})
+	conn := jsonrpc2.NewConn(&wsStream{conn: c}, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	conn.Go(ctx, jsonrpc2.MethodNotFoundHandler)
 	var result protocol.InitializeResult
 	_, err = conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "ws-close-test", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "ws-close-test", Version: protocol.NewOptional("0")},
 	}, &result)
 	require.NoError(t, err)
 
@@ -136,11 +138,11 @@ func TestWebsocket_NormalClose_IsSilent(t *testing.T) {
 		_ = resp.Body.Close()
 	}
 
-	conn := jsonrpc2.NewConn(&wsStream{conn: c})
+	conn := jsonrpc2.NewConn(&wsStream{conn: c}, jsonrpc2.WithCodec(lspcodec.Codec{}))
 	conn.Go(ctx, jsonrpc2.MethodNotFoundHandler)
 	var result protocol.InitializeResult
 	_, err = conn.Call(ctx, protocol.MethodInitialize, &protocol.InitializeParams{
-		ClientInfo: &protocol.ClientInfo{Name: "ws-close-test", Version: "0"},
+		ClientInfo: protocol.ClientInfo{Name: "ws-close-test", Version: protocol.NewOptional("0")},
 	}, &result)
 	require.NoError(t, err)
 

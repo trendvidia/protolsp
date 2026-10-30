@@ -231,7 +231,7 @@ func TestDidOpen_ValidPxfPublishesEmptyDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
 	call := didOpenCall(t, "file:///work/greet.pxf", 1, validPxf)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
@@ -249,7 +249,7 @@ func TestDidOpen_InvalidPxfPublishesParseDiagnostic(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
 	call := didOpenCall(t, "file:///work/bad.pxf", 1, invalidPxf)
-	require.NoError(t, srv.Handle(context.Background(), noopReply, call))
+	require.NoError(t, testHandle(srv, context.Background(), noopReply, call))
 
 	notes := fc.calls()
 	require.Len(t, notes, 1)
@@ -257,8 +257,8 @@ func TestDidOpen_InvalidPxfPublishesParseDiagnostic(t *testing.T) {
 	require.Len(t, diags, 1, "exactly one parse-error diagnostic")
 	d := diags[0]
 	assert.Equal(t, protocol.DiagnosticSeverityError, d.Severity)
-	assert.Equal(t, "protolsp/parse", d.Source)
-	assert.NotEmpty(t, d.Message, "diagnostic must carry the parser's error message")
+	assert.Equal(t, "protolsp/parse", optValue(d.Source))
+	assert.NotEmpty(t, messageText(d.Message), "diagnostic must carry the parser's error message")
 	// Range is non-empty (start before end) so editors render a squiggle
 	// rather than collapsing the diagnostic. Specific line/column for a
 	// given input is covered by TestPxfPosToLSP.
@@ -275,14 +275,14 @@ func TestDidOpen_InvalidPxfPublishesParseDiagnostic(t *testing.T) {
 func TestDidChange_RepublishesDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, validPxf)))
 	// First open published an empty-diagnostics notification.
 	require.Len(t, fc.calls(), 1)
 	assert.Empty(t, fc.calls()[0].params.Diagnostics)
 
 	// Modify to something invalid; expect a new publish with one diag.
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didChangeCall(t, "file:///work/g.pxf", 2, invalidPxf)))
 	notes := fc.calls()
 	require.Len(t, notes, 2)
@@ -297,12 +297,12 @@ func TestDidChange_RepublishesDiagnostics(t *testing.T) {
 func TestDidClose_RemovesDocumentAndClearsDiagnostics(t *testing.T) {
 	srv, fc := newServerWithFakeConn(t)
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didOpenCall(t, "file:///work/g.pxf", 1, invalidPxf)))
 	require.Len(t, fc.calls(), 1)
 	require.Len(t, fc.calls()[0].params.Diagnostics, 1, "invalid open → one diag")
 
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
+	require.NoError(t, testHandle(srv, context.Background(), noopReply,
 		didCloseCall(t, "file:///work/g.pxf")))
 
 	notes := fc.calls()
@@ -330,9 +330,9 @@ func TestPxfPosToLSP_OneIndexedToZeroIndexed(t *testing.T) {
 
 func noopReply(context.Context, interface{}, error) error { return nil }
 
-func didOpenCall(t *testing.T, u string, version int32, text string) jsonrpc2.Request {
+func didOpenCall(t *testing.T, u string, version int32, text string) rpcRequest {
 	t.Helper()
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidOpen,
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidOpen,
 		&protocol.DidOpenTextDocumentParams{
 			TextDocument: protocol.TextDocumentItem{
 				URI:        uri.URI(u),
@@ -352,7 +352,7 @@ func didOpenCall(t *testing.T, u string, version int32, text string) jsonrpc2.Re
 // field would otherwise marshal as a zero-valued range object
 // (defeating the incremental-vs-full discrimination on the server
 // side).
-func didChangeCall(t *testing.T, u string, version int32, text string) jsonrpc2.Request {
+func didChangeCall(t *testing.T, u string, version int32, text string) rpcRequest {
 	t.Helper()
 	params := map[string]any{
 		"textDocument": map[string]any{
@@ -363,7 +363,7 @@ func didChangeCall(t *testing.T, u string, version int32, text string) jsonrpc2.
 			{"text": text}, // no "range" key → full-document fallback
 		},
 	}
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidChange, params)
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidChange, params)
 	require.NoError(t, err)
 	return notif
 }
@@ -371,7 +371,7 @@ func didChangeCall(t *testing.T, u string, version int32, text string) jsonrpc2.
 // didChangeIncrementalCall is the incremental counterpart of
 // didChangeCall: builds a single content-change event with an
 // explicit range + replacement text. Used by I1 tests.
-func didChangeIncrementalCall(t *testing.T, u string, version int32, r protocol.Range, newText string) jsonrpc2.Request {
+func didChangeIncrementalCall(t *testing.T, u string, version int32, r protocol.Range, newText string) rpcRequest {
 	t.Helper()
 	params := map[string]any{
 		"textDocument": map[string]any{
@@ -388,14 +388,14 @@ func didChangeIncrementalCall(t *testing.T, u string, version int32, r protocol.
 			},
 		},
 	}
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidChange, params)
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidChange, params)
 	require.NoError(t, err)
 	return notif
 }
 
-func didCloseCall(t *testing.T, u string) jsonrpc2.Request {
+func didCloseCall(t *testing.T, u string) rpcRequest {
 	t.Helper()
-	notif, err := jsonrpc2.NewNotification(protocol.MethodTextDocumentDidClose,
+	notif, err := newTestNotification(protocol.MethodTextDocumentDidClose,
 		&protocol.DidCloseTextDocumentParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: uri.URI(u)},
 		})

@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/chain"
 )
@@ -93,7 +94,7 @@ func (s *Workspace) DetectLayerInfo(doc *Document) {
 // flag; the content-sniff for sops streams (chameleon-integration
 // §"sops-encrypted layers") is a later refinement that lives
 // alongside the diagnostic-skip behavior (C3+).
-func (s *Workspace) ComputeLayerInfo(docURI protocol.DocumentURI) *LayerInfoResult {
+func (s *Workspace) ComputeLayerInfo(docURI uri.URI) *LayerInfoResult {
 	empty := &LayerInfoResult{IsLayer: false}
 	if s == nil {
 		return empty

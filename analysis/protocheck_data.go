@@ -92,9 +92,9 @@ func protocheckDataDiagnostics(doc *Document) []protocol.Diagnostic {
 		d := protocol.Diagnostic{
 			Range:    pxfPosToRange(f.Pos),
 			Severity: severity,
-			Source:   "protocheck",
-			Code:     f.ConstraintID,
-			Message:  msg,
+			Source:   optString("protocheck"),
+			Code:     protocol.String(f.ConstraintID),
+			Message:  protocol.String(msg),
 		}
 		if f.Rule != nil {
 			// "Go to rule": editors render related information as a

@@ -81,10 +81,10 @@ func (s *Workspace) defaultRedundancyDiagnostics(doc *Document) []protocol.Diagn
 			out = append(out, protocol.Diagnostic{
 				Range:    pxfPosToRange(pos),
 				Severity: protocol.DiagnosticSeverityHint,
-				Source:   "protolsp/schema",
-				Message: fmt.Sprintf(
+				Source:   optString("protolsp/schema"),
+				Message: protocol.String(fmt.Sprintf(
 					"field %q matches default %s; consider removing",
-					name, defaultLiteral),
+					name, defaultLiteral)),
 			})
 		})
 	return out
