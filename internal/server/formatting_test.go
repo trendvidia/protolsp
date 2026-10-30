@@ -6,8 +6,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -91,111 +89,194 @@ func TestFormatting_ReturnsNilOnParseError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Proto formatting (phase 5a) — driven through buf via the buftool package
+// Proto formatting — protocompile's printer, Legacy (buf-compatible) preset
 // ---------------------------------------------------------------------------
 
-// writeFakeBufForServer stages a shell script that the buftool
-// invocations route to via PROTOLSP_BUF_PATH. Branches on the
-// BUFTOOL_TEST_MODE env var to let individual tests dial behavior:
-//
-//	"format-uppercase" — uppercase the input
-//	"format-passthrough" — return the input unchanged (already canonical)
-//	"format-fail" — exit 1 with a stderr message
-//
-// Mirrors the helper in buftool_test.go but lives here too so the
-// server integration tests don't have to import an internal _test
-// package.
-func writeFakeBufForServer(t *testing.T) string {
+// formatProtoDoc opens src as a .proto document and returns the
+// formatting result.
+func formatProtoDoc(t *testing.T, src string) []protocol.TextEdit {
 	t.Helper()
-	dir := t.TempDir()
-	path := filepath.Join(dir, "fake-buf.sh")
-	const script = `#!/bin/sh
-if [ "$1" != "format" ]; then
-  exit 2
-fi
-file="$2"
-case "${BUFTOOL_TEST_MODE:-format-passthrough}" in
-  format-uppercase) tr '[:lower:]' '[:upper:]' < "$file" ;;
-  format-passthrough) cat "$file" ;;
-  format-fail) echo "fake-buf: simulated failure" 1>&2; exit 1 ;;
-  *) exit 3 ;;
-esac
-`
-	require.NoError(t, os.WriteFile(path, []byte(script), 0o755))
-	return path
-}
-
-func TestProtoFormatting_BufRewrites(t *testing.T) {
-	t.Setenv("PROTOLSP_BUF_PATH", writeFakeBufForServer(t))
-	t.Setenv("BUFTOOL_TEST_MODE", "format-uppercase")
-
 	srv, _ := newServerWithFakeConn(t)
 	const u = "file:///work/foo.proto"
-	const src = `syntax = "proto3";
-
-message Foo {
-  string name = 1;
-}
-`
 	require.NoError(t, srv.Handle(context.Background(), noopReply,
 		didOpenCall(t, u, 1, src)))
+	return formattingFromHandle(t, srv, u)
+}
 
-	edits := formattingFromHandle(t, srv, u)
+// TestProtoFormatting_MatchesBufFormat pins parity with `buf format`
+// on a file with no v1.2 syntax. want is buf 1.74.0's output for src
+// verbatim, so a printer change that moves away from buf's layout
+// fails here rather than as churn in users' files.
+func TestProtoFormatting_MatchesBufFormat(t *testing.T) {
+	const src = `syntax="proto3";
+package   demo.v1;
+import "google/protobuf/timestamp.proto";
+option go_package="example.com/demo/v1;demov1";
+
+// Order is one order.
+message Order{
+  string id=1;   // trailing
+    google.protobuf.Timestamp created_at = 2 [deprecated=true];
+  repeated  string tags=3;
+  enum Status{STATUS_UNSPECIFIED=0;STATUS_OPEN=1;}
+  Status status=4;
+}
+service Orders{rpc Get(Order)returns(Order);}
+`
+	const want = `syntax = "proto3";
+package demo.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/demo/v1;demov1";
+
+// Order is one order.
+message Order {
+  string id = 1; // trailing
+  google.protobuf.Timestamp created_at = 2 [deprecated = true];
+  repeated string tags = 3;
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_OPEN = 1;
+  }
+  Status status = 4;
+}
+service Orders {
+  rpc Get(Order) returns (Order);
+}
+`
+	edits := formatProtoDoc(t, src)
 	require.Len(t, edits, 1, "non-canonical source produces a single whole-doc edit")
-	assert.Equal(t, strings.ToUpper(src), edits[0].NewText)
-	// Range covers the whole document — start at (0,0), end at the
-	// past-the-last position.
+	assert.Equal(t, want, edits[0].NewText)
 	assert.Equal(t, uint32(0), edits[0].Range.Start.Line)
 	assert.Equal(t, uint32(0), edits[0].Range.Start.Character)
+	assert.Equal(t, uint32(14), edits[0].Range.End.Line, "range ends past the last line")
+
+	assert.Empty(t, formatProtoDoc(t, want), "buf's own output is already canonical")
+}
+
+// TestProtoFormatting_KeepsV12Annotations is the case buf could not
+// handle (#9): a file using @validate, @required and a function
+// declaration. Formatting must return edits, and keep every
+// annotation use and every comment.
+func TestProtoFormatting_KeepsV12Annotations(t *testing.T) {
+	const src = `syntax = "proto3";
+package daysong.v1alpha1;
+
+// TempoRange min <= max.
+function tempo_ordered(t: TempoRange);
+
+message StyleDescriptor {
+  // 0.0-1.0.
+  float energy = 1   @validate(this >= 0.0 && this <= 1.0, code = "descriptor.energy.range", message = "energy must be within [0, 1]");
+  TempoRange tempo = 3 @required;
+  Mode mode = 5 @required @validate(this in [1, 2], code = "descriptor.mode.known", message = "mode must be match or regulate");
+  enum Mode{MODE_UNSPECIFIED=0;MODE_MATCH=1;MODE_REGULATE=2;}
+}
+
+// Beats per minute, 40-220, min <= max.
+@validate(tempo_ordered(this), code = "tempo.min_le_max", message = "min_bpm must not exceed max_bpm")
+message TempoRange {
+  int32 min_bpm = 1 @validate(this >= 40 && this <= 220, code = "tempo.min.range", message = "min_bpm out of range");
+  int32 max_bpm = 2;
+}
+`
+	// Long annotation uses wrap at 100 columns, one argument per
+	// line (protocompile#281); short ones stay on the field's line.
+	const want = `syntax = "proto3";
+package daysong.v1alpha1;
+
+// TempoRange min <= max.
+function tempo_ordered(t: TempoRange);
+
+message StyleDescriptor {
+  // 0.0-1.0.
+  float energy = 1
+    @validate(
+      this >= 0.0 && this <= 1.0,
+      code = "descriptor.energy.range",
+      message = "energy must be within [0, 1]"
+    );
+  TempoRange tempo = 3 @required;
+  Mode mode = 5
+    @required
+    @validate(
+      this in [1, 2],
+      code = "descriptor.mode.known",
+      message = "mode must be match or regulate"
+    );
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    MODE_MATCH = 1;
+    MODE_REGULATE = 2;
+  }
+}
+
+// Beats per minute, 40-220, min <= max.
+@validate(
+  tempo_ordered(this),
+  code = "tempo.min_le_max",
+  message = "min_bpm must not exceed max_bpm"
+)
+message TempoRange {
+  int32 min_bpm = 1
+    @validate(
+      this >= 40 && this <= 220,
+      code = "tempo.min.range",
+      message = "min_bpm out of range"
+    );
+  int32 max_bpm = 2;
+}
+`
+	edits := formatProtoDoc(t, src)
+	require.Len(t, edits, 1, "v1.2 source is formatted, not skipped")
+	got := edits[0].NewText
+	assert.Equal(t, want, got)
+	assert.Equal(t, strings.Count(src, "@validate"), strings.Count(got, "@validate"))
+	assert.Equal(t, strings.Count(src, "@required"), strings.Count(got, "@required"))
+	assert.Equal(t, strings.Count(src, "//"), strings.Count(got, "//"))
+
+	assert.Empty(t, formatProtoDoc(t, got), "formatting is idempotent")
 }
 
 func TestProtoFormatting_AlreadyCanonicalReturnsEmptySlice(t *testing.T) {
-	t.Setenv("PROTOLSP_BUF_PATH", writeFakeBufForServer(t))
-	t.Setenv("BUFTOOL_TEST_MODE", "format-passthrough")
-
-	srv, _ := newServerWithFakeConn(t)
-	const u = "file:///work/foo.proto"
-	const src = "syntax = \"proto3\";\n"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
-		didOpenCall(t, u, 1, src)))
-
-	edits := formattingFromHandle(t, srv, u)
+	edits := formatProtoDoc(t, "syntax = \"proto3\";\n")
 	require.NotNil(t, edits,
 		"canonical source returns an empty slice, not nil (signals formatter ran, no edits)")
 	assert.Empty(t, edits)
 }
 
-func TestProtoFormatting_NilWhenBufMissing(t *testing.T) {
-	// Point env var at a non-existent path. buftool surfaces this
-	// as ErrBufNotFound; the server returns nil so the client
-	// sees "formatter unavailable" rather than "format failed".
-	t.Setenv("PROTOLSP_BUF_PATH", "/nonexistent/buf-binary")
-	srv, _ := newServerWithFakeConn(t)
-	const u = "file:///work/foo.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
-		didOpenCall(t, u, 1, "syntax = \"proto3\";\n")))
-
-	edits := formattingFromHandle(t, srv, u)
-	assert.Nil(t, edits)
+func TestProtoFormatting_NilOnParseError(t *testing.T) {
+	// Mid-edit source: rewriting from a partial AST would lose the
+	// user's text, so the client gets "no edits".
+	assert.Nil(t, formatProtoDoc(t, "syntax = \"proto3\";\nmessage Foo {\n  string name = \n"))
 }
 
-func TestProtoFormatting_NilWhenBufFails(t *testing.T) {
-	// Buf invocation itself errors (e.g. unparseable mid-edit
-	// source). Same nil-result posture as missing-binary so the
-	// client doesn't render a stale partial edit.
-	t.Setenv("PROTOLSP_BUF_PATH", writeFakeBufForServer(t))
-	t.Setenv("BUFTOOL_TEST_MODE", "format-fail")
+// TestProtoFormatting_KeepsCommentAfterBodySemicolon: the printer
+// drops the empty `;` after a body. Before protocompile#273 the
+// comment trailing it went too, and the content guard refused to
+// format the file; now the comment moves to its own line.
+func TestProtoFormatting_KeepsCommentAfterBodySemicolon(t *testing.T) {
+	const src = `syntax = "proto3";
 
-	srv, _ := newServerWithFakeConn(t)
-	const u = "file:///work/foo.proto"
-	require.NoError(t, srv.Handle(context.Background(), noopReply,
-		didOpenCall(t, u, 1, "anything\n")))
-
-	edits := formattingFromHandle(t, srv, u)
-	assert.Nil(t, edits)
+message Foo {
+  oneof choice {
+    string a = 1;
+  }; // kept
 }
+`
+	edits := formatProtoDoc(t, src)
+	require.Len(t, edits, 1)
+	assert.Equal(t, `syntax = "proto3";
 
-// ---------------------------------------------------------------------------
+message Foo {
+  oneof choice {
+    string a = 1;
+  }
+  // kept
+}
+`, edits[0].NewText)
+}
 
 func TestFormatting_AdvertisesCapability(t *testing.T) {
 	srv, _ := newServerWithFakeConn(t)

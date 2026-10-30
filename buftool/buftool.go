@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 // Package buftool wraps the external `buf` CLI for the proto-authoring
-// phase 5 LSP features (format, lint). It's the first time protolsp
+// phase 5 LSP features (lint; formatting moved to protocompile's
+// printer). It's the first time protolsp
 // shells out to a sibling binary, so this package establishes the
 // resolution + invocation pattern other future shells can mirror.
 //
@@ -15,10 +16,10 @@
 //     cleanly when buf isn't installed.
 //
 // Missing-buf isn't an error in this package's vocabulary; the
-// caller decides whether to surface a warning. Format / Lint return
-// distinct sentinel errors (ErrBufNotFound) so handlers can degrade
+// caller decides whether to surface a warning. Lint returns a
+// distinct sentinel error (ErrBufNotFound) so handlers can degrade
 // quietly when the binary isn't installed instead of poisoning every
-// formatRequest with "binary missing" diagnostics.
+// lint pass with "binary missing" diagnostics.
 package buftool
 
 import (
@@ -68,41 +69,6 @@ func Resolve() (string, error) {
 		return "", fmt.Errorf("%w: %v", ErrBufNotFound, err)
 	}
 	return path, nil
-}
-
-// Format runs `buf format` against src and returns the formatted
-// output. buf format reads from a file path (no stdin support as of
-// 1.45), so we stage src in a temp file with the .proto suffix it
-// expects. The temp file is removed before returning regardless of
-// outcome.
-//
-// Returns ErrBufNotFound when the binary couldn't be resolved.
-// Returns an error wrapping the exec.ExitError when buf itself
-// errors (e.g. unparseable input); callers typically log + skip
-// rather than treat that as fatal.
-func Format(ctx context.Context, src []byte) ([]byte, error) {
-	path, err := Resolve()
-	if err != nil {
-		return nil, err
-	}
-	tmpDir, err := os.MkdirTemp("", "protolsp-buf-format-")
-	if err != nil {
-		return nil, fmt.Errorf("creating temp dir for buf format: %w", err)
-	}
-	defer func() { _ = os.RemoveAll(tmpDir) }()
-	tmpFile := filepath.Join(tmpDir, "input.proto")
-	if err := os.WriteFile(tmpFile, src, 0o600); err != nil {
-		return nil, fmt.Errorf("staging input for buf format: %w", err)
-	}
-	cmd := exec.CommandContext(ctx, path, "format", tmpFile)
-	cmd.WaitDelay = killGraceWindow
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("buf format failed: %w: %s", err, stderr.String())
-	}
-	return stdout.Bytes(), nil
 }
 
 // LintFinding is one buf-lint result line decoded from buf's

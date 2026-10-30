@@ -23,14 +23,11 @@ import (
 // Behavior switches on the BUFTOOL_TEST_MODE env var so each test
 // can pin a scenario without writing a separate script:
 //
-//	"format-uppercase" — emit the input file's contents upper-cased to stdout
-//	"format-passthrough" — emit the input file's contents verbatim
-//	"format-fail" — exit 1 with a stderr message
-//	"format-slow" — sleep 30s before passthrough (triggers ctx.DeadlineExceeded)
 //	"lint-clean" — emit nothing, exit 0
 //	"lint-findings" — emit two JSON findings to stdout, exit 100
 //	"lint-compile" — emit a COMPILE-typed finding (build error), exit 100
 //	"lint-fail" — exit 1 with a stderr message, no stdout
+//	"lint-slow" — sleep 30s (triggers ctx.DeadlineExceeded)
 //
 // Returns the absolute path; tests point PROTOLSP_BUF_PATH at it.
 func writeFakeBuf(t *testing.T) string {
@@ -45,29 +42,6 @@ func writeFakeBuf(t *testing.T) string {
 sub="$1"
 shift
 case "$sub" in
-  format)
-    file="$1"
-    case "${BUFTOOL_TEST_MODE:-format-passthrough}" in
-      format-uppercase)
-        tr '[:lower:]' '[:upper:]' < "$file"
-        ;;
-      format-passthrough)
-        cat "$file"
-        ;;
-      format-fail)
-        echo "fake-buf: simulated failure" 1>&2
-        exit 1
-        ;;
-      format-slow)
-        sleep 30
-        cat "$file"
-        ;;
-      *)
-        echo "fake-buf: unknown format mode" 1>&2
-        exit 3
-        ;;
-    esac
-    ;;
   lint)
     # Args are "--error-format=json <file>". We ignore the
     # specific args here — the test mode picks behavior.
@@ -92,6 +66,9 @@ JSON
       lint-fail)
         echo "fake-buf: lint blew up" 1>&2
         exit 1
+        ;;
+      lint-slow)
+        sleep 30
         ;;
       *)
         echo "fake-buf: unknown lint mode" 1>&2
@@ -130,59 +107,27 @@ func TestResolve_FallsBackToPathLookup(t *testing.T) {
 		"missing-buf surfaces via ErrBufNotFound sentinel")
 }
 
-func TestFormat_PassthroughViaFakeBinary(t *testing.T) {
-	fake := writeFakeBuf(t)
-	t.Setenv(envVarName, fake)
-	t.Setenv("BUFTOOL_TEST_MODE", "format-passthrough")
-
-	src := []byte(`syntax = "proto3"; package foo;`)
-	got, err := Format(context.Background(), src)
-	require.NoError(t, err)
-	assert.Equal(t, string(src), string(got),
-		"passthrough mode confirms the temp-file staging + stdout capture round-trip")
-}
-
-func TestFormat_TransformViaFakeBinary(t *testing.T) {
-	fake := writeFakeBuf(t)
-	t.Setenv(envVarName, fake)
-	t.Setenv("BUFTOOL_TEST_MODE", "format-uppercase")
-
-	src := []byte("hello\n")
-	got, err := Format(context.Background(), src)
-	require.NoError(t, err)
-	assert.Equal(t, "HELLO\n", string(got),
-		"fake-binary transformation lands in the captured output")
-}
-
-func TestFormat_ReturnsErrBufNotFoundWhenMissing(t *testing.T) {
-	t.Setenv(envVarName, "")
-	t.Setenv("PATH", "")
-	_, err := Format(context.Background(), []byte("syntax = \"proto3\";"))
-	require.Error(t, err)
-	assert.True(t, errors.Is(err, ErrBufNotFound))
-}
-
-// TestFormat_RespectsContextDeadline covers the audit gap: a
+// TestLint_RespectsContextDeadline covers the audit gap: a
 // caller-supplied short deadline must surface as a context error
-// from Format rather than blocking the LSP dispatcher for the full
-// 30s a real-but-stuck buf could take. The fake-buf "format-slow"
+// from Lint rather than blocking the LSP dispatcher for the full
+// 30s a real-but-stuck buf could take. The fake-buf "lint-slow"
 // mode sleeps 30s; we hand it a 100ms context and assert the call
 // returns within a tight window with a context error in the chain.
-func TestFormat_RespectsContextDeadline(t *testing.T) {
+func TestLint_RespectsContextDeadline(t *testing.T) {
 	fake := writeFakeBuf(t)
 	t.Setenv(envVarName, fake)
-	t.Setenv("BUFTOOL_TEST_MODE", "format-slow")
+	t.Setenv("BUFTOOL_TEST_MODE", "lint-slow")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
 	start := time.Now()
-	_, err := Format(ctx, []byte("syntax = \"proto3\";"))
+	_, err := Lint(ctx, []byte("syntax = \"proto3\";"), "")
 	elapsed := time.Since(start)
 
 	require.Error(t, err)
 	assert.Less(t, elapsed, 3*time.Second,
-		"Format must honor the caller's context deadline; took %s", elapsed)
+		"Lint must honor the caller's context deadline; took %s", elapsed)
 	// The error chain should include context.DeadlineExceeded so
 	// callers can distinguish "buf hung" from "buf returned a real
 	// failure". The wrapper text may be anything; what matters is
@@ -192,19 +137,6 @@ func TestFormat_RespectsContextDeadline(t *testing.T) {
 			strings.Contains(err.Error(), "deadline") ||
 			strings.Contains(err.Error(), "signal: killed"),
 		"deadline-exceeded path must surface a context error or kill-signal: %v", err)
-}
-
-func TestFormat_PropagatesBufFailure(t *testing.T) {
-	fake := writeFakeBuf(t)
-	t.Setenv(envVarName, fake)
-	t.Setenv("BUFTOOL_TEST_MODE", "format-fail")
-
-	_, err := Format(context.Background(), []byte("anything"))
-	require.Error(t, err)
-	assert.False(t, errors.Is(err, ErrBufNotFound),
-		"a buf-side failure is NOT ErrBufNotFound — callers distinguish missing-binary from runtime errors")
-	assert.True(t, strings.Contains(err.Error(), "simulated failure"),
-		"stderr is folded into the error so callers can log it: %v", err)
 }
 
 func TestLint_CleanReturnsNoFindings(t *testing.T) {

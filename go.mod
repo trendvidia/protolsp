@@ -11,7 +11,7 @@ require (
 	github.com/trendvidia/govm/v2 v2.11.0
 	github.com/trendvidia/protocheck-govm v0.2.0
 	github.com/trendvidia/protocheck/v2 v2.7.0
-	github.com/trendvidia/protocompile v0.35.1
+	github.com/trendvidia/protocompile v0.36.0
 	github.com/trendvidia/protoregistry v0.72.0
 	github.com/trendvidia/protowire-go v1.12.0
 	go.lsp.dev/jsonrpc2 v0.10.0
@@ -25,8 +25,9 @@ require (
 
 require github.com/trendvidia/protowire v1.13.0
 
+require github.com/trendvidia/protos v0.1.1
+
 require (
-	buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.12-20261012172039-ff528c23443f.2 // indirect
 	// Pinned above what MVS would pick: these generated-SDK versions sort
 	// by protobuf-go prefix first, so protocompile's older
 	// v1.36.12-20240920… would win over v1.36.11-20260415… and drop the

@@ -1,5 +1,3 @@
-buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.12-20261012172039-ff528c23443f.2 h1:V79UG2jSfa0l9sH7leKvETpJZZriK6t+WGm4P17l/Hw=
-buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.12-20261012172039-ff528c23443f.2/go.mod h1:Gjxz0o7qPHokNsmlX8D+/aKd29NRLRr9CCUkPeMAzJ0=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260415201107-50325440f8f2.1 h1:y8A3AKdnK80frQccyJxFQcHJ9yZlcuoixzHhEsnpEfw=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260415201107-50325440f8f2.1/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
 buf.build/go/protovalidate v1.2.0 h1:DQVrUWkmGTBij+kOYv/x2LLxwcLaGKMdzShj1/6/3H0=
@@ -168,10 +166,12 @@ github.com/trendvidia/protocheck-govm v0.2.0 h1:AlQywFADSXEJcRXL+soinOU2VdTNHyPh
 github.com/trendvidia/protocheck-govm v0.2.0/go.mod h1:PvhJQc1M7+T1c3lgl39GHgFgySvOhK9Kp5dJDIvtdmg=
 github.com/trendvidia/protocheck/v2 v2.7.0 h1:Pxx7NOd4BIyrbvPYjWUuVjq3qaiiF4n3P4Y2Nq4XkCI=
 github.com/trendvidia/protocheck/v2 v2.7.0/go.mod h1:DorSuWMeudvCjWhexOqXbWA/hRqPp15lcxkc/Z7sBhI=
-github.com/trendvidia/protocompile v0.35.1 h1:lwfw6Zdwn6JX8I189w/gDcIzREJ+3K+JTC5LsVYOuP8=
-github.com/trendvidia/protocompile v0.35.1/go.mod h1:UNTOsxI9xwsCnwIuNEfAVqRivwSwbmzeurVOT8b3DYk=
+github.com/trendvidia/protocompile v0.36.0 h1:82X6eckBf4EOp6E2htwllW4hItfklCtYJ0DZ3A4III4=
+github.com/trendvidia/protocompile v0.36.0/go.mod h1:mM9NhgR4d88lqZredjLat468KTpHHowdlgOnea41oz4=
 github.com/trendvidia/protoregistry v0.72.0 h1:vvuVe9O/t6XL5uWVD/DIGJ40pRDY+XEQNOvD3nzZZEY=
 github.com/trendvidia/protoregistry v0.72.0/go.mod h1:7pFkNB/vToykc5b/TGXPx7AzS+jRGGUxwUsPRKL+yVc=
+github.com/trendvidia/protos v0.1.1 h1:Rcx2T+FiqEjFx7iJjCRqrPomzQB0JoV21ke4aoVm7V8=
+github.com/trendvidia/protos v0.1.1/go.mod h1:NPP4w6dOu7BkD8psH0cWJamHHiEpi8QfgP88vKkMXUI=
 github.com/trendvidia/protowire v1.13.0 h1:kMiKYfz/96ugD5IOj9GX9YA/SjAPt36lmJ6mtdBPh/o=
 github.com/trendvidia/protowire v1.13.0/go.mod h1:y2nFsabBWek2UNdhb4ckqZz1oAAlzfJXwzOcs0dnqRc=
 github.com/trendvidia/protowire-go v1.12.0 h1:DKp2mAggJFVKzPdYfSDW8o8AwWsxATqSks8ydJZ/RUY=

@@ -251,7 +251,7 @@ func (s *Server) dispatchFormatting(ctx context.Context, reply jsonrpc2.Replier,
 	docURI := params.TextDocument.URI
 	var edits []protocol.TextEdit
 	if IsProtoURI(docURI) {
-		edits = s.ProtoFormattingEditsFor(ctx, docURI)
+		edits = s.ProtoFormattingEditsFor(docURI)
 	} else {
 		edits = s.FormattingEditsFor(docURI)
 	}

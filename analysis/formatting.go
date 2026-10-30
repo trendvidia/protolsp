@@ -5,31 +5,28 @@ package analysis
 
 import (
 	"bytes"
-	"context"
-	"errors"
 
 	"go.lsp.dev/protocol"
 
-	"github.com/trendvidia/protolsp/buftool"
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protowire-go/encoding/pxf"
 )
 
-// ProtoFormattingEditsFor invokes `buf format` against the .proto
-// document and returns a whole-document TextEdit when the formatter
-// changes the source. Returns nil when:
+// ProtoFormattingEditsFor formats the .proto document with
+// protocompile's printer (see formatProto) and returns a
+// whole-document TextEdit when that changes the source. Returns nil
+// when:
 //
 //   - the doc isn't open or has no source,
-//   - buf isn't installed (ErrBufNotFound — feature degrades to
-//     unavailable rather than spamming "missing tool" errors),
-//   - buf itself fails (typically: unparseable source mid-edit);
+//   - the source doesn't parse (typically mid-edit), or the printer's
+//     output would not keep every token and comment of the input;
 //     a log line goes out via slog so users can dig into it via the
 //     trace panel.
 //
 // Returns an empty (non-nil) edit slice when the source is already
 // canonical — mirrors FormattingEditsFor's contract so "format on
 // save" doesn't dirty the buffer unnecessarily.
-func (s *Workspace) ProtoFormattingEditsFor(ctx context.Context, docURI protocol.DocumentURI) []protocol.TextEdit {
+func (s *Workspace) ProtoFormattingEditsFor(docURI protocol.DocumentURI) []protocol.TextEdit {
 	doc := s.docs.Get(docURI)
 	if doc == nil {
 		return nil
@@ -40,14 +37,8 @@ func (s *Workspace) ProtoFormattingEditsFor(ctx context.Context, docURI protocol
 	if len(src) == 0 {
 		return nil
 	}
-	formatted, err := buftool.Format(ctx, src)
+	formatted, err := formatProto(string(docURI), src)
 	if err != nil {
-		if errors.Is(err, buftool.ErrBufNotFound) {
-			// Buf isn't installed. No log — this is the steady
-			// state on machines that don't have buf, and we don't
-			// want to churn the trace panel on every save attempt.
-			return nil
-		}
 		s.log.Warn("proto formatting failed", "uri", docURI, "err", err)
 		return nil
 	}
