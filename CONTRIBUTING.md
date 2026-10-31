@@ -15,14 +15,6 @@ go test ./...        # full test suite
 go vet ./...         # static checks
 ```
 
-The module depends on a small fork of `google.golang.org/protobuf` that
-adds the namespace-aware registry types
-[protoregistry](https://github.com/trendvidia/protoregistry) needs. The
-fork is pulled in via a `replace` directive in `go.mod` and points at
-the public release at
-[`github.com/trendvidia/protobuf-go`](https://github.com/trendvidia/protobuf-go).
-You do not need a local checkout.
-
 The default build is the community build. Building with
 `-tags protocheck` adds protocheck runtime validation and needs modules
 that are not yet public; CI runs it for branches of this

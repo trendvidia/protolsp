@@ -28,6 +28,13 @@ without a major bump.
 
 ### Changed
 
+- **protolsp no longer needs the protobuf fork.** It moves to protoregistry
+  v0.74.0, which keeps the namespaced registries in its own `nsregistry`
+  package, and the `replace` for `google.golang.org/protobuf` is gone.
+  `go install …@latest` now works, and modules importing protolsp can
+  remove the `replace` they copied. **Breaking for library users:**
+  `schema.WithFallback` and `schema.ProtoFilesParents` now use
+  `*nsregistry.NamespacedFiles` and `*nsregistry.NamespacedTypes`.
 - Dependencies moved to their latest releases. `cel-go` now comes from
   its new module path, `cel.dev/cel-go` (v0.33.1), which protovalidate
   v1.4.0 requires.
