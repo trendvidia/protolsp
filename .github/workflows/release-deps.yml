@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   check:
-    # This repository titles its release PRs `chore: release vX.Y.Z`.
+    # A release PR is titled `release:` or `chore: release vX.Y.Z`.
     if: >-
       github.event_name != 'pull_request' ||
       startsWith(github.event.pull_request.title, 'release:') ||
