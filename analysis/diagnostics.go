@@ -234,7 +234,7 @@ func (s *Workspace) validate(doc *Document) {
 	// document is structurally invalid, and adding constraint
 	// findings on top would be noise. runProtocheck gates itself:
 	// nil findings when no validator is installed (degraded mode,
-	// logged at construction) or in the OSS build (stub).
+	// logged at construction) or in the community build (no backend).
 	doc.protocheckFindings = nil
 	doc.protovalidateFindings = nil
 	if err == nil && msg != nil {

@@ -15,10 +15,11 @@ go test ./...        # full test suite
 go vet ./...         # static checks
 ```
 
-The default build is the community build. Building with
-`-tags protocheck` adds protocheck runtime validation and needs modules
-that are not yet public; CI runs it for branches of this
-repository.
+The default build is the community build. The nested module in `govm/`
+adds protocheck runtime validation and needs modules that are not yet
+public; CI runs it for branches of this repository. Nothing in the root
+module may depend on those modules, because that breaks `go mod tidy`
+for everyone without access to them.
 
 ## What Makes a Good PR
 
@@ -61,11 +62,12 @@ Read the log before rerunning anything, and classify first:
   at `-count=100` or more and read the counts. It does not get a retry
   annotation — a retry hides the rate, and the rate is the diagnosis.
 
-CI runs one job on GitHub-hosted runners with stock Go: the untagged
-build, which needs no private module, for every pull request, forks
-included. The `-tags protocheck` build links the private govm and
-protocheck-govm modules, so CI does not run it; if you have access to
-them, run `go test -tags protocheck ./...` before you push.
+CI runs one job on GitHub-hosted runners with stock Go. The root module
+needs no private module, so it runs for every pull request, forks
+included. The `govm/` module links the private govm and protocheck-govm
+modules, so CI runs it only for branches of this repository. If you have
+access to them, run `go test ./...` in `govm/` and `govm/test-e2e.sh`
+before you push.
 
 ## Reporting Bugs
 

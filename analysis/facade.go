@@ -49,10 +49,10 @@ func New(log *slog.Logger) *Workspace {
 		log = slog.Default()
 	}
 	// Wire the optional protocheck validator. Returns (nil, nil)
-	// under the default (OSS) build; the trendvidia build's tagged
-	// implementation constructs a real, descriptor-less
-	// *protocheck.Validator so validation works before any
-	// workspace root/config is known. The initialize-time
+	// with no ProtocheckBackend registered; otherwise it constructs
+	// a real, descriptor-less *protocheck.Validator so validation
+	// works before any workspace root/config is known. The
+	// initialize-time
 	// RebuildProtocheckValidator swaps in the config-aware one.
 	checker, checkerClose := newProtocheckValidator(log)
 	// Build the protovalidate validator. Always present (Apache

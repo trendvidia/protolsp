@@ -81,7 +81,7 @@ type Document struct {
 	// FieldPath is protocheck's dotted path; Pos is the resolved
 	// source position (or {Line:1,Col:1} when the path didn't
 	// resolve in the AST). diagnosticsFor renders these as
-	// "protocheck" diagnostics. Always empty in the OSS build —
+	// "protocheck" diagnostics. Always empty in the community build —
 	// the runProtocheck implementation is gated behind a build tag.
 	protocheckFindings []protocheckFinding
 

@@ -138,7 +138,7 @@ func (s *Workspace) processWatchedFiles(ctx context.Context, events []*protocol.
 		// §9.4 engine config changed on disk — re-derive the
 		// protocheck validator so data diagnostics reflect the new
 		// function_libraries. Fingerprint-diffed internally; no-op
-		// in the OSS build.
+		// in the community build.
 		s.RebuildProtocheckValidator(ctx)
 	}
 	if cls.reloadConfig || cls.reloadChain || cls.reloadProtoFiles || cls.reloadProtoIndex ||

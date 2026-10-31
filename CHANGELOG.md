@@ -7,6 +7,24 @@ without a major bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **`go mod tidy` works without access to the private modules** (#30).
+  `go.mod` required `govm` and `protocheck-govm`, so `go mod tidy` and
+  `go mod download` failed for contributors and for projects depending on
+  protolsp. Those requirements moved to a nested module, `govm/`. The
+  community build's behavior doesn't change, and its binary grows about
+  1.3% because it now links `protocheck/v2`.
+- **`-tags protocheck` no longer adds validation.** To build with it, run
+  `go build ./cmd/...` in `govm/`. A build that still passes the tag gets
+  the community build, with no error.
+
+### Added
+
+- **`analysis.RegisterProtocheckBackend`** supplies the expression engine
+  for protocheck validation, and `analysis.HasProtocheckBackend` reports
+  whether one is registered.
+
 ## [0.25.0] – 2026-10-30
 
 ### Fixed

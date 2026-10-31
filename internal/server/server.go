@@ -465,7 +465,7 @@ func (s *Server) dispatchInitialize(ctx context.Context, req rpcRequest) (any, e
 	// With the root and lookups in place, swap the startup
 	// (descriptor-less) protocheck validator for one built against
 	// the effective §9.4 engine config — its function_libraries now
-	// resolve. No-op in the OSS build; fingerprint-diffed otherwise.
+	// resolve. No-op in the community build; fingerprint-diffed otherwise.
 	s.RebuildProtocheckValidator(ctx)
 
 	// Schema-source status. Three outcomes:

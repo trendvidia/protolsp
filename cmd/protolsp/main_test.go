@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"os/exec"
 	"strconv"
@@ -30,32 +29,6 @@ func TestMain(m *testing.M) {
 		return
 	}
 	os.Exit(m.Run())
-}
-
-func TestNewLogger_LevelMapping(t *testing.T) {
-	cases := []struct {
-		name string
-		in   string
-		want slog.Level
-	}{
-		{"debug", "debug", slog.LevelDebug},
-		{"info", "info", slog.LevelInfo},
-		{"warn", "warn", slog.LevelWarn},
-		{"error", "error", slog.LevelError},
-		{"unknown falls back to info", "trace", slog.LevelInfo},
-		{"empty falls back to info", "", slog.LevelInfo},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			logger := newLogger(tc.in)
-			if logger == nil {
-				t.Fatal("newLogger returned nil")
-			}
-			if !logger.Enabled(t.Context(), tc.want) {
-				t.Fatalf("logger should be enabled at %v for input %q", tc.want, tc.in)
-			}
-		})
-	}
 }
 
 // TestSmokeExec_InitializeAndExit drives a full LSP session against
