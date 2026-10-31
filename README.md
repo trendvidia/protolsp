@@ -19,22 +19,12 @@ go install ./cmd/protolsp ./cmd/protolsp-ws    # stdio, websocket
 
 For a release, check out its tag first (`git checkout v0.23.0`).
 
-> **Known limitation: `go install …@latest` does not work.** protolsp's
-> `go.mod` replaces `google.golang.org/protobuf` with the
-> [TrendVidia fork](https://github.com/trendvidia/protobuf-go), which
-> carries the namespaced registry types protolsp and
-> [protoregistry](https://github.com/trendvidia/protoregistry) use.
-> `go install` refuses a module whose `go.mod` has a `replace`, so
-> install from a checkout as above. This is accepted for now; it goes
-> away only if those types reach upstream protobuf-go.
->
-> The same `replace` matters if you import protolsp as a library: Go
-> ignores a dependency's `replace`, so copy the line into your own
-> `go.mod` (this version, or a later fork release):
->
-> ```
-> replace google.golang.org/protobuf => github.com/trendvidia/protobuf-go v1.36.12
-> ```
+Releases after v0.23.1 can also be installed without a clone:
+
+```sh
+go install github.com/trendvidia/protolsp/cmd/protolsp@latest
+go install github.com/trendvidia/protolsp/cmd/protolsp-ws@latest
+```
 
 The default build is the community build. Building with
 `-tags protocheck` adds protocheck runtime validation through the
