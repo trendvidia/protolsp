@@ -7,6 +7,17 @@ without a major bump.
 
 ## [Unreleased]
 
+## [0.25.0] – 2026-10-30
+
+### Fixed
+
+- **`internal/server` tests pass when protolsp is tested as a dependency.**
+  `TestHandle_InitializeAdvertisesTextDocumentSync`, added in v0.24.0,
+  expected the version `(devel)`, which holds only when protolsp is the main
+  module. A consumer running this package's tests saw the release version
+  and failed (`expected: "(devel)"`, `actual: "0.24.0"`). No change to the
+  servers.
+
 ## [0.24.0] – 2026-10-30
 
 ### Fixed
