@@ -9,6 +9,11 @@ without a major bump.
 
 ### Fixed
 
+- **`serverInfo.version` reports the real version** (#19). It was always
+  `0.1.0`. It now comes from the version Go records in the binary: `0.24.0`
+  for a tagged release, a pseudo-version such as
+  `0.23.2-0.20261031000737-cfb40a2b6522` between tags, and `(devel)` when the
+  build has none.
 - **Format document works on v1.2 `.proto` files** (#9). It used to run
   `buf format`, which cannot parse `@validate`, `@required`, `function`
   or `type`, so formatting did nothing on those files. On some v1.2 files

@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"runtime/debug"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,11 +59,33 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 
 	require.NotNil(t, result.ServerInfo)
 	assert.Equal(t, "protolsp", result.ServerInfo.Name)
+	// A test binary has no module version, so any literal here differs.
+	assert.Equal(t, develVersion, result.ServerInfo.Version)
 
 	// General block folding is advertised as a standard
 	// pull-based provider so editors enable textDocument/foldingRange.
 	assert.Equal(t, protocol.Boolean(true), result.Capabilities.FoldingRangeProvider,
 		"FoldingRangeProvider must be advertised")
+}
+
+func TestModuleVersion(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"release tag", "v0.24.0", "0.24.0"},
+		{"pseudo-version", "v0.23.2-0.20261031000737-cfb40a2b6522", "0.23.2-0.20261031000737-cfb40a2b6522"},
+		{"dirty tree", "v0.23.2-0.20261031000737-cfb40a2b6522+dirty", "0.23.2-0.20261031000737-cfb40a2b6522+dirty"},
+		{"devel", "(devel)", "(devel)"},
+		{"empty", "", "(devel)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			info := &debug.BuildInfo{Main: debug.Module{Version: tc.in}}
+			assert.Equal(t, tc.want, moduleVersion(info))
+		})
+	}
 }
 
 func TestHandle_InitializedIsNoOp(t *testing.T) {
