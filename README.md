@@ -31,7 +31,7 @@ The default build is the community build. Building with
 govm expression engine, and needs the `govm` and `protocheck-govm`
 modules, which are not public.
 
-## Features at v0.1.0
+## Features
 
 - **Parse diagnostics** via `pxf.Parse` — syntax errors with 1-indexed
   position fidelity from the parser, converted to LSP's 0-indexed range.
@@ -310,7 +310,7 @@ resolver loaded stale.
 
 ## Status
 
-v0.1.0 — initial public release. The LSP feature surface is stable;
+Pre-1.0. The LSP feature surface is stable;
 custom LSP method shapes (`protolsp/sourceContent`,
 `protolsp/listMessages`) may still evolve in 0.x. See
 [`CHANGELOG.md`](CHANGELOG.md).
