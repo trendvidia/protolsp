@@ -14,7 +14,7 @@ import (
 )
 
 // ProtoFormattingEditsFor formats the .proto document with
-// protocompile's printer (see formatProto) and returns a
+// protocompile's printer (see FormatProto) and returns a
 // whole-document TextEdit when that changes the source. Returns nil
 // when:
 //
@@ -38,7 +38,7 @@ func (s *Workspace) ProtoFormattingEditsFor(docURI uri.URI) []protocol.TextEdit 
 	if len(src) == 0 {
 		return nil
 	}
-	formatted, err := formatProto(string(docURI), src)
+	formatted, err := FormatProto(string(docURI), src)
 	if err != nil {
 		s.log.Warn("proto formatting failed", "uri", docURI, "err", err)
 		return nil

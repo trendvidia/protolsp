@@ -18,7 +18,7 @@ import (
 	"github.com/trendvidia/protocompile/token"
 )
 
-// formatProto renders .proto source in canonical form with
+// FormatProto renders .proto source in canonical form with
 // protocompile's printer. The Legacy preset is the one protocompile
 // holds byte-compatible with `buf format`, so a file buf could
 // already format keeps its layout; unlike buf, the parser reads
@@ -31,7 +31,10 @@ import (
 // has dropped text before (annotation uses, protocompile#258;
 // comments, protocompile#273), and refusing to format is always
 // cheaper than deleting part of the user's file on save.
-func formatProto(path string, src []byte) ([]byte, error) {
+//
+// Exported for embedders that format a live editor buffer, which can
+// be newer than the Workspace's copy of the document.
+func FormatProto(path string, src []byte) ([]byte, error) {
 	in, err := parseProtoStrict(path, string(src))
 	if err != nil {
 		return nil, err

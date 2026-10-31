@@ -26,6 +26,12 @@ without a major bump.
     comment word of the file, nothing is formatted and the reason is
     logged. No file in that corpus run triggers it.
 
+### Added
+
+- `analysis.FormatProto` formats `.proto` source passed in directly, for
+  embedders whose live editor buffer can be newer than the Workspace's
+  copy of the document.
+
 ### Changed
 
 - **protolsp no longer needs the protobuf fork.** It moves to protoregistry

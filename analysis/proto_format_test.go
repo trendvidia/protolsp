@@ -13,7 +13,7 @@ import (
 )
 
 // TestFormatProto_RefusesWhenPrinterLosesText checks the guard is
-// wired in: with a printer that drops a comment, formatProto returns
+// wired in: with a printer that drops a comment, FormatProto returns
 // an error naming the loss instead of the shortened text.
 func TestFormatProto_RefusesWhenPrinterLosesText(t *testing.T) {
 	real := printProto
@@ -23,7 +23,7 @@ func TestFormatProto_RefusesWhenPrinterLosesText(t *testing.T) {
 		return strings.Replace(out, " // note", "", 1), err
 	}
 
-	_, err := formatProto("foo.proto", []byte("syntax = \"proto3\";\n\nmessage Foo {\n  string a = 1; // note\n}\n"))
+	_, err := FormatProto("foo.proto", []byte("syntax = \"proto3\";\n\nmessage Foo {\n  string a = 1; // note\n}\n"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `lost ["comment:note"]`)
 }
