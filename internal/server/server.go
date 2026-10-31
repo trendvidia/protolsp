@@ -567,7 +567,7 @@ func (s *Server) dispatchInitialize(ctx context.Context, req rpcRequest) (any, e
 		},
 		ServerInfo: &serverInfo{
 			Name:    "protolsp",
-			Version: "0.1.0",
+			Version: serverVersion(),
 		},
 	}
 	// Spin up the Connect-RPC sidecar and advertise its address +
