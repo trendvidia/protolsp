@@ -59,8 +59,9 @@ func TestHandle_InitializeAdvertisesTextDocumentSync(t *testing.T) {
 
 	require.NotNil(t, result.ServerInfo)
 	assert.Equal(t, "protolsp", result.ServerInfo.Name)
-	// A test binary has no module version, so any literal here differs.
-	assert.Equal(t, develVersion, result.ServerInfo.Version)
+	// The module version depends on how the test binary was built: "(devel)"
+	// here, the release when a consumer tests this package as a dependency.
+	assert.Equal(t, serverVersion(), result.ServerInfo.Version)
 
 	// General block folding is advertised as a standard
 	// pull-based provider so editors enable textDocument/foldingRange.
