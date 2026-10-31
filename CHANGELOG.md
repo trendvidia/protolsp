@@ -7,6 +7,8 @@ without a major bump.
 
 ## [Unreleased]
 
+## [0.24.0] – 2026-10-30
+
 ### Fixed
 
 - **`serverInfo.version` reports the real version** (#19). It was always
@@ -60,7 +62,7 @@ without a major bump.
   - `analysis.SemanticTokensProvider` is gone, because
     `protocol.SemanticTokensOptions` replaces it. `analysis` types that
     wrap protocol fields changed with the library.
-- **protocompile v0.35.1 → v0.36.0**, for the printer fixes above
+- **protocompile v0.35.1 → v0.36.1**, for the printer fixes above
   (trendvidia/protocompile#258, #273, #274). It also brings the parser's
   new diagnostic for a run of tokens that start no declaration.
 - **`proto/pxf` is now an alias of `github.com/trendvidia/protos/pxf`**
