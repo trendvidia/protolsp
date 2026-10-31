@@ -23,6 +23,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"github.com/trendvidia/protolsp/buftool"
+	"github.com/trendvidia/protolsp/internal/protoopts"
 	"github.com/trendvidia/protolsp/protoast"
 	"github.com/trendvidia/protolsp/protoindex"
 )
@@ -150,7 +151,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 			continue
 		}
 		span := d.Primary()
-		rng := protoErrorRange(1, 1)
+		rng := protoopts.ErrorRange(1, 1)
 		if !span.IsZero() {
 			// Findings anchored in an imported file keep their own
 			// positions in that file — painting them at foreign
@@ -177,7 +178,7 @@ func (s *Workspace) analyzeProto(doc *Document) {
 		// diagnostic. Surface the wrapper error so the user still
 		// sees something rather than a silent failure.
 		diags = append(diags, protocol.Diagnostic{
-			Range:    protoErrorRange(1, 1),
+			Range:    protoopts.ErrorRange(1, 1),
 			Severity: protocol.DiagnosticSeverityError,
 			Source:   optString("protolsp/proto"),
 			Message:  protocol.String(fatal.Error()),
@@ -362,24 +363,5 @@ func bufLintRange(f buftool.LintFinding) protocol.Range {
 			Line:      uint32(endLine - 1), // #nosec G115 -- clamped above
 			Character: uint32(endCol - 1),  // #nosec G115 -- clamped above
 		},
-	}
-}
-
-// protoErrorRange builds a one-character LSP range at the given
-// 1-based line + column. protocompile emits 0 for the column on some
-// errors; we clamp to (1,1) in that case so the editor always has a
-// concrete position to draw the squiggle at.
-func protoErrorRange(line, col int) protocol.Range {
-	if line < 1 {
-		line = 1
-	}
-	if col < 1 {
-		col = 1
-	}
-	lspLine := uint32(line - 1) // #nosec G115 -- guarded above
-	lspCol := uint32(col - 1)   // #nosec G115 -- guarded above
-	return protocol.Range{
-		Start: protocol.Position{Line: lspLine, Character: lspCol},
-		End:   protocol.Position{Line: lspLine, Character: lspCol + 1},
 	}
 }

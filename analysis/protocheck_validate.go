@@ -1,9 +1,6 @@
-//go:build protocheck
-
-// Trendvidia build's Phase 1 runtime validation against the
-// proprietary protocheck/v2 library. The OSS counterpart in
-// protocheck_data_stub.go returns nil findings; only the tagged
-// files import github.com/trendvidia/protocheck/v2.
+// Phase 1 runtime validation against the protocheck/v2 library. With
+// no ProtocheckBackend registered there is no validator, so this
+// returns nil findings.
 
 package analysis
 

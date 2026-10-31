@@ -1,6 +1,4 @@
-//go:build protocheck
-
-package analysis
+package govm
 
 import (
 	"strings"
@@ -10,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/protocol"
 
+	"github.com/trendvidia/protolsp/analysis"
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
 )
@@ -73,7 +72,7 @@ message Account {
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
 	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
-	require.Contains(t, strings.ToLower(MessageText(diags[0].Message)), "type")
+	require.Contains(t, strings.ToLower(analysis.MessageText(diags[0].Message)), "type")
 }
 
 func TestAnalyzeProtocheckExpressions_MessageLevel_Valid(t *testing.T) {
@@ -117,7 +116,7 @@ message Transfer {
 	// go/types diagnoses an undefined identifier — message may say
 	// "undeclared" or "undefined" depending on Go version. Both
 	// contain the typo'd name.
-	require.Contains(t, MessageText(diags[0].Message), "from_acount")
+	require.Contains(t, analysis.MessageText(diags[0].Message), "from_acount")
 }
 
 func TestAnalyzeProtocheckExpressions_MessageLevel_TypeMismatch(t *testing.T) {
@@ -268,7 +267,7 @@ message Shipment {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Contains(t, MessageText(diags[0].Message), "citty")
+	require.Contains(t, analysis.MessageText(diags[0].Message), "citty")
 }
 
 func TestAnalyzeProtocheckExpressions_NestedMessageAccess_DeepChain(t *testing.T) {
@@ -344,7 +343,7 @@ message Shipment {
 }`
 	diags := runProtocheckAnalyzer(t, src)
 	require.Len(t, diags, 1)
-	require.Contains(t, MessageText(diags[0].Message), "origin")
+	require.Contains(t, analysis.MessageText(diags[0].Message), "origin")
 }
 
 // ---------------------------------------------------------------------------
@@ -607,4 +606,9 @@ message Account {
 	require.Len(t, diags, 1,
 		"uint compared against a negative int literal is a type error under the eval.Uint binding")
 	require.Equal(t, "protocheck/expression", optText(diags[0].Source))
+}
+
+func optText(o protocol.Optional[string]) string {
+	v, _ := o.Get()
+	return v
 }

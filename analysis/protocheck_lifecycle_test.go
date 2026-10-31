@@ -61,8 +61,8 @@ func TestWorkspaceClose_ClosesCurrentValidator(t *testing.T) {
 func TestProtocheckValidate_NilValidatorShortCircuits(t *testing.T) {
 	w := New(slog.Default())
 	defer func() { require.NoError(t, w.Close()) }()
-	// OSS build: New installs nil. Tagged build: force the OSS
-	// shape so the assertion holds under both suites.
+	// New installs nil with no backend. Force that shape so the
+	// assertion holds with one registered too.
 	w.swapProtocheck(nil, nil, nil, nil)
 	err, ok := w.protocheckValidate(nil)
 	require.False(t, ok)
@@ -76,7 +76,7 @@ func TestProtocheckValidate_NilValidatorShortCircuits(t *testing.T) {
 func TestProtocheckSwapRace(t *testing.T) {
 	w := New(slog.Default())
 	defer func() { require.NoError(t, w.Close()) }()
-	// The tagged build's New installs a real validator, which
+	// With a backend, New installs a real validator, which
 	// dereferences the nil message below. Start from a fake so the
 	// validate goroutine never sees it, whichever goroutine runs first.
 	w.swapProtocheck(&fakeProtocheckValidator{}, nil, nil, nil)

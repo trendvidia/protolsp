@@ -26,10 +26,14 @@ go install github.com/trendvidia/protolsp/cmd/protolsp@latest
 go install github.com/trendvidia/protolsp/cmd/protolsp-ws@latest
 ```
 
-The default build is the community build. Building with
-`-tags protocheck` adds protocheck runtime validation through the
-govm expression engine, and needs the `govm` and `protocheck-govm`
-modules, which are not public.
+These are the community build. The nested module in `govm/` builds the
+same commands with protocheck runtime validation through the govm
+expression engine, and needs the `govm` and `protocheck-govm` modules,
+which are not public:
+
+```sh
+cd govm && go build ./cmd/...
+```
 
 ## Features
 

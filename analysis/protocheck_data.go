@@ -39,7 +39,7 @@ import (
 // the runtime validator, anchored to the .pxf source position the
 // path resolved to. Defined tag-free so Document.protocheckFindings
 // and the diagnostic-emission pipeline compile in both the OSS and
-// trendvidia builds; the field stays empty in the OSS build
+// trendvidia builds; the field stays empty in the community build
 // because the runProtocheck implementation lives behind a build
 // tag (see protocheck_data_real.go / _stub.go).
 type protocheckFinding struct {

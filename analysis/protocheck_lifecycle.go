@@ -5,10 +5,8 @@
 // workspace root lands, and both the config and the schema lookup
 // serving its library import paths can change over the session.
 //
-// This file is tag-free: the swap/read primitives compile in both
-// builds, while the actual (re)construction lives behind the
-// `protocheck` build tag (protocheck_runner_real.go) with a no-op
-// stub (protocheck_runner_stub.go).
+// This file holds the swap/read primitives; the actual
+// (re)construction lives in protocheck_runner.go.
 
 package analysis
 
@@ -19,17 +17,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// protocheckCatalog mirrors protocheck/v2's Catalog interface (§7)
-// so this tag-free file can hold and render locale catalogs without
-// the tagged-only import; *protocheck.MapCatalog satisfies it by
-// construction, and the tagged test suite pins the two together.
+// protocheckCatalog mirrors protocheck/v2's Catalog interface (§7);
+// *protocheck.MapCatalog satisfies it by construction, and
+// protocheck_runner.go pins the two together.
 type protocheckCatalog interface {
 	Render(code string, params map[string]any) (message string, ok bool)
 }
 
 // RebuildProtocheckValidator re-resolves the effective engine config
 // and swaps in a validator built against it. Cheap when the config
-// fingerprint is unchanged; no-op in the OSS build. Called from
+// fingerprint is unchanged; no-op with no ProtocheckBackend. Called from
 // initialize, the config-edit cascade, protowire.config.textproto
 // watched-file events, and lookup swaps.
 func (s *Workspace) RebuildProtocheckValidator(ctx context.Context) {

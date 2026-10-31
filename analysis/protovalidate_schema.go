@@ -50,6 +50,7 @@ import (
 	"github.com/trendvidia/protocompile/token"
 	"go.lsp.dev/protocol"
 
+	"github.com/trendvidia/protolsp/internal/protoopts"
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
 )
@@ -142,7 +143,7 @@ func collectCelEntries(opt ast.Option, ext string) []ast.ExprDict {
 		if body.IsZero() {
 			return nil
 		}
-		celField := findMessageField(body, "cel")
+		celField := protoopts.FindMessageField(body, "cel")
 		if celField.IsZero() {
 			return nil
 		}
@@ -180,11 +181,11 @@ func celEntriesFromValue(v ast.ExprAny) []ast.ExprDict {
 }
 
 func validateSingleCelExpression(file *protoast.File, lit ast.ExprDict, env *cel.Env, enc positions.Encoding) []protocol.Diagnostic {
-	exprField := findMessageField(lit, "expression")
+	exprField := protoopts.FindMessageField(lit, "expression")
 	if exprField.IsZero() {
 		return nil
 	}
-	expr, anchor, ok := expressionStringFromValue(exprField.Value())
+	expr, anchor, ok := protoopts.ExpressionStringFromValue(exprField.Value())
 	if !ok || env == nil {
 		return nil
 	}
@@ -230,8 +231,8 @@ func protovalidateBaseEnv() *cel.Env {
 // back to DynType. nil when the base environment is unavailable.
 func newCelFieldEnv(f ast.DefField) *cel.Env {
 	t := cel.DynType
-	if !fieldTypeIsRepeated(f.Type) {
-		if scalar, ok := celTypeFromProtoScalar(fieldTypeName(f.Type)); ok {
+	if !protoopts.FieldTypeIsRepeated(f.Type) {
+		if scalar, ok := celTypeFromProtoScalar(protoopts.FieldTypeName(f.Type)); ok {
 			t = scalar
 		}
 	}
@@ -297,7 +298,7 @@ func celTypeFromProtoScalar(name string) (*cel.Type, bool) {
 //     escapes.
 //   - The token span is zero (synthetic / corrupt node).
 func celErrorRange(file *protoast.File, tok token.Token, e *common.Error, enc positions.Encoding) protocol.Range {
-	whole := nodeRange(file, tok, enc)
+	whole := protoopts.NodeRange(file, tok, enc)
 	s := tok.AsString()
 	if s.IsZero() || s.IsConcatenated() {
 		return whole

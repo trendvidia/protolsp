@@ -1,13 +1,39 @@
 // Copyright (c) 2026 TrendVidia, LLC.
 // SPDX-License-Identifier: MIT
 
-package main
+package cli
 
 import (
 	"log/slog"
 	"reflect"
 	"testing"
 )
+
+func TestNewStderrLogger_LevelMapping(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want slog.Level
+	}{
+		{"debug", "debug", slog.LevelDebug},
+		{"info", "info", slog.LevelInfo},
+		{"warn", "warn", slog.LevelWarn},
+		{"error", "error", slog.LevelError},
+		{"unknown falls back to info", "trace", slog.LevelInfo},
+		{"empty falls back to info", "", slog.LevelInfo},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			logger := newStderrLogger(tc.in)
+			if logger == nil {
+				t.Fatal("newStderrLogger returned nil")
+			}
+			if !logger.Enabled(t.Context(), tc.want) {
+				t.Fatalf("logger should be enabled at %v for input %q", tc.want, tc.in)
+			}
+		})
+	}
+}
 
 func TestParseOrigins(t *testing.T) {
 	cases := []struct {
@@ -35,7 +61,7 @@ func TestParseOrigins(t *testing.T) {
 	}
 }
 
-func TestNewLogger_LevelMapping(t *testing.T) {
+func TestNewStdoutLogger_LevelMapping(t *testing.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -50,9 +76,9 @@ func TestNewLogger_LevelMapping(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			logger := newLogger(tc.in)
+			logger := newStdoutLogger(tc.in)
 			if logger == nil {
-				t.Fatal("newLogger returned nil")
+				t.Fatal("newStdoutLogger returned nil")
 			}
 			// Probe the level by checking Enabled at the chosen level.
 			if !logger.Enabled(t.Context(), tc.want) {

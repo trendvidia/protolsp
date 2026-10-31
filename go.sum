@@ -16,10 +16,6 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
-github.com/awnumar/memcall v0.5.0 h1:31zYqzH08fM1UBzr53ywXFvqVP4grhAIFFd1Pfd7Gtk=
-github.com/awnumar/memcall v0.5.0/go.mod h1:5q5zKsL4XfYgqzCQEvUt9Dou4fEXWsn+tNrm1z1oYgQ=
-github.com/awnumar/memguard v0.23.0 h1:sJ3a1/SWlcuKIQ7MV+R9p0Pvo9CWsMbGZvcZQtmc68A=
-github.com/awnumar/memguard v0.23.0/go.mod h1:olVofBrsPdITtJ2HgxQKrEYEMyIBAIciVG4wNnZhW9M=
 github.com/bmatcuk/doublestar/v4 v4.10.4 h1:oTKkRmRuOsKMqFe1AQazd9gGBFNEpOmgKp/xzB97dnA=
 github.com/bmatcuk/doublestar/v4 v4.10.4/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/brianvoe/gofakeit/v6 v6.28.0 h1:Xib46XXuQfmlLS2EXRuJpqcw8St6qSZz75OUo0tgAW4=
@@ -140,10 +136,6 @@ github.com/tklauser/go-sysconf v0.3.16 h1:frioLaCQSsF5Cy1jgRBrzr6t502KIIwQ0MArYI
 github.com/tklauser/go-sysconf v0.3.16/go.mod h1:/qNL9xxDhc7tx3HSRsLWNnuzbVfh3e7gh/BmM179nYI=
 github.com/tklauser/numcpus v0.11.0 h1:nSTwhKH5e1dMNsCdVBukSZrURJRoHbSEQjdEbY+9RXw=
 github.com/tklauser/numcpus v0.11.0/go.mod h1:z+LwcLq54uWZTX0u/bGobaV34u6V7KNlTZejzM6/3MQ=
-github.com/trendvidia/govm/v2 v2.15.0 h1:SnVDuNseOoBttum3Ys4hspQkdFGZeGyFh+NkE9rnl7c=
-github.com/trendvidia/govm/v2 v2.15.0/go.mod h1:hx/1sSOI7gbVJ5dlWkvZJ5AQgRcO509ozRHjC1ed6SE=
-github.com/trendvidia/protocheck-govm v0.2.0 h1:AlQywFADSXEJcRXL+soinOU2VdTNHyPhhJjzN2VKnvI=
-github.com/trendvidia/protocheck-govm v0.2.0/go.mod h1:PvhJQc1M7+T1c3lgl39GHgFgySvOhK9Kp5dJDIvtdmg=
 github.com/trendvidia/protocheck/v2 v2.8.0 h1:iRqQvc+kBdKIlqtMzVSZffUyVgLBn/z0AeZGDKeinm0=
 github.com/trendvidia/protocheck/v2 v2.8.0/go.mod h1:IK6sfgAgYgKJax2fdaUpmne4gbnjfclAWjhGR3CahaU=
 github.com/trendvidia/protocompile v0.36.1 h1:677fGfbggpGfjqcHuu8V8DOfhY9XafP2Ur9cMipWSwo=

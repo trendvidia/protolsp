@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   ci:
-    # Stock Go on a GitHub-hosted runner, so the untagged steps need no
-    # credentials and run for every PR. The -tags protocheck steps link
-    # govm and protocheck-govm, which are private and not on the public
-    # Go proxy. They need PRIVATE_MODULES_TOKEN, a read-only token for
+    # Stock Go on a GitHub-hosted runner, so the root module's steps need
+    # no credentials and run for every PR. The steps in govm/ link govm
+    # and protocheck-govm, which are private and not on the public Go
+    # proxy. They need PRIVATE_MODULES_TOKEN, a read-only token for
     # those two repositories. Fork PRs don't get secrets, so they skip
     # those steps. The token is only used to download modules and is
     # removed before any of the PR's code runs.
@@ -35,14 +35,24 @@ jobs:
       - run: go vet ./...
       - run: go build ./...
       - run: go test -race ./...
+      - name: The root module needs nothing private
+        run: |
+          if grep -q 'trendvidia/govm\|trendvidia/protocheck-govm' go.mod go.sum; then
+            echo "go.mod or go.sum names a private module; it belongs in govm/ (#30)"
+            exit 1
+          fi
+          GOPROXY=https://proxy.golang.org GOPRIVATE='' GONOSUMDB='' go mod tidy -diff
+      # Compile the end-to-end tests here, for forks. They run below.
+      - run: go vet -tags protocheck ./internal/server
       - name: Download private modules
         id: private
+        working-directory: govm
         env:
           PRIVATE_MODULES_TOKEN: ${{ secrets.PRIVATE_MODULES_TOKEN }}
           GOPRIVATE: github.com/trendvidia/govm,github.com/trendvidia/protocheck-govm
         run: |
           if [ -z "$PRIVATE_MODULES_TOKEN" ]; then
-            echo "::notice::PRIVATE_MODULES_TOKEN unavailable; skipping the protocheck build."
+            echo "::notice::PRIVATE_MODULES_TOKEN unavailable; skipping govm/."
             exit 0
           fi
           url="https://x-access-token:${PRIVATE_MODULES_TOKEN}@github.com/trendvidia/"
@@ -51,6 +61,10 @@ jobs:
           go mod download
           echo "ready=true" >> "$GITHUB_OUTPUT"
       - if: steps.private.outputs.ready == 'true'
-        run: go vet -tags protocheck ./...
+        working-directory: govm
+        run: go vet ./...
       - if: steps.private.outputs.ready == 'true'
-        run: go test -race -tags protocheck ./...
+        working-directory: govm
+        run: go test -race ./...
+      - if: steps.private.outputs.ready == 'true'
+        run: govm/test-e2e.sh -race

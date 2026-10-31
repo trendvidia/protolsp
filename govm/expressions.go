@@ -1,5 +1,3 @@
-//go:build protocheck
-
 // Phase 0 of the protocheck → protolsp integration: schema-side
 // expression validation. Walks the .proto AST for
 // `(protocheck.field)` / `(protocheck.message)` aggregate options
@@ -38,7 +36,7 @@
 //     map awkwardly (no usable position info, backslash escapes
 //     in the source literal, concatenated literals). See
 //     `expressionErrorRange` for the table.
-package analysis
+package govm
 
 import (
 	"errors"
@@ -49,6 +47,7 @@ import (
 	"go.lsp.dev/protocol"
 
 	"github.com/trendvidia/govm/v2/eval"
+	"github.com/trendvidia/protolsp/internal/protoopts"
 	"github.com/trendvidia/protolsp/positions"
 	"github.com/trendvidia/protolsp/protoast"
 )
@@ -216,11 +215,11 @@ func buildEnvOptions(msg ast.DefMessage, msgTypes map[string]ast.DefMessage, vis
 			continue
 		}
 		f := def.AsField()
-		if fieldTypeIsRepeated(f.Type) {
+		if protoopts.FieldTypeIsRepeated(f.Type) {
 			continue
 		}
 		fldName := f.Name.Text()
-		typeName := fieldTypeName(f.Type)
+		typeName := protoopts.FieldTypeName(f.Type)
 		if t, ok := scalarFromTypeName(typeName); ok {
 			opts = append(opts, eval.Variable(fldName, t))
 			continue
@@ -262,11 +261,11 @@ func buildStructDef(msg ast.DefMessage, msgTypes map[string]ast.DefMessage, visi
 			continue
 		}
 		f := def.AsField()
-		if fieldTypeIsRepeated(f.Type) {
+		if protoopts.FieldTypeIsRepeated(f.Type) {
 			continue
 		}
 		fldName := f.Name.Text()
-		typeName := fieldTypeName(f.Type)
+		typeName := protoopts.FieldTypeName(f.Type)
 		if t, ok := scalarFromTypeName(typeName); ok {
 			sd.Fields = append(sd.Fields, eval.StructField{
 				Name:       fldName,
@@ -291,10 +290,10 @@ func buildStructDef(msg ast.DefMessage, msgTypes map[string]ast.DefMessage, visi
 }
 
 func newFieldEnv(f ast.DefField) (*eval.Env, bool) {
-	if fieldTypeIsRepeated(f.Type) {
+	if protoopts.FieldTypeIsRepeated(f.Type) {
 		return nil, false
 	}
-	t, ok := scalarFromTypeName(fieldTypeName(f.Type))
+	t, ok := scalarFromTypeName(protoopts.FieldTypeName(f.Type))
 	if !ok {
 		return nil, false
 	}
@@ -331,7 +330,7 @@ func isAggregateOption(opt ast.Option, dottedName string) bool {
 // format permits singular form for repeated fields).
 func validateCheckExpressions(file *protoast.File, opt ast.Option, env *eval.Env, enc positions.Encoding) []protocol.Diagnostic {
 	body := opt.Value.AsDict()
-	checkField := findMessageField(body, "check")
+	checkField := protoopts.FindMessageField(body, "check")
 	if checkField.IsZero() {
 		return nil
 	}
@@ -354,11 +353,11 @@ func validateCheckExpressions(file *protoast.File, opt ast.Option, env *eval.Env
 }
 
 func validateSingleExpression(file *protoast.File, lit ast.ExprDict, env *eval.Env, enc positions.Encoding) []protocol.Diagnostic {
-	exprField := findMessageField(lit, "expression")
+	exprField := protoopts.FindMessageField(lit, "expression")
 	if exprField.IsZero() {
 		return nil
 	}
-	expr, anchor, ok := expressionStringFromValue(exprField.Value())
+	expr, anchor, ok := protoopts.ExpressionStringFromValue(exprField.Value())
 	if !ok {
 		return nil
 	}
@@ -366,7 +365,7 @@ func validateSingleExpression(file *protoast.File, lit ast.ExprDict, env *eval.E
 		return []protocol.Diagnostic{{
 			Range:    expressionErrorRange(file, anchor, err, enc),
 			Severity: protocol.DiagnosticSeverityError,
-			Source:   optString("protocheck/expression"),
+			Source:   protocol.NewOptional("protocheck/expression"),
 			Message:  protocol.String(err.Error()),
 		}}
 	}
@@ -398,7 +397,7 @@ func validateSingleExpression(file *protoast.File, lit ast.ExprDict, env *eval.E
 // included), which is exactly the pre-v1.1 behavior — no
 // regression for cases this can't handle precisely.
 func expressionErrorRange(file *protoast.File, tok token.Token, err error, enc positions.Encoding) protocol.Range {
-	whole := nodeRange(file, tok, enc)
+	whole := protoopts.NodeRange(file, tok, enc)
 
 	// Concatenated literals always fall back — see function comment.
 	s := tok.AsString()

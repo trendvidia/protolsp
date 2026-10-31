@@ -1,13 +1,11 @@
-//go:build protocheck
-
-// Trendvidia build's protocheck integration: construction and
-// config-driven rebuild of the protocheck/v2 data validator behind
-// the v2 engine seam (RFC-001 §9.1/§9.4). Expressions are evaluated
-// by the GoVM engine from github.com/trendvidia/protocheck-govm —
-// the only ExpressionEngine implementation available to protolsp —
-// regardless of the config's `engine` selection; a mismatch is the
-// editor's information (surfaced via protolsp/engineConfig), not a
-// reason to disable validation.
+// Construction and config-driven rebuild of the protocheck/v2 data
+// validator behind the v2 engine seam (RFC-001 §9.1/§9.4). Expressions
+// are evaluated by the engine the registered ProtocheckBackend
+// supplies, regardless of the config's `engine` selection; a mismatch
+// is the editor's information (surfaced via protolsp/engineConfig),
+// not a reason to disable validation. With no backend registered,
+// which is the community build, there is no validator and every
+// function here is a no-op.
 //
 // catalog_libraries are honored (§7): loaded through the shared
 // protocompile/catalogs reference loader relative to the config
@@ -22,10 +20,6 @@
 //     any workspace whose libraries declare functions. Lenient mode
 //     yields CodeFunctionUnimplemented violations instead, which
 //     protocheckDataDiagnostics downgrades to Information.
-//
-// The OSS build compiles protocheck_runner_stub.go in this file's
-// place; only the protocheck-tagged files pull in the proprietary
-// dependencies.
 
 package analysis
 
@@ -40,12 +34,11 @@ import (
 
 	"github.com/trendvidia/protocompile/catalogs"
 
-	protocheckgovm "github.com/trendvidia/protocheck-govm"
 	protocheck "github.com/trendvidia/protocheck/v2"
 )
 
-// The tag-free protocheckCatalog interface mirrors protocheck's
-// Catalog contract; this pins the two together at compile time.
+// The protocheckCatalog interface mirrors protocheck's Catalog
+// contract; this pins the two together at compile time.
 var _ protocheckCatalog = (*protocheck.MapCatalog)(nil)
 
 // newProtocheckValidator constructs the startup validator:
@@ -53,6 +46,9 @@ var _ protocheckCatalog = (*protocheck.MapCatalog)(nil)
 // effective engine config) exists yet. The initialize-time
 // RebuildProtocheckValidator swaps in the config-aware one.
 func newProtocheckValidator(log *slog.Logger) (protocheckValidator, func()) {
+	if protocheckBackend.NewEngine == nil {
+		return nil, nil
+	}
 	return buildProtocheckValidator(log, nil, nil)
 }
 
@@ -78,6 +74,9 @@ func sortedLocales(cats map[string]*catalogs.Catalog) []string {
 // in-flight validations proceed against the old validator until the
 // swap.
 func (s *Workspace) rebuildProtocheck(_ context.Context) {
+	if protocheckBackend.NewEngine == nil {
+		return
+	}
 	s.protocheckRebuildMu.Lock()
 	defer s.protocheckRebuildMu.Unlock()
 	cfg := s.EngineConfig()
@@ -203,8 +202,8 @@ func (s *Workspace) lookupFunctionLibrary(path string) protoreflect.FileDescript
 	return nil
 }
 
-// buildProtocheckValidator constructs a GoVM-backed protocheck/v2
-// validator, registering the given library descriptors for §9.2
+// buildProtocheckValidator constructs a protocheck/v2 validator on
+// the backend's engine, registering the given library descriptors for §9.2
 // init-time function verification (lenient: declared-but-
 // unimplemented functions become CodeFunctionUnimplemented
 // violations at call time). Failure degrades stepwise — first retry
@@ -213,9 +212,9 @@ func (s *Workspace) lookupFunctionLibrary(path string) protoreflect.FileDescript
 // short-circuits. The returned closer releases the validator's
 // pooled VMs (Validator.Close closes the engine too).
 func buildProtocheckValidator(log *slog.Logger, fds []protoreflect.FileDescriptor, cats map[string]*catalogs.Catalog) (protocheckValidator, func()) {
-	engine, err := protocheckgovm.New()
+	engine, err := protocheckBackend.NewEngine()
 	if err != nil {
-		log.Warn("protocheck govm engine construction failed; data validation disabled",
+		log.Warn("protocheck engine construction failed; data validation disabled",
 			slog.String("err", err.Error()))
 		return nil, nil
 	}

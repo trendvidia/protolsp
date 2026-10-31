@@ -205,12 +205,9 @@ type Workspace struct {
 	analyzeCount atomic.Int64
 
 	// protocheck validates .pxf data against schema-declared
-	// constraints (Phase 1 of the protocheck integration). The
-	// interface type keeps the engine decoupled from the
-	// tagged-only protocheck import graph so the OSS build
-	// (no `protocheck` build tag) compiles without those deps. In
-	// the OSS build this stays nil and the data-validation pass
-	// short-circuits; in the trendvidia build a real
+	// constraints (Phase 1 of the protocheck integration). With no
+	// ProtocheckBackend registered this stays nil and the
+	// data-validation pass short-circuits; otherwise a real
 	// *protocheck.Validator is plugged in via
 	// newProtocheckValidator. Validator implementations are
 	// thread-safe and cache compiled expressions across calls.
@@ -222,7 +219,7 @@ type Workspace struct {
 	// nothing else is acquired while it's held.
 	protocheckMu    sync.RWMutex
 	protocheck      protocheckValidator
-	protocheckClose func() // releases the validator's VMs; nil in OSS build
+	protocheckClose func() // releases the validator's VMs; nil with no backend
 	// protocheckCatalogs holds the §7 locale catalogs loaded from
 	// the engine config's catalog_libraries, keyed by BCP 47 tag —
 	// swapped atomically with the validator they were built for.

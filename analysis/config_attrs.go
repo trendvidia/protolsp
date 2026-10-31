@@ -169,7 +169,7 @@ func (s *Workspace) ReloadAfterConfigEdit(ctx context.Context, workspaceDir stri
 		// Re-derive the protocheck validator: a config edit can
 		// move the workspace's effective §9.4 engine config or flip
 		// whether its function_libraries resolve. Fingerprint-diffed
-		// internally; no-op in the OSS build.
+		// internally; no-op in the community build.
 		s.RebuildProtocheckValidator(ctx)
 	} else {
 		s.reloadSubWorkspace(workspaceDir)
