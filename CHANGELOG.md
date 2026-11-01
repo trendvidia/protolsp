@@ -9,6 +9,9 @@ without a major bump.
 
 ### Changed
 
+- Moved to protoregistry v0.75.1, protocompile v0.38.1, protowire-go v1.13.2 and
+  protos v0.1.4. protocompile is stricter than v0.36.1, so a schema it accepted
+  before can now be reported as an error.
 - **`go mod tidy` works without access to the private modules** (#30).
   `go.mod` required `govm` and `protocheck-govm`, so `go mod tidy` and
   `go mod download` failed for contributors and for projects depending on
