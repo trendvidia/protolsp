@@ -8,9 +8,9 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/stretchr/testify v1.12.1
 	github.com/trendvidia/protocheck/v2 v2.8.0
-	github.com/trendvidia/protocompile v0.36.1
-	github.com/trendvidia/protoregistry v0.74.0
-	github.com/trendvidia/protowire-go v1.12.1
+	github.com/trendvidia/protocompile v0.38.1
+	github.com/trendvidia/protoregistry v0.75.1
+	github.com/trendvidia/protowire-go v1.13.2
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
@@ -24,7 +24,7 @@ require github.com/trendvidia/protowire v1.14.0
 
 require (
 	cel.dev/cel-go v0.33.1
-	github.com/trendvidia/protos v0.1.3
+	github.com/trendvidia/protos v0.1.4
 )
 
 require (
