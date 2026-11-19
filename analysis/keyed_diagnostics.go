@@ -20,14 +20,21 @@ import (
 // Caller holds doc.mu (read or write); this reads doc.keyedFindings and
 // doc.Source without re-locking.
 func (s *Workspace) keyedDiagnostics(doc *Document) []protocol.Diagnostic {
-	if len(doc.keyedFindings) == 0 {
+	return keyedFindingDiagnostics(doc.Source, doc.keyedFindings, s.positionEncoding)
+}
+
+// keyedFindingDiagnostics renders keyed findings against src, the whole
+// document: the body's (keyedDiagnostics) and a @dataset's cells'
+// (validateDatasetRegions) alike, so both read the same in the editor.
+func keyedFindingDiagnostics(src []byte, findings []pxf.KeyedError, enc positions.Encoding) []protocol.Diagnostic {
+	if len(findings) == 0 {
 		return nil
 	}
-	out := make([]protocol.Diagnostic, 0, len(doc.keyedFindings))
-	for i := range doc.keyedFindings {
-		k := doc.keyedFindings[i]
+	out := make([]protocol.Diagnostic, 0, len(findings))
+	for i := range findings {
+		k := findings[i]
 		out = append(out, protocol.Diagnostic{
-			Range:    keyedErrorRange(doc.Source, k.Pos, s.positionEncoding),
+			Range:    keyedErrorRange(src, k.Pos, enc),
 			Severity: protocol.DiagnosticSeverityError,
 			Source:   optString("protolsp/keyed"),
 			Message:  protocol.String(k.Msg),

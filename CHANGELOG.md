@@ -7,7 +7,19 @@ without a major bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A keyed violation inside a `@dataset` cell is shown at the entry** (#33).
+  A duplicate key, an empty key, a key conflict or a quoted name on an
+  unkeyed field in a cell got no squiggle, though the decoder refuses the
+  row. Each one is now a `protolsp/keyed` diagnostic on its own entry, as in
+  a document body, for a typed `@dataset` and a typeless one bound to an
+  anonymous `@proto`.
+
 ### Changed
+
+- Moved to protowire-go v1.17.1-0.20261119102124-c73a51976918, for
+  `pxf.DatasetKeyedDiagnostics` (trendvidia/protowire-go#300).
 
 - Moved to protoregistry v0.75.1, protocompile v0.38.1, protowire-go v1.13.2 and
   protos v0.1.4. protocompile is stricter than v0.36.1, so a schema it accepted

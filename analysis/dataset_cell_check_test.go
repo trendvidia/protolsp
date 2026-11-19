@@ -184,3 +184,31 @@ func TestHideAnonNames(t *testing.T) {
 	assert.Equal(t, `unknown field "nope" in the anonymous @proto row type`, hideAnonNames(`unknown field "nope" in `+anonPrefix+`12`))
 	assert.Equal(t, `unknown field "nope" in c.v1.Sub`, hideAnonNames(`unknown field "nope" in c.v1.Sub`))
 }
+
+// rowProblem drops a decoder error that is a *pxf.KeyedError, because
+// validateDatasetRegions reports every keyed violation at its entry
+// (#33). That holds only while the decoder refuses each such row with a
+// *pxf.KeyedError: an error of another type would be reported twice,
+// and a row the decoder accepts would be a keyed finding it disagrees
+// with.
+func TestRowProblem_KeyedErrorIsTheKeyedFindings(t *testing.T) {
+	desc := decoderCheckRowType(t)
+	for _, tc := range []struct{ col, cell string }{
+		{"items", `{ a {} a {} }`},
+		{"items", `{ "" {} }`},
+		{"items", `{ a { id = "b" } }`},
+		{"sub", `{ "q" {} }`},
+		{"plain", `[{ "q" {} }]`},
+	} {
+		t.Run(tc.col+" "+tc.cell, func(t *testing.T) {
+			doc, err := pxf.Parse([]byte(fmt.Sprintf("@dataset c.v1.R (%s)\n(%s)\n", tc.col, tc.cell)))
+			require.NoError(t, err)
+			ds := &doc.Datasets[0]
+			require.Len(t, pxf.DatasetKeyedDiagnostics(ds, desc), 1, "one keyed finding")
+			bindErr := pxf.BindRow(dynamicpb.NewMessage(desc), ds.Columns, ds.Rows[0])
+			var ke *pxf.KeyedError
+			require.ErrorAs(t, bindErr, &ke, "the decoder refuses the row with a keyed error")
+			assert.Empty(t, validateRows(ds, desc), "and the row check leaves it to the keyed findings")
+		})
+	}
+}
