@@ -18,7 +18,7 @@ without a major bump.
 
 ### Changed
 
-- Moved to protowire-go v1.17.1-0.20261119102124-c73a51976918, for
+- Moved to protowire-go v1.18.0, for
   `pxf.DatasetKeyedDiagnostics` (trendvidia/protowire-go#300).
 
 - Moved to protoregistry v0.75.1, protocompile v0.38.1, protowire-go v1.13.2 and
