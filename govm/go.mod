@@ -29,7 +29,7 @@ require (
 	github.com/trendvidia/protoregistry v0.75.1 // indirect
 	github.com/trendvidia/protos v0.1.4 // indirect
 	github.com/trendvidia/protowire v1.14.0 // indirect
-	github.com/trendvidia/protowire-go v1.13.2 // indirect
+	github.com/trendvidia/protowire-go v1.18.0 // indirect
 	go.lsp.dev/jsonrpc2 v1.0.1 // indirect
 	go.lsp.dev/uri v1.0.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect

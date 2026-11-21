@@ -10,7 +10,7 @@ require (
 	github.com/trendvidia/protocheck/v2 v2.8.0
 	github.com/trendvidia/protocompile v0.38.1
 	github.com/trendvidia/protoregistry v0.75.1
-	github.com/trendvidia/protowire-go v1.13.2
+	github.com/trendvidia/protowire-go v1.18.0
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1

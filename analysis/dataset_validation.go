@@ -36,7 +36,9 @@
 // what it decides from the value rather than its kind: an int out of
 // range, a name the enum lacks, a map key its key type cannot parse,
 // and what a message block holds. Its error lands on the cell
-// it names.
+// it names. A keyed violation (a duplicate key, an empty key, a key
+// conflict, a quoted name on an unkeyed field) is reported instead by
+// pxf.DatasetKeyedDiagnostics, every one at its own entry (protolsp#33).
 
 package analysis
 
@@ -111,6 +113,9 @@ func (s *Workspace) validateDatasetRegions(doc *Document) []protocol.Diagnostic 
 		}
 		desc := mt.Descriptor()
 		out = append(out, validateRows(parsed, desc)...)
+		// Keyed violations in the cells (draft -01 §3.13), every one at
+		// its own entry, as the body's are (protolsp#33).
+		out = append(out, keyedFindingDiagnostics(doc.Source, pxf.DatasetKeyedDiagnostics(parsed, desc), s.positionEncoding)...)
 	}
 	return out
 }
@@ -201,7 +206,11 @@ func validateRows(d *pxf.DatasetDirective, desc protoreflect.MessageDescriptor) 
 // column's cell, and on the row when it names none.
 func rowProblem(d *pxf.DatasetDirective, desc protoreflect.MessageDescriptor, row pxf.DatasetRow) (pxf.Position, string) {
 	err := pxf.BindRow(dynamicpb.NewMessage(desc), d.Columns, row)
-	if err == nil {
+	// A keyed violation is reported at its entry, with every other one
+	// in the row, by validateDatasetRegions; the decoder stops at the
+	// first and places it on the row, so it is not reported twice.
+	var keyedErr *pxf.KeyedError
+	if err == nil || errors.As(err, &keyedErr) {
 		return pxf.Position{}, ""
 	}
 	pos, msg := row.Pos, err.Error()
